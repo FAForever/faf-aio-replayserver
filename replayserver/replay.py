@@ -292,6 +292,9 @@ class ReplayServer:
         try:
             type_ = await connection.determine_type()
             uid, replay_name = await connection.get_replay_name()
+            if (type_ == ReplayConnection.Type.READER
+                    and uid not in self._replays):
+                raise ConnectionError("Can't read a nonexisting stream!")
             replay = self.get_replay(uid)
             if type_ == ReplayConnection.Type.READER:
                 replay.sender.add_reader(connection)

@@ -10,7 +10,6 @@ class ReplayConnection:
     def __init__(self, reader, writer):
         self.reader = reader
         self.writer = writer
-        self.position = 0
         self.type = None
         self.uid = None
         self.name = None
@@ -40,13 +39,9 @@ class ReplayConnection:
         except (LimitOverrunError, ValueError, UnicodeDecodeError):
             raise ConnectionError("Unexpected data received")
 
-    async def read(self, replay):
-        while True:
-            data = await self.reader.read(4096)
-            if not data:
-                break
-            await replay.feed(self.position, data)
-            self.position += len(data)
+    async def read(self, size):
+        data = await self.reader.read(size)
+        return data
 
     async def write(self, data):
         self.writer.write(data)

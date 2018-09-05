@@ -2,6 +2,7 @@ import asyncio
 from asyncio.locks import Event
 from io import BytesIO
 from replayserver.errors import StreamEndedError
+from replayserver.replaystream import ReplayStream
 
 
 class ReplayMerger:
@@ -9,13 +10,12 @@ class ReplayMerger:
 
     def __init__(self, loop):
         self._loop = loop
-        self._writers = set()
-        self._write_futures = set()
-        self._ended = Event(loop=self.loop)
+        self._streams = set()
+        self._ended = Event(loop=self._loop)
         self._grace_period = None
 
         self.position = 0
-        self.data = BytesIO()
+        self.data = bytearray()
 
     @property
     def ended(self):
@@ -24,49 +24,41 @@ class ReplayMerger:
     def add_writer(self, writer):
         if self.ended:
             raise StreamEndedError("Tried to add a writer to an ended stream!")
-        self._writers.add(writer)
+        stream = ReplayStream(writer, self)
+        self._streams.add(stream)
         if self._grace_period is not None:
             self._grace_period.cancel()
             self._grace_period = None
-        f = asyncio.ensure_future(writer.read(self), loop=self.loop)
-        f.add_done_callback(lambda f: self._end_writer(f, writer))
-        self._write_futures.add(f)
+        stream.start_read_future()
 
-    def remove_writer(self, writer):
-        self._writers.remove(writer)
+    def remove_stream(self, stream):
+        self._writers.remove(stream)
         if not self.writers:
             if self._grace_period is not None:
                 self._grace_period.cancel()
             self._grace_period = asyncio.ensure_future(
-                self._no_writers_grace_period(), loop=self.loop)
+                self._no_streams_grace_period(), loop=self.loop)
 
-    def _end_writer(self, future, writer):
-        self._write_futures.remove(future)
-        self.remove_writer(writer)
+    def stream_ended(self, stream):
+        self.remove_stream(stream)
 
-    async def _no_writers_grace_period(self):
+    async def _no_streams_grace_period(self):
         await asyncio.sleep(self.GRACE_PERIOD, loop=self.loop)
-        if not self._writers:
-            self._ended.set()
+        self.close()
 
     def close(self):
-        for f in self._write_futures:
-            f.cancel()
-        for w in self._writers:
+        for w in self._streams:
             w.close()
         self._ended.set()
 
-    async def feed(self, offset, data):
-        assert(self.position >= offset)
-        data_end = offset + len(data)
-        if self.position >= data_end:
+    # TODO - use strategies here
+    async def on_new_data(self, stream):
+        if len(self.data) >= stream.position:
             return
-        start = self.position - data_end
-        self.data.write(data[start:])
+        self.data += stream.data[len(self.data):]
 
     def get_data(self, start, end):
-        self.data.seek(start)
-        return self.data.read(end - start)
+        return self.data[start:end]
 
     async def wait_for_ended(self):
         await self._ended.wait()

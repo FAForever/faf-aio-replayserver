@@ -28,7 +28,7 @@ class ReplayStream:
         if self._grace_period is not None:
             self._grace_period.cancel()
             self._grace_period = None
-        f = asyncio.ensure_future(writer.read_replay(self), loop=self.loop)
+        f = asyncio.ensure_future(writer.read(self), loop=self.loop)
         f.add_done_callback(lambda f: self._end_writer(f, writer))
         self._write_futures.add(f)
 

@@ -47,7 +47,7 @@ class ReplaySender:
             new_position = self.timestamp.position(stamp)
             data = self._stream.get_data(position, new_position)
             position = new_position
-            await reader.write_replay(data)
+            await reader.write(data)
 
     def close(self):
         for f in self._read_futures:

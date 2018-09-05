@@ -22,13 +22,13 @@ class Replays(Mapping):
     def __len__(self):
         return len(self._replays)
 
-    def get_matching(self, uid, connection_type):
-        if (connection_type == ReplayConnection.Type.READER
-                and uid not in self._replays):
+    def get_matching_replay(self, connection):
+        if (connection.type == ReplayConnection.Type.READER
+                and connection.uid not in self._replays):
             raise ValueError("Can't read a nonexisting stream!")
-        if uid not in self._replays:
-            self._create(uid)
-        return self[uid]
+        if connection.uid not in self._replays:
+            self._create(connection.uid)
+        return self[connection.uid]
 
     def _create(self, uid):
         if uid in self._replays:
@@ -74,13 +74,12 @@ class ReplayServer:
     async def handle_connection(self, reader, writer):
         connection = ReplayConnection(reader, writer)
         try:
-            type_ = await connection.determine_type()
-            uid, replay_name = await connection.get_replay_name()
+            await connection.read_header()
             try:
-                replay = self._replays.get_matching(uid, type_)
+                replay = self._replays.get_matching_replay(connection)
             except ValueError as e:
                 raise ConnectionError from e
-            if type_ == ReplayConnection.Type.READER:
+            if connection.type == ReplayConnection.Type.READER:
                 replay.sender.add_reader(connection)
             else:
                 replay.stream.add_writer(connection)

@@ -1,5 +1,6 @@
 import asyncio
 from replayserver.replaysender import ReplaySender
+from replayserver.replayconnection import ReplayConnection
 from replayserver.replaystream import ReplayStream
 
 
@@ -8,6 +9,14 @@ class Replay:
         self._loop = asyncio.get_event_loop()
         self.stream = ReplayStream(self._loop)
         self.sender = ReplaySender(self.stream, self._loop)
+
+    def add_connection(self, connection):
+        if connection.type == ReplayConnection.Type.READER:
+            self.sender.add_reader(connection)
+        elif connection.type == ReplayConnection.Type.WRITER:
+            self.stream.add_writer(connection)
+        else:
+            raise ValueError("Invalid connection type")
 
     def close(self):
         self.stream.close()

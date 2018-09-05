@@ -79,10 +79,7 @@ class ReplayServer:
                 replay = self._replays.get_matching_replay(connection)
             except ValueError as e:
                 raise ConnectionError from e
-            if connection.type == ReplayConnection.Type.READER:
-                replay.sender.add_reader(connection)
-            else:
-                replay.stream.add_writer(connection)
+            replay.add_connection(connection)
         except (ConnectionError, StreamEndedError):
             # TODO - log
             await connection.close()

@@ -1,13 +1,13 @@
 import asyncio
 from replayserver.replaysender import ReplaySender
 from replayserver.replayconnection import ReplayConnection
-from replayserver.replaystream import ReplayStream
+from replayserver.replaymerger import ReplayMerger
 
 
 class Replay:
     def __init__(self):
         self._loop = asyncio.get_event_loop()
-        self.stream = ReplayStream(self._loop)
+        self.stream = ReplayMerger(self._loop)
         self.sender = ReplaySender(self.stream, self._loop)
 
     def add_connection(self, connection):

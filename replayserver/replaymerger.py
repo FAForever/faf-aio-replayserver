@@ -4,7 +4,7 @@ from io import BytesIO
 from replayserver.errors import StreamEndedError
 
 
-class ReplayStream:
+class ReplayMerger:
     GRACE_PERIOD = 30
 
     def __init__(self, loop):

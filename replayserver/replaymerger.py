@@ -1,7 +1,7 @@
 import asyncio
 from asyncio.locks import Event
 from replayserver.errors import StreamEndedError
-from replayserver.replaystream import ReplayStreamReader
+from replayserver.replaystream import ConnectionReplayStream
 
 
 class ReplayStreamLifetime:
@@ -52,18 +52,28 @@ class ReplayMerger:
         self._loop = loop
         self._lifetime = ReplayStreamLifetime()
         self._connections = set()
-        self.position = 0
-        self.data = bytearray()
+        self._merge_strategy = None     # TODO
 
     async def handle_connection(self, connection):
-        if self._lifetime.ended:
+        if self._lifetime.ended.is_set():
             raise StreamEndedError("Tried to add a writer to an ended stream!")
-        stream = ReplayStreamReader(connection, self)
+        stream = ConnectionReplayStream(connection, self)
         self._connections.add(connection)
         self._lifetime.stream_added()
-        await stream._read_all()
+        await self._handle_stream(stream)
         self._lifetime.stream_removed()
         self._connections.remove(connection)
+
+    async def _handle_stream(self, stream):
+        try:
+            stream.read_header()
+        except ValueError:  # TODO
+            return  # TODO
+        self._merge_strategy.stream_added(stream)
+        while not stream.is_complete():
+            await stream.read()
+            self._merge_strategy.new_data(stream)
+        self._merge_strategy.stream_removed(stream)
 
     def do_not_wait_for_more_connections(self):
         self._lifetime.disable_grace_period()
@@ -71,15 +81,6 @@ class ReplayMerger:
     def close(self):
         for c in self._connections:
             c.close()
-
-    # TODO - use strategies here
-    async def on_new_data(self, stream):
-        if len(self.data) >= stream.position:
-            return
-        self.data += stream.data[len(self.data):]
-
-    def get_data(self, start, end):
-        return self.data[start:end]
 
     async def wait_for_ended(self):
         await self._lifetime.ended.wait()

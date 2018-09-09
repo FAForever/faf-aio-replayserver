@@ -1,52 +1,50 @@
-from asyncio.locks import Condition
-
-
 class ReplayStream:
-    def __init__(self):
+    """
+    Has to be called before read_data.
+    """
+    async def read_header(self):
+        raise NotImplementedError
+
+    async def read(self):
+        raise NotImplementedError
+
+    def data_length(self):
+        raise NotImplementedError
+
+    def data_from(self, position):
+        raise NotImplementedError
+
+    def is_complete(self):
+        raise NotImplementedError
+
+    async def read_data(self, position):
+        while position >= self.data_length() and not self.is_complete():
+            await self.read()
+        return self.data_from(position)
+
+
+class ConnectionReplayStream(ReplayStream):
+    def __init__(self, connection):
+        ReplayStream.__init__(self)
+        self._connection = connection
         self.header = None
-        self.data = bytearray()   # TODO - don't keep the entire replay
-        self._data_or_done = Condition()
+        self.data = bytearray()
         self._finished = False
 
-    async def _get_header(self):
+    async def read_header(self):
         pass    # TODO
 
-    def put_data(self, data):
-        # TODO - get the header first
+    async def read(self):
+        data = self._connection.read(4096)
+        if not data:
+            self._finished = True
         self.data += data
-        self._data_or_done.notify_all()
 
-    def finish(self):
-        self._finished = True
-        self._data_or_done.notify_all()
+    def data_length(self):
+        return len(self.data)
 
-    async def get_data(self, data, position):
-        self._wait_for_data(position)
-        if position >= len(self.data):
-            return bytes()
+    def data_from(self, position):
         return self.data[position:]
 
-    def _wait_for_data(self, position):
-        self._data_or_done.lock()
-        self._data_or_done.wait_for(self._have_data(position))
-        self._data_or_done.release()
-
-    def _have_data(self, position):
-        return self._finished or position < len(self.data)
-
-
-class ReplayStreamReader:
-    def __init__(self, connection):
-        self.stream = ReplayStream()
-        self._connection = connection
-
-    async def read_all(self):
-        while True:
-            data = self._connection.read(4096)
-            if not data:
-                break
-            self.stream.put_data(data)
-        self.stream.finish()
-
-    def close(self):
-        self._connection.close()
+    def is_complete(self):
+        return self._finished

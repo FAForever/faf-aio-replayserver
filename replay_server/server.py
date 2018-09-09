@@ -21,34 +21,35 @@ class ReplayServer:
         """
         Main method, that handle db_connection
         """
-        logger.info("Connection established...")
         connection = ReplayConnection(reader, writer)
+        logger.info("<%s> Connection established...", connection)
         replay_worker = None
         try:
             request_type = await connection.determine_type()
             uid, replay_name = await connection.get_replay_name()
             info = "Saving" if request_type == 0 else "Serving"
-            logger.info("%s for %s, %s", info, str(uid), replay_name)
+            logger.info("<%s> %s for %s, '%s'", connection, info, str(uid), replay_name)
 
             replay_worker = WorkerFactory.get_worker(uid, request_type, connection)
             WorkerStorage.add_worker(uid, replay_worker)
             await replay_worker.run()
         except ConnectionError as e:
-            logger.exception("Connection problems occurs!")
+            logger.exception("<%s> Connection problems occurs!", connection)
             if replay_worker:
-                replay_worker.cleanup()
+                await replay_worker.cleanup()
             connection.writer.write(str(e).encode('raw_unicode_escape'))
         except Exception as e:
-            logger.exception("Something goes terribly wrong!")
+            logger.exception("<%s> Something goes terribly wrong!", connection)
             if replay_worker:
-                replay_worker.cleanup()
-            connection.writer.write("Wrong request".encode('raw_unicode_escape'))
+                await replay_worker.cleanup()
+            connection.writer.write("Wrong request: ".encode('raw_unicode_escape'))
             connection.writer.write(str(e).encode('raw_unicode_escape'))
+            await connection.close()
         finally:
             try:
                 await connection.close()
             except Exception:
-                logger.exception("Something goes terribly wrong during connection close")
+                logger.exception("<%s> Something goes terribly wrong during connection close", connection)
 
     async def start(self):
         """
@@ -64,7 +65,8 @@ class ReplayServer:
         logger.info("Stopping server on port %s", self._port)
 
         await db.close()
-        self._server.close()
-        await self._server.wait_closed()
+        if self._server:
+            self._server.close()
+            await self._server.wait_closed()
         logger.info("Successfully closed")
 

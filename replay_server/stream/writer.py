@@ -18,26 +18,27 @@ class ReplayWriter(ReplayWorkerBase):
 
     def __init__(self, buffer: RawIOBase, *args: List[Any], **kwargs: Dict[Any, Any]):
         super(ReplayWriter, self).__init__(*args, **kwargs)
-        self.buffer = buffer
-        logger.info("Prepared to save stream for %s", self.get_uid())
+        self.buffer: RawIOBase = buffer
+        self.position: int = 0
+        logger.info("<%s> Prepared to save stream %s for", self._connection, self.get_uid())
 
-    async def process(self):
+    async def process(self) -> None:
         """
         Saves stream into the file
         """
-        logger.info("Reading save stream for %s", self.get_uid())
+        logger.info("<%s> Reading save stream for %s", self._connection, self.get_uid())
         while True:
             data = await self._connection.reader.read(WRITE_BUFFER_SIZE)
-            logger.debug("Write len data %s on position %s", len(data), self.position)
+            logger.debug("<%s> Write len data %s on position %s", self._connection, len(data), self.position)
             if not data:
                 break
 
             self.feed(self.position, data)
             self.position += len(data)
 
-        logger.info("Finished save stream for %s with length %s", self.get_uid(), self.position)
+        logger.info("<%s> Finished save stream for %s with length %s", self._connection, self.get_uid(), self.position)
 
-    def feed(self, offset: int, data: bytearray):
+    def feed(self, offset: int, data: bytes) -> None:
         """
         Writes data into the buffer
         """
@@ -48,8 +49,11 @@ class ReplayWriter(ReplayWorkerBase):
             self.buffer.write(data[start:])
             self.position = data_end
 
-    async def cleanup(self):
-        logger.info("Closing buffer for for %s", self.get_uid())
+    async def cleanup(self) -> None:
+        """
+        Closes buffers, removes worker from active workers, saves replay, if there is no writers.
+        """
+        logger.info("<%s> Closing buffer for for %s", self._connection, self.get_uid())
         self.buffer.close()
 
         # remove current worker from storage
@@ -60,10 +64,14 @@ class ReplayWriter(ReplayWorkerBase):
 
         writers_online = any([isinstance(online_processor, ReplayWriter) for online_processor in online_workers])
         if not writers_online and ReplayStorage.has_replays(self.get_uid()):
-            logger.info("There is no writers online, saving replay")
-            await save_replay(self.get_uid(), ReplayStorage.get_replays(self.get_uid()).keys())
+            logger.info("<%s> There is no writers online, saving replay", self._connection)
+            await save_replay(
+                self.get_uid(),
+                list(ReplayStorage.get_replays(self.get_uid()).keys()),
+                ReplayStorage.get_replay_start_time(self.get_uid()),
+            )
 
         if len(online_workers) == 0:
             ReplayStorage.remove_replay_data(self.get_uid())
 
-        logger.info("Closed buffer for for %s", self.get_uid())
+        logger.info("<%s> Closed buffer for for %s", self._connection, self.get_uid())

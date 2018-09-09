@@ -4,6 +4,7 @@ from typing import List
 import aiomysql
 from aiomysql import create_pool, Pool
 
+from replay_server.logger import logger
 from replay_server.constants import MYSQL_DNS
 
 
@@ -31,6 +32,7 @@ class DB:
         if not params:
             params = []
 
+        logger.debug("'%s' with params '%s'", query, str(params))
         if self.testing_conn:
             async with self.testing_conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(query, *params)

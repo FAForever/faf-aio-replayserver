@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+
 pyclean .
 rm -r tmp/*
 rm -r replays/*
-STREAM_ENDED_TIMEOUT=0 python3.6 -m pytest --cov=replay_server --cov-report=html -rxs `find ./tests/ -iname "*.py"`
+
+DATABASE_WRITE_WAIT_TIME=0.1 python3.6 -m pytest --cov=replay_server  -rxs `find ./tests/fixtures/ ./tests/server/ ./tests/conftest.py -iname "*.py"`

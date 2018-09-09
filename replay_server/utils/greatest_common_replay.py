@@ -1,9 +1,10 @@
-from io import RawIOBase, SEEK_END, FileIO
+from io import SEEK_END, FileIO
 from plistlib import Dict
-from typing import List
+from typing import List, Optional
+
+from replay_parser.replay import parse
 
 from replay_server.logger import logger
-from replay_server.replay_parser.replay_parser.parser import parse
 
 __all__ = (
     'get_greatest_common_stream',
@@ -11,7 +12,18 @@ __all__ = (
 )
 
 
-def _get_stream_part(buffer: RawIOBase, position: int, size: int) -> bytearray:
+def get_buffer_size(buffer: FileIO) -> int:
+    """
+    Computes buffers size
+    """
+    current_position = buffer.tell()
+    buffer.seek(0, SEEK_END)
+    file_size = buffer.tell()
+    buffer.seek(current_position)
+    return file_size
+
+
+def _get_stream_part(buffer: FileIO, position: int, size: int) -> Optional[bytes]:
     """
     Reads reads part of stream from position, with some size
     """
@@ -19,25 +31,32 @@ def _get_stream_part(buffer: RawIOBase, position: int, size: int) -> bytearray:
     buffer.seek(position)
     stream_part = buffer.read(size)
     buffer.seek(previous_position)
-    return bytearray(stream_part)
+    return stream_part
 
 
 def get_greatest_common_stream(
-        buffers: List[RawIOBase],
+        buffers: List[FileIO],
         buffers_positions: List[int],
         position: int,
         size: int =-1
-) -> bytearray:
+) -> Optional[bytes]:
     """
     That method will return greatest common stream from position, with some size.
     """
 
-    greatest_common_stream = None
+    greatest_common_stream: Optional[bytes] = None
     greatest_common_count = 0
 
-    # for one or two streams no reason to check if there is any common part
     if len(buffers) <= 2:
-        return _get_stream_part(buffers[0], buffers_positions[0] + position, size)
+        buffer = buffers[0]
+        buffer_position = buffers_positions[0]
+
+        # if second stream is bigger than first one, we get second one
+        if len(buffers) > 1 and get_buffer_size(buffers[1]) > get_buffer_size(buffers[0]):
+            buffer = buffers[1]
+            buffer_position = buffers_positions[1]
+
+        return _get_stream_part(buffer, buffer_position + position, size)
 
     stream_information = get_common_buffers_info(buffers, buffers_positions, position, size)
     stream_keys = stream_information.keys()
@@ -53,7 +72,7 @@ def get_greatest_common_stream(
 
 
 def get_common_buffers_info(
-        buffers: List[RawIOBase],
+        buffers: List[FileIO],
         buffers_positions: List[int],
         position: int,
         size: int = -1
@@ -67,10 +86,7 @@ def get_common_buffers_info(
     # get buffers information: file handler id and file length
     for i, buffer in enumerate(buffers):
         file_no = buffer.fileno()
-        current_position = buffer.tell()
-        buffer.seek(0, SEEK_END)
-        file_size = buffer.tell()
-        buffer.seek(current_position)
+        file_size = get_buffer_size(buffer)
         stream_part = _get_stream_part(buffer, buffers_positions[i] + position, size)
         stream_information[file_no] = {"file_size": file_size, "stream_part": stream_part}
 
@@ -100,7 +116,7 @@ def get_replay(paths: List[str]) -> str:
     """
     logger.debug("Finding greatest common replay stream for paths: %s", str(paths))
     file_nos: Dict[int, str] = {}  # list of buffers file handler ids
-    buffers: List[RawIOBase] = []
+    buffers: List[FileIO] = []
     try:
         for path in paths:
             buffer = FileIO(path, "rb")
@@ -110,7 +126,7 @@ def get_replay(paths: List[str]) -> str:
         body_positions = []
         for buffer in buffers:
             try:
-                replay = parse(buffer)
+                replay = parse(buffer, parse_body=False)
                 body_positions.append(replay['body_offset'])
             except ValueError as e:
                 logger.exception("Wrong replay structure")

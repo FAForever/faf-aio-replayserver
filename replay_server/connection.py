@@ -16,8 +16,8 @@ class ReplayConnection:
     def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         self.reader: asyncio.StreamReader = reader
         self.writer: asyncio.StreamWriter = writer
-        self.uid: int = None
-        self.game_name: str = None
+        self.uid: Optional[int] = None
+        self.game_name: Optional[str] = None
 
     async def get_type(self) -> Optional[int]:
         """
@@ -34,7 +34,7 @@ class ReplayConnection:
         """
         Determines which action client is asking for.
         """
-        logger.debug("Determining action type")
+        logger.debug("<%s> Determining action type", self)
         try:
             action = await self.get_type()
             if action is None:
@@ -47,12 +47,12 @@ class ReplayConnection:
         """
         Parses request and returns uid & name
         """
-        logger.debug("Getting replay name")
+        logger.debug("<%s> Getting replay name", self)
         try:
             line = (await self.reader.readuntil(TERMINATOR))[:-1].decode()
-            self.uid, self.game_name = line.split("/", 1)
+            uid, self.game_name = line.split("/", 1)
             try:
-                self.uid = int(self.uid)
+                self.uid = int(uid)
             except ValueError:
                 raise ConnectionError("Invalid data")
             return self.uid, self.game_name
@@ -62,6 +62,9 @@ class ReplayConnection:
             raise ConnectionError("Replay name: Unexpected data received")
 
     async def close(self):
-        logger.debug("Closing connection...")
+        logger.debug("<%s> Closing connection...", self)
         self.writer.close()
-        logger.debug("Connection closed")
+        logger.debug("<%s> Connection closed", self)
+
+    def __str__(self):
+        return str(id(self))

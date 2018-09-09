@@ -1,5 +1,9 @@
+import os
 from io import FileIO
+from time import time
 from typing import Dict
+
+from replay_server.logger import logger
 
 __all__ = ('ReplayStorage',)
 
@@ -10,20 +14,34 @@ class ReplayStorage:
     """
     # List of byte arrays, where data are stored.
     replay_data: Dict[int, Dict[str, FileIO]] = {}
+    replay_start_time: Dict[int, int] = {}
 
     @classmethod
-    def get_replays(cls, uid: int):
+    def get_replays(cls, uid: int) -> Dict[str, FileIO]:
         return cls.replay_data[uid]
 
     @classmethod
-    def has_replays(cls, uid: int):
+    def has_replays(cls, uid: int) -> bool:
         return uid in cls.replay_data
 
     @classmethod
-    def set_replay(cls, uid: int, file_path: str, file_: FileIO):
+    def set_replay(cls, uid: int, file_path: str, file_: FileIO) -> None:
+        logger.debug("ReplayStorage: Setting path %s", file_path)
         cls.replay_data.setdefault(uid, {})[file_path] = file_
+        if uid not in cls.replay_start_time:
+            cls.replay_start_time[uid] = int(time())
 
     @classmethod
-    def remove_replay_data(cls, uid: int):
+    def remove_replay_data(cls, uid: int) -> None:
         if uid in cls.replay_data:
+            # We have saved replay, so we don't need old replays
+            for temporary_file in cls.replay_data[uid]:
+                logger.debug("ReplayStorage: Deleting path %s", temporary_file)
+                os.unlink(temporary_file)
+
             del cls.replay_data[uid]
+            del cls.replay_start_time[uid]
+
+    @classmethod
+    def get_replay_start_time(cls, uid: int) -> int:
+        return cls.replay_start_time.get(uid, int(time()))

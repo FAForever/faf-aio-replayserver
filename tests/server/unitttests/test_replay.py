@@ -1,6 +1,6 @@
 from replay_server import constants
 from replay_server.utils.paths import get_temp_replay_path, get_replay_path
-from replay_server.replay_parser.replay_parser import parser
+from replay_parser import replay as parser
 from replay_server.utils.greatest_common_replay import get_replay
 
 
@@ -21,7 +21,7 @@ def test_replay_structure(replay_data):
     """
     Checks if replay some data after parse.
     """
-    result = parser.parse(replay_data)
+    result = parser.parse(replay_data, parse_body=False)
     assert result['body_offset'] > 0
     assert result['header']
 
@@ -32,7 +32,7 @@ def test_replay_parser_header(replays_data):
     """
     biggest_header = None
     for data in replays_data():
-        header = parser.parse(data)['header']
+        header = parser.parse(data, parse_body=False)['header']
         if not biggest_header:
             biggest_header = header
         else:

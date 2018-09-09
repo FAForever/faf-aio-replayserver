@@ -1,4 +1,5 @@
 from io import FileIO
+from typing import Union
 
 from replay_server.connection import ReplayConnection
 from replay_server.constants import RequestType
@@ -15,7 +16,7 @@ class WorkerFactory:
     Create workers
     """
     @classmethod
-    def get_worker(cls, uid: int, type_: int, connection: ReplayConnection):
+    def get_worker(cls, uid: int, type_: int, connection: ReplayConnection) -> Union[ReplayReader, ReplayWriter]:
         """
         Factory, that creates replay with worker.
         For reading returns biggest replay from the server.

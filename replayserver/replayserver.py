@@ -1,23 +1,12 @@
 import asyncio
-from collections.ABC import Mapping
-
 from replayserver.replayconnection import ReplayConnection
 from replayserver.replay import Replay
 from replayserver.errors import StreamEndedError
 
 
-class Replays(Mapping):
+class Replays:
     def __init__(self):
         self._replays = {}
-
-    def __getitem__(self, uid):
-        return self._replays[uid]
-
-    def __iter__(self):
-        return iter(self._replays)
-
-    def __len__(self):
-        return len(self._replays)
 
     def get_matching_replay(self, connection):
         if (connection.type == ReplayConnection.Type.READER
@@ -25,7 +14,7 @@ class Replays(Mapping):
             raise ValueError("Can't read a nonexisting stream!")
         if connection.uid not in self._replays:
             self._create(connection.uid)
-        return self[connection.uid]
+        return self._replays[connection.uid]
 
     def _create(self, uid):
         if uid in self._replays:

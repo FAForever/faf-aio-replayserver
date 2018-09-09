@@ -1,0 +1,3 @@
+[submodule "replay_server/replay_parser"]
+	path = replay_server/replay_parser
+	url = https://github.com/norraxx/faf-replay-parser.git

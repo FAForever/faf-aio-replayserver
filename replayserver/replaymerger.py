@@ -1,30 +1,32 @@
 import asyncio
 from asyncio.locks import Event
 from replayserver.errors import StreamEndedError
-from replayserver.replaystream import ReplayStream
+from replayserver.replaystream import ReplayStreamReader
 
 
 class ReplayStreamLifetime:
     GRACE_PERIOD = 30
 
     def __init__(self):
-        self._streams = set()
+        self._stream_count = 0
         self.ended = Event()
         self._grace_period = None
+        self._grace_period_enabled = True
 
-    def add_stream(self, stream):
-        self._streams.add(stream)
+    def stream_added(self):
+        self._stream_count += 1
         self._cancel_grace_period()
 
-    def remove_stream(self, stream):
-        self._streams.discard(stream)
-        if not self._streams:
+    def stream_removed(self):
+        self._stream_count -= 1
+        if self._stream_count == 0:
             self._start_grace_period()
 
-    def end(self):
-        self._streams.clear()
-        self._cancel_grace_period()
-        self.ended.set()
+    def disable_grace_period(self):
+        self._grace_period_enabled = False
+        if self._grace_period is not None:
+            self._cancel_grace_period()
+            self._start_grace_period()
 
     def _cancel_grace_period(self):
         if self._grace_period is not None:
@@ -37,7 +39,11 @@ class ReplayStreamLifetime:
                 self._no_streams_grace_period())
 
     async def _no_streams_grace_period(self):
-        await asyncio.sleep(self.GRACE_PERIOD, loop=self.loop)
+        if self._grace_period_enabled:
+            grace_period = self.GRACE_PERIOD
+        else:
+            grace_period = 0
+        await asyncio.sleep(grace_period)
         self.ended.set()
 
 
@@ -49,22 +55,27 @@ class ReplayMerger:
         self.position = 0
         self.data = bytearray()
 
-    @property
-    def ended(self):
-        return self._lifetime.ended.is_set()
-
     def add_writer(self, writer):
-        if self.ended:
+        if self._lifetime.ended:
             raise StreamEndedError("Tried to add a writer to an ended stream!")
-        stream = ReplayStream(writer, self)
-        self._lifetime.add_stream(stream)
+        stream = ReplayStreamReader(writer, self)
+        self._lifetime.stream_added()
         self._streams.add(stream)
-        stream.start_read_future()
+        asyncio.ensure_future(self._read_stream(stream))
 
-    def close(self):
+    async def _read_stream(self, stream):
+        await stream.read_all()
+        self._remove_stream(stream)
+
+    def _remove_stream(self, stream):
+        self._streams.remove(stream)
+        self._lifetime.stream_removed()
+
+    async def close(self):
+        self._lifetime.disable_grace_period()
         for w in self._streams:
             w.close()
-        self._lifetime.end()
+        await self._lifetime.ended.wait()
 
     # TODO - use strategies here
     async def on_new_data(self, stream):

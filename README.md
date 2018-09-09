@@ -26,10 +26,8 @@ Project directory structure:
 
 TODO things:
 
-    1. dockerfile
-    2. bugsnag
-    3. tests + deployment (https://github.com/FAForever/faf-java-api/blob/develop/.travis.yml) 
+    1. tests + deployment (https://github.com/FAForever/faf-java-api/blob/develop/.travis.yml)
         + docker push (https://github.com/FAForever/server/blob/develop/.travis.yml)
-    4. Sleep 5 min, before stream starts
+    2. Sleep 5 min, before stream starts
 
 

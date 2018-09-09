@@ -4,6 +4,8 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file_
 
 # logging
 LOGGING_LEVEL = int(os.environ.get("LOGGING_LEVEL", 20))  # INFO = 20 DEBUG = 10 ERROR = 40
+ENV = os.environ.get("ENVIRONMENT", "development")  # in production it MUST be "production"
+APP_VERSION = os.environ.get("APP_VERSION", "0.1")  # used for bugsnag logging
 
 # server config
 PORT = int(os.environ.get("PORT", 15000))

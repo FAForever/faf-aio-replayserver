@@ -1,0 +1,24 @@
+language: python
+python: 3.6
+
+sudo: required
+services: docker
+
+install:
+  - "pip3 install -r requirements.txt"
+
+before_install:
+  - docker pull faforever/faf-db
+  - docker run -d -p 3306:3306 faforever/faf-db
+
+script:
+  - ./test.sh
+
+after_success:
+  # - export REPO=faforever/faf-aio-replayserver
+  # - if [ -n "${TRAVIS_TAG}" ]; then
+  #     docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}";
+  #     docker tag faf-aio-replayserver ${REPO}:${TRAVIS_TAG};
+  #     docker push ${REPO};
+  #   fi
+  - coveralls

@@ -9,9 +9,7 @@ ENV PYTHON_PIP_VERSION 18.0
 
 EXPOSE 15000
 
-COPY requirements.txt /tmp/pip_dependencies.txt
-COPY replay_server /var/replay-server/
+COPY . /var/faf-aio-replayserver
+RUN pip3 install -r /var/faf-aio-replayserver/requirements.txt
 
-RUN pip3 install -r /tmp/pip_dependencies.txt
-
-CMD cd /var/replay-server/ && ./run.sh
+CMD /var/faf-aio-replayserver/run.sh

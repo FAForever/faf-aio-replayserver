@@ -7,11 +7,8 @@ from replayserver.errors import StreamEndedError
 
 
 class Replays(Mapping):
-    REPLAY_TIMEOUT = 60 * 60 * 5
-
     def __init__(self):
         self._replays = {}
-        self._replay_waiters = {}
 
     def __getitem__(self, uid):
         return self._replays[uid]
@@ -35,24 +32,18 @@ class Replays(Mapping):
             return
         replay = Replay()
         self._replays[uid] = replay
-        future = asyncio.ensure_future(self._wait_for_replay(replay))
-        future.add_done_callback(lambda f: self._end_replay(f, replay, uid))
-        self._replay_waiters.add(future)
+        asyncio.ensure_future(self._remove_replay_when_done(uid, replay))
 
-    async def _wait_for_replay(self, replay):
-        await asyncio.wait_for(replay.wait_for_ended, self.REPLAY_TIMEOUT)
+    async def _remove_replay_when_done(self, uid, replay):
+        await replay.wait_for_ended()
+        self._replays.pop(uid, None)
 
-    def _end_replay(self, future, replay, uid):
-        self._replay_waiters.remove(future)
-        replay.close()
-        del self._replays[uid]
-
-    def clear(self):
-        for fut in self._replay_waiters:
-            fut.cancel()
-        self._replay_waiters.clear()
-        for replay in list(self._replays.items()):
+    async def clear(self):
+        replays = self._replays.items()
+        for replay in replays:
             replay.close()
+        for replay in replays:
+            await replay.wait_for_ended()
         self._replays.clear()
 
 
@@ -67,9 +58,9 @@ class ReplayServer:
             self.handle_connection, port=self._port)
 
     async def stop(self):
-        self._replays.clear()
         self._server.close()
         await self._server.wait_closed()
+        await self._replays.clear()
 
     async def handle_connection(self, reader, writer):
         connection = ReplayConnection(reader, writer)

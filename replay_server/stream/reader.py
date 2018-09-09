@@ -64,11 +64,9 @@ class ReplayReader(ReplayWorkerBase):
                     await self._connection.writer.drain()
                     break
 
-                print ('waiting...')
                 logger.debug("No data get for %s. Waiting", self.get_uid())
                 await asyncio.sleep(WAIT_STEP)
                 continue
-            print("streaming....")
             logger.debug("Streaming data %s", len(data))
             self._connection.writer.write(data)
             self.position += len(data)

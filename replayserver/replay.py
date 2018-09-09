@@ -12,13 +12,13 @@ class Replay:
         self.stream = ReplayMerger(self._loop)
         self.sender = ReplaySender(self.stream, self._loop)
         self._timeout = asyncio.ensure_future(self._wait_until_timeout())
-        self._timeout.add_done_callback(lambda _: self.close())
+        self._timeout.add_done_callback(lambda _: self._perform_timeout())
 
-    def add_connection(self, connection):
+    async def handle_connection(self, connection):
         if connection.type == ReplayConnection.Type.READER:
-            self.sender.add_reader(connection)
+            await self.sender.handle_reader(connection)
         elif connection.type == ReplayConnection.Type.WRITER:
-            self.stream.add_writer(connection)
+            await self.stream.handle_connection(connection)
         else:
             raise ValueError("Invalid connection type")
 
@@ -32,8 +32,12 @@ class Replay:
         self.stream.close()
         self.sender.close()
 
-    async def wait_for_data_complete(self):
-        await self.stream.wait_for_ended()
+    def do_not_wait_for_more_connections(self):
+        self.stream.do_not_wait_for_more_connections()
+
+    def _perform_timeout(self):
+        self.do_not_wait_for_more_connections()
+        self.close()
 
     async def wait_for_ended(self):
         await self.stream.wait_for_ended()

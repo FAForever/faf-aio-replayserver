@@ -47,7 +47,6 @@ class ReplayConnection:
         self.writer.write(data)
         await self.writer.drain()
 
-    async def close(self):
-        await self.writer.drain()
+    def close(self):
         self.writer.close()
         self.reader.close()

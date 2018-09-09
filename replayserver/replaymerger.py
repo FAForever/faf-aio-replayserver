@@ -50,32 +50,27 @@ class ReplayStreamLifetime:
 class ReplayMerger:
     def __init__(self, loop):
         self._loop = loop
-        self._streams = set()
         self._lifetime = ReplayStreamLifetime()
+        self._connections = set()
         self.position = 0
         self.data = bytearray()
 
-    def add_writer(self, writer):
+    async def handle_connection(self, connection):
         if self._lifetime.ended:
             raise StreamEndedError("Tried to add a writer to an ended stream!")
-        stream = ReplayStreamReader(writer, self)
+        stream = ReplayStreamReader(connection, self)
+        self._connections.add(connection)
         self._lifetime.stream_added()
-        self._streams.add(stream)
-        asyncio.ensure_future(self._read_stream(stream))
-
-    async def _read_stream(self, stream):
-        await stream.read_all()
-        self._remove_stream(stream)
-
-    def _remove_stream(self, stream):
-        self._streams.remove(stream)
+        await stream._read_all()
         self._lifetime.stream_removed()
+        self._connections.remove(connection)
 
-    async def close(self):
+    def do_not_wait_for_more_connections(self):
         self._lifetime.disable_grace_period()
-        for w in self._streams:
-            w.close()
-        await self._lifetime.ended.wait()
+
+    def close(self):
+        for c in self._connections:
+            c.close()
 
     # TODO - use strategies here
     async def on_new_data(self, stream):

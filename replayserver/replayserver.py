@@ -8,13 +8,17 @@ class Replays:
     def __init__(self):
         self._replays = {}
 
-    def get_matching_replay(self, connection):
-        if (connection.type == ReplayConnection.Type.READER
-                and connection.uid not in self._replays):
-            raise ValueError("Can't read a nonexisting stream!")
+    async def handle_connection(self, connection):
+        if not self._can_add_to_replay(connection):
+            return
         if connection.uid not in self._replays:
             self._create(connection.uid)
-        return self._replays[connection.uid]
+        replay = self._replays[connection.uid]
+        await replay.handle_connection(connection)
+
+    def _can_add_to_replay(self, connection):
+        return not (connection.type == ReplayConnection.Type.READER
+                    and connection.uid not in self._replays)
 
     def _create(self, uid):
         if uid in self._replays:
@@ -27,18 +31,11 @@ class Replays:
         await replay.wait_for_ended()
         self._replays.pop(uid, None)
 
-    async def clear(self):
-        replays = self._replays.items()
-        for replay in replays:
-            replay.close()
-        for replay in replays:
-            await replay.wait_for_ended()
-        self._replays.clear()
-
 
 class ReplayServer:
     def __init__(self, port):
         self._replays = Replays()
+        self._connections = set()
         self._port = port
         self._server = None
 
@@ -49,18 +46,25 @@ class ReplayServer:
     async def stop(self):
         self._server.close()
         await self._server.wait_closed()
-        await self._replays.clear()
+        for connection in self._connections:
+            connection.close()
+        for replay in self._replays:
+            replay.do_not_wait_for_more_connections()
+        for replay in self._replays:
+            await replay.wait_for_ended()
 
     async def handle_connection(self, reader, writer):
         connection = ReplayConnection(reader, writer)
+        self._connections.add(connection)
         try:
             await connection.read_header()
             try:
                 replay = self._replays.get_matching_replay(connection)
             except ValueError as e:
                 raise ConnectionError from e
-            replay.add_connection(connection)
+            replay.handle_connection(connection)
         except (ConnectionError, StreamEndedError):
-            # TODO - log
+            pass    # TODO - log
+        finally:
             await connection.close()
-            return
+            self._connections.remove(connection)

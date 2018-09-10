@@ -16,7 +16,7 @@ class Replay:
     @classmethod
     def build(cls):
         merger = ReplayMerger.build()
-        sender = ReplaySender(merger)
+        sender = ReplaySender(merger.canonical_replay)
         return cls(merger, sender)
 
     async def handle_connection(self, connection):

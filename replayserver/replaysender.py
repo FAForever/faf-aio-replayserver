@@ -1,6 +1,6 @@
 import asyncio
 from asyncio.locks import Event
-from replayserver.replaytimestamp import ReplayTimestamp
+from replayserver.replaystream import DelayedReplayStream
 from replayserver.errors import StreamEndedError
 
 
@@ -8,51 +8,53 @@ class ReplaySender:
     DELAY = 300
 
     def __init__(self, stream):
-        self._stream = stream
-        self._readers = set()
-        self._read_futures = set()
+        self._stream = DelayedReplayStream(stream)
+        self._connections = set()
         self._ended = Event()
-        self.timestamp = ReplayTimestamp(stream, self.delay)
+        self._closed = False
 
-    @property
-    def ended(self):
-        return self._ended.is_set()
+    def _add_connection(self, connection):
+        self._connections.add(connection)
 
-    def add_reader(self, reader):
-        if self._stream.ended:
-            raise StreamEndedError("Tried to add a reader to an ended stream!")
-        self._readers.add(reader)
-        f = asyncio.ensure_future(self.write_to_reader(reader))
-        f.add_done_callback(lambda f: self._end_reader(f, reader))
-        self._read_futures.add(f)
-
-    def remove_reader(self, reader):
-        self._readers.remove(reader)
-        if not self._readers and self._stream.ended:
+    def _remove_connection(self, connection):
+        self._connections.remove(connection)
+        if not self._connections and self._stream.is_finished():
             self._ended.set()
 
-    def _end_reader(self, future, reader):
-        self._read_futures.remove(future)
-        self.remove_reader(reader)
+    def accepts_connections(self):
+        return not self._stream.is_finished() and not self._closed
 
-    async def write_to_reader(self, reader):
-        stamp = 0
+    async def handle_connection(self, connection):
+        if not self.accepts_connections():
+            raise StreamEndedError  # FIXME
+        self._add_connection(connection)
+        try:
+            await self._write_header(connection)
+            await self._write_replay(connection)
+        except StreamEndedError:
+            raise
+        finally:
+            self._remove_connection(connection)
+
+    async def _write_header(self, connection):
+        try:
+            header = await self._stream.read_header()
+            connection.write(header)   # TODO
+        except ValueError as e:
+            raise StreamEndedError from e
+
+    async def _write_replay(self, connection):
         position = 0
-        while True:
-            stamp = await self.timestamp.next_stamp(stamp)
-            if stamp is None:
-                return
-            new_position = self.timestamp.position(stamp)
-            data = self._stream.get_data(position, new_position)
-            position = new_position
-            await reader.write(data)
+        while not self._closed:
+            data = await self._stream.read_data(position)
+            if not data:
+                break
+            position += len(data)
+            connection.write(data)
 
     def close(self):
-        for f in self._read_futures:
-            f.cancel()
-        for r in self._readers:
-            r.close()
-        self._ended.set()
+        # This will prevent new connections and stop existing ones quickly.
+        self._closed = True
 
     async def wait_for_ended(self):
         await self._ended.wait()

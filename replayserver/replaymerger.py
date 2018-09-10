@@ -2,6 +2,7 @@ import asyncio
 from asyncio.locks import Event
 from replayserver.errors import StreamEndedError
 from replayserver.replaystream import ConnectionReplayStream
+from replayserver.mergestrategy import GreedyMergeStrategy
 
 
 class ReplayStreamLifetime:
@@ -53,7 +54,7 @@ class ReplayMerger:
     def __init__(self):
         self._lifetime = ReplayStreamLifetime()
         self._connections = set()
-        self._merge_strategy = None     # TODO
+        self._merge_strategy = GreedyMergeStrategy()     # TODO
         self._ended = Event()
         asyncio.ensure_future(self._finalize_after_lifetime_ends())
 
@@ -93,3 +94,7 @@ class ReplayMerger:
 
     async def wait_for_ended(self):
         await self._ended.wait()
+
+    @property
+    def canonical_stream(self):     # FIXME
+        return self._merge_strategy.canonical_stream

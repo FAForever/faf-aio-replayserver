@@ -23,7 +23,7 @@ class Replays:
     def _create(self, uid):
         if uid in self._replays:
             return
-        replay = Replay()
+        replay = Replay.build()
         self._replays[uid] = replay
         asyncio.ensure_future(self._remove_replay_when_done(uid, replay))
 

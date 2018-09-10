@@ -54,6 +54,8 @@ class ReplayMerger:
         self._lifetime = ReplayStreamLifetime()
         self._connections = set()
         self._merge_strategy = None     # TODO
+        self._ended = Event()
+        asyncio.ensure_future(self._finalize_after_lifetime_ends())
 
     async def handle_connection(self, connection):
         try:
@@ -84,5 +86,10 @@ class ReplayMerger:
         for c in self._connections:
             c.close()
 
-    async def wait_for_ended(self):
+    async def finalize_after_lifetime_ends(self):
         await self._lifetime.ended.wait()
+        self._merge_strategy.finalize()
+        self._ended.set()
+
+    async def wait_for_ended(self):
+        await self._ended.wait()

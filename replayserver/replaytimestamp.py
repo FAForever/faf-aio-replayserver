@@ -3,13 +3,12 @@ from asyncio.locks import Condition
 
 
 class ReplayTimestamp:
-    def __init__(self, stream, loop, delay):
+    def __init__(self, stream, delay):
         self._stream = stream
-        self._loop = loop
         self._delay = delay
         self._stamps = []
         self._final_stamp = None
-        self._stamper = asyncio.ensure_future(self.stamp(), loop=self._loop)
+        self._stamper = asyncio.ensure_future(self.stamp())
         self._new_stamp = Condition()
 
     async def stamp(self):

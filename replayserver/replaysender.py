@@ -7,13 +7,12 @@ from replayserver.errors import StreamEndedError
 class ReplaySender:
     DELAY = 300
 
-    def __init__(self, stream, loop):
-        self._loop = loop
+    def __init__(self, stream):
         self._stream = stream
         self._readers = set()
         self._read_futures = set()
-        self._ended = Event(loop=self._loop)
-        self.timestamp = ReplayTimestamp(stream, loop, self.delay)
+        self._ended = Event()
+        self.timestamp = ReplayTimestamp(stream, self.delay)
 
     @property
     def ended(self):
@@ -23,8 +22,7 @@ class ReplaySender:
         if self._stream.ended:
             raise StreamEndedError("Tried to add a reader to an ended stream!")
         self._readers.add(reader)
-        f = asyncio.ensure_future(self.write_to_reader(reader),
-                                  loop=self._loop)
+        f = asyncio.ensure_future(self.write_to_reader(reader))
         f.add_done_callback(lambda f: self._end_reader(f, reader))
         self._read_futures.add(f)
 

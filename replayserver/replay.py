@@ -8,9 +8,8 @@ class Replay:
     REPLAY_TIMEOUT = 60 * 60 * 5
 
     def __init__(self):
-        self._loop = asyncio.get_event_loop()
-        self.stream = ReplayMerger(self._loop)
-        self.sender = ReplaySender(self.stream, self._loop)
+        self.stream = ReplayMerger()
+        self.sender = ReplaySender(self.stream)
         self._timeout = asyncio.ensure_future(self._wait_until_timeout())
         self._timeout.add_done_callback(lambda _: self._perform_timeout())
 

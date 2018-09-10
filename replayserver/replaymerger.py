@@ -50,8 +50,7 @@ class ReplayStreamLifetime:
 
 
 class ReplayMerger:
-    def __init__(self, loop):
-        self._loop = loop
+    def __init__(self):
         self._lifetime = ReplayStreamLifetime()
         self._connections = set()
         self._merge_strategy = None     # TODO

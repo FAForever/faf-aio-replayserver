@@ -59,7 +59,7 @@ class ReplayServer:
         try:
             await connection.read_header()
             try:
-                replay = self._replays.get_matching_replay(connection)
+                replay = self._replays.handle_connection(connection)
             except ValueError as e:
                 raise ConnectionError from e
             replay.handle_connection(connection)

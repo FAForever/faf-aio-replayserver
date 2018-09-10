@@ -15,9 +15,10 @@ class ReplayStreamLifetime:
         self._grace_period = None
         self._grace_period_enabled = True
 
+    def is_over(self):
+        return self.ended.is_set()
+
     def stream_added(self):
-        if self.ended.is_set():
-            raise ValueError("Tried to add a writer to an ended stream!")
         self._stream_count += 1
         self._cancel_grace_period()
 
@@ -67,15 +68,18 @@ class ReplayMerger:
         return cls(lifetime, merge_strategy, canonical_replay)
 
     async def handle_connection(self, connection):
-        try:
-            self._lifetime.stream_added()
-        except ValueError as e:
-            raise StreamEndedError from e
+        if self._lifetime.is_over():
+            raise StreamEndedError  # TODO
+        self._lifetime.stream_added()
         stream = ConnectionReplayStream(connection, self)
         self._connections.add(connection)
-        await self._handle_stream(stream)
-        self._connections.remove(connection)
-        self._lifetime.stream_removed()
+        try:
+            await self._handle_stream(stream)
+        except StreamEndedError:
+            raise
+        finally:
+            self._connections.remove(connection)
+            self._lifetime.stream_removed()
 
     async def _handle_stream(self, stream):
         try:

@@ -1,1 +1,1 @@
-from replayserver.replayserver import ReplayServer
+from replayserver.server.server import Server

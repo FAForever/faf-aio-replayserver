@@ -1,28 +1,28 @@
 import asyncio
-from replayserver.replaysender import ReplaySender
-from replayserver.replayconnection import ReplayConnection
-from replayserver.replaymerger import ReplayMerger
+from replayserver.server.connection import Connection
+from replayserver.send.sender import Sender
+from replayserver.receive.merger import Merger
 
 
 class Replay:
     REPLAY_TIMEOUT = 60 * 60 * 5
 
     def __init__(self, merger, sender):
-        self.merger = ReplayMerger()
-        self.sender = ReplaySender(self.stream)
+        self.merger = merger
+        self.sender = sender
         self._timeout = asyncio.ensure_future(self._wait_until_timeout())
         self._timeout.add_done_callback(lambda _: self._perform_timeout())
 
     @classmethod
     def build(cls):
-        merger = ReplayMerger.build()
-        sender = ReplaySender(merger.canonical_replay)
+        merger = Merger.build()
+        sender = Sender(merger.canonical_replay)
         return cls(merger, sender)
 
     async def handle_connection(self, connection):
-        if connection.type == ReplayConnection.Type.READER:
+        if connection.type == Connection.Type.READER:
             await self.merger.handle_connection(connection)
-        elif connection.type == ReplayConnection.Type.WRITER:
+        elif connection.type == Connection.Type.WRITER:
             await self.stream.handle_connection(connection)
         else:
             raise ValueError("Invalid connection type")

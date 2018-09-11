@@ -2,7 +2,7 @@ from enum import Enum
 from asyncio.streams import IncompleteReadError, LimitOverrunError
 
 
-class ReplayConnection:
+class Connection:
     class Type(Enum):
         READER = 0
         WRITER = 1

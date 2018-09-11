@@ -1,12 +1,12 @@
 import asyncio
 from asyncio.locks import Event
 from replayserver.errors import StreamEndedError
-from replayserver.replaystream import ConnectionReplayStream, \
+from replayserver.receive.stream import ConnectionReplayStream, \
     OutsideSourceReplayStream
-from replayserver.mergestrategy import GreedyMergeStrategy
+from replayserver.receive.mergestrategy import GreedyMergeStrategy
 
 
-class ReplayStreamLifetime:
+class StreamLifetime:
     GRACE_PERIOD = 30
 
     def __init__(self):
@@ -52,7 +52,7 @@ class ReplayStreamLifetime:
         self.ended.set()
 
 
-class ReplayMerger:
+class Merger:
     def __init__(self, lifetime, merge_strategy, canonical_stream):
         self._lifetime = lifetime
         self._merge_strategy = merge_strategy
@@ -62,7 +62,7 @@ class ReplayMerger:
 
     @classmethod
     def build(cls):
-        lifetime = ReplayStreamLifetime()
+        lifetime = StreamLifetime()
         canonical_replay = OutsideSourceReplayStream()
         merge_strategy = GreedyMergeStrategy(canonical_replay)
         return cls(lifetime, merge_strategy, canonical_replay)

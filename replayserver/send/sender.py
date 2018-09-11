@@ -1,6 +1,5 @@
-import asyncio
 from asyncio.locks import Event
-from replayserver.replaystream import DelayedReplayStream
+from replayserver.send.stream import DelayedReplayStream
 from replayserver.errors import StreamEndedError
 
 

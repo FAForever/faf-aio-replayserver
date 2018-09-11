@@ -1,10 +1,10 @@
 import asyncio
-from replayserver import ReplayServer
+from replayserver import Server
 
 
 def main():
     PORT = 15000
-    server = ReplayServer.build(PORT)
+    server = Server.build(PORT)
     loop = asyncio.get_event_loop()
     asyncio.ensure_future(server.start())
     try:

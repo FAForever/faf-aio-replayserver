@@ -2,7 +2,7 @@ import asyncio
 from collections import deque
 
 
-class ReplayTimestamp:
+class Timestamp:
     def __init__(self, stream):
         self._stream = stream
 

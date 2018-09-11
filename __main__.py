@@ -4,7 +4,7 @@ from replayserver import ReplayServer
 
 if __name__ == "__main__":
     PORT = 15000
-    server = ReplayServer(PORT)
+    server = ReplayServer.build(PORT)
     loop = asyncio.get_event_loop()
     start = asyncio.ensure_future(server.start())
     try:

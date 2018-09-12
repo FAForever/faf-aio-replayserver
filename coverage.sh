@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 pyclean .
 rm -r tmp/*
 rm -r replays/*

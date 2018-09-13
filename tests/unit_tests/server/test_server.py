@@ -17,11 +17,21 @@ def mock_replays():
     return AsyncMock(spec=["handle_connection", "stop"])
 
 
+class MockServer:
+    def __init__(self):
+        self.server = None
+
+    async def __call__(self, callback):
+        self.server = AsyncMock(spec=["close", "wait_closed"],
+                                _callback=callback)
+        return self.server
+
+
 @pytest.fixture
 def mock_server():
-    async def server_maker(callback):
-        return AsyncMock(spec=["close", "wait_closed"], _callback=callback)
-    return server_maker
+    mock_server = AsyncMock(spec=["close", "wait_closed"])
+    mock_builder = AsyncMock(return_value=mock_server)
+    return mock_builder
 
 
 class MockConnectionBuilder:
@@ -52,6 +62,19 @@ def coroutine_runner():
         f = asyncio.ensure_future(coro)
         return asyncio.get_event_loop().run_until_complete(f)
     return run
+
+
+def test_server_start(mock_replays, mock_server, mock_connections,
+                      coroutine_runner):
+    connection = mock_connections(None, None)
+    mock_connection_builder = MockConnectionBuilder([connection])
+    server = Server(mock_server, mock_replays, mock_connection_builder)
+
+    async def continue_test():
+        await server.start()
+        mock_server.assert_called_with(server.handle_connection)
+
+    coroutine_runner(continue_test())
 
 
 def test_server_successful_connection(mock_replays, mock_server,

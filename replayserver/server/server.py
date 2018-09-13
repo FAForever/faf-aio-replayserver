@@ -1,6 +1,6 @@
 import asyncio
 from replayserver.errors import StreamEndedError
-from replayserver.server.connection import ReplayConnection
+from replayserver.server.connection import Connection
 from replayserver.server.replays import Replays
 
 
@@ -16,7 +16,7 @@ class Server:
         def server(cb):
             return asyncio.streams.start_server(cb, port=port)
         replays = Replays.build()
-        return cls(server, replays, ReplayConnection)
+        return cls(server, replays, Connection)
 
     async def start(self):
         # A tiny hack - we can't pass in a server directly since we have to

@@ -3,7 +3,7 @@ from replayserver.send.stream import DelayedReplayStream
 from replayserver.errors import StreamEndedError
 
 
-class ReplaySender:
+class Sender:
     DELAY = 300
 
     def __init__(self, stream):

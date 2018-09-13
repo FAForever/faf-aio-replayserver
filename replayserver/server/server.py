@@ -42,5 +42,5 @@ class Server:
         except (ConnectionError, StreamEndedError):
             pass    # TODO - log
         finally:
-            await connection.close()
+            connection.close()
             self._connections.remove(connection)

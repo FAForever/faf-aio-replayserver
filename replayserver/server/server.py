@@ -1,5 +1,5 @@
 import asyncio
-from replayserver.errors import StreamEndedError
+from replayserver.errors import BadConnectionError
 from replayserver.server.connection import Connection
 from replayserver.server.replays import Replays
 
@@ -34,12 +34,9 @@ class Server:
         connection = self._replay_connection_builder(reader, writer)
         self._connections.add(connection)
         try:
-            try:
-                await connection.read_header()
-            except ValueError as e:
-                raise ConnectionError from e
+            await connection.read_header()
             await self._replays.handle_connection(connection)
-        except (ConnectionError, StreamEndedError):
+        except BadConnectionError:
             pass    # TODO - log
         finally:
             connection.close()

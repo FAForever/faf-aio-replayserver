@@ -4,7 +4,7 @@ import asynctest
 from tests import timeout
 
 from replayserver.server.server import Server
-from replayserver.errors import StreamEndedError
+from replayserver.errors import BadConnectionError
 
 
 @pytest.fixture
@@ -125,7 +125,7 @@ async def test_header_read_valueerror_closes_connection(
     mock_connection_builder = MockConnectionBuilder([connection])
 
     async def at_header_read():
-        raise ValueError
+        raise BadConnectionError
     connection.read_header.side_effect = at_header_read
 
     server = Server(mock_server_maker, mock_replays, mock_connection_builder)
@@ -139,23 +139,15 @@ async def test_header_read_valueerror_closes_connection(
 async def test_replays_handling_error_closes_connection(
         mock_replays, mock_server_maker, mock_connections):
 
-    connection_1 = mock_connections(None, None)
-    connection_2 = mock_connections(None, None)
-    mock_connection_builder = MockConnectionBuilder([connection_1,
-                                                     connection_2])
+    connection = mock_connections(None, None)
+    mock_connection_builder = MockConnectionBuilder([connection])
 
-    async def throwing_handle_1():
-        raise ConnectionError
+    async def throwing_handle():
+        raise BadConnectionError
 
-    async def throwing_handle_2():
-        raise StreamEndedError
+    mock_replays.handle_connection.return_value = throwing_handle
 
     server = Server(mock_server_maker, mock_replays, mock_connection_builder)
     await server.start()
-
-    mock_replays.handle_connection.return_value = throwing_handle_1
     await asyncio.ensure_future(server.handle_connection("reader", "writer"))
-    connection_1.close.assert_called()
-    mock_replays.handle_connection.return_value = throwing_handle_2
-    await asyncio.ensure_future(server.handle_connection("reader", "writer"))
-    connection_2.close.assert_called()
+    connection.close.assert_called()

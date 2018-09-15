@@ -1,5 +1,6 @@
 from enum import Enum
 from asyncio.streams import IncompleteReadError, LimitOverrunError
+from replayserver.errors import MalformedDataError
 
 
 class Connection:
@@ -26,18 +27,21 @@ class Connection:
             elif prefix == b"G/":
                 self.type = self.Type.READER
             else:
-                raise ConnectionError("Unexpected data received")
-        except IncompleteReadError:
-            raise ConnectionError("Disconnected before type was determined")
+                raise MalformedDataError(
+                    f"Expected reader or writer prefix, got '{prefix}'")
+        except IncompleteReadError as e:
+            raise MalformedDataError(
+                f"EOF before conn type, got '{e.partial}'")
 
     async def _get_replay_name(self):
         try:
             line = await self.reader.readuntil(b'\0')[:-1].encode()
             self.uid, self.name = line.split("/", 1)
-        except IncompleteReadError:
-            raise ConnectionError("Disconnected before receiving replay data")
+        except IncompleteReadError as e:
+            raise MalformedDataError(
+                f"EOF before connection header, got '{e.partial[:100]}'")
         except (LimitOverrunError, ValueError, UnicodeDecodeError):
-            raise ConnectionError("Unexpected data received")
+            raise MalformedDataError("Malformed connection header")
 
     async def read(self, size):
         data = await self.reader.read(size)

@@ -2,6 +2,7 @@ import asyncio
 from replayserver.server.connection import Connection
 from replayserver.send.sender import Sender
 from replayserver.receive.merger import Merger
+from replayserver.errors import MalformedDataError
 
 
 class Replay:
@@ -25,7 +26,7 @@ class Replay:
         elif connection.type == Connection.Type.WRITER:
             await self.stream.handle_connection(connection)
         else:
-            raise ValueError("Invalid connection type")
+            raise MalformedDataError("Invalid connection type")
 
     async def _wait_until_timeout(self):
         await asyncio.sleep(self.REPLAY_TIMEOUT)

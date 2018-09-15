@@ -1,6 +1,7 @@
 import asyncio
 from asyncio.locks import Event
-from replayserver.errors import StreamEndedError
+from replayserver.errors import CannotAcceptConnectionError, \
+    BadConnectionError
 from replayserver.receive.stream import ConnectionReplayStream, \
     OutsideSourceReplayStream
 from replayserver.receive.mergestrategy import GreedyMergeStrategy
@@ -69,23 +70,21 @@ class Merger:
 
     async def handle_connection(self, connection):
         if self._lifetime.is_over():
-            raise StreamEndedError  # TODO
+            raise CannotAcceptConnectionError(
+                "Writer connection arrived after replay writing finished")
         self._lifetime.stream_added()
         stream = ConnectionReplayStream(connection, self)
         self._connections.add(connection)
         try:
             await self._handle_stream(stream)
-        except StreamEndedError:
+        except BadConnectionError:
             raise
         finally:
             self._connections.remove(connection)
             self._lifetime.stream_removed()
 
     async def _handle_stream(self, stream):
-        try:
-            stream.read_header()
-        except ValueError:  # TODO
-            return  # TODO
+        await stream.read_header()
         self._merge_strategy.stream_added(stream)
         while not stream.is_complete():
             await stream.read()

@@ -1,5 +1,7 @@
-from replayserver.stream import ConcreteReplayStream
 from asyncio.locks import Condition
+
+from replayserver.stream import ConcreteReplayStream
+from replayserver.errors import MalformedDataError
 
 
 class ConnectionReplayStream(ConcreteReplayStream):
@@ -35,7 +37,8 @@ class OutsideSourceReplayStream(ConcreteReplayStream):
         await self._wait_for(lambda: self.header is not None
                              or self.is_complete())
         if self.header is None:
-            raise ValueError    # FIXME
+            raise MalformedDataError(
+                "Source did not provide header before ending stream")
         return self.header
 
     def set_header(self, header):

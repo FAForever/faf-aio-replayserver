@@ -95,10 +95,8 @@ class Merger:
             self._merge_strategy.new_data(stream)
         self._merge_strategy.stream_removed(stream)
 
-    def do_not_wait_for_more_connections(self):
-        self._lifetime.disable_grace_period()
-
     def close(self):
+        self._lifetime.disable_grace_period()
         for c in self._connections:
             c.close()
 

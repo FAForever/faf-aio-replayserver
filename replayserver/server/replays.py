@@ -76,7 +76,6 @@ class Replays:
         self._closing = True
         replays = self._replays.values()
         for replay in replays:
-            replay.do_not_wait_for_more_connections()
             replay.close()
         await self._replays.wait_until_empty()
 

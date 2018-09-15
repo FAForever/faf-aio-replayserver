@@ -12,7 +12,7 @@ class Replay:
         self.merger = merger
         self.sender = sender
         self._timeout = asyncio.ensure_future(self._wait_until_timeout())
-        self._timeout.add_done_callback(lambda _: self._perform_timeout())
+        self._timeout.add_done_callback(lambda _: self.close())
 
     @classmethod
     def build(cls):
@@ -38,13 +38,6 @@ class Replay:
         self.merger.close()
         self.sender.close()
 
-    def do_not_wait_for_more_connections(self):
-        self.merger.do_not_wait_for_more_connections()
-
-    def _perform_timeout(self):
-        self.do_not_wait_for_more_connections()
-        self.close()
-
     async def wait_for_ended(self):
-        await self.stream.wait_for_ended()
+        await self.merger.wait_for_ended()
         await self.sender.wait_for_ended()

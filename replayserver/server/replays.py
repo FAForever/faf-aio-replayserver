@@ -1,11 +1,41 @@
 import asyncio
+from asyncio.locks import Event
+from collections.abc import MutableMapping
+
 from replayserver.server.replay import Replay
 from replayserver.server.connection import Connection
 
 
+class AsyncDict(MutableMapping):
+    def __init__(self):
+        self._dict = {}
+        self._empty = Event()
+
+    def __getitem__(self, key):
+        return self._dict[key]
+
+    def __setitem__(self, key, value):
+        self._empty.clear()
+        self._dict[key] = value
+
+    def __delitem__(self, key):
+        del self._dict[key]
+        if not self._dict:
+            self._empty.set()
+
+    def __iter__(self):
+        return iter(self._dict)
+
+    def __len__(self):
+        return len(self._dict)
+
+    async def wait_until_empty(self):
+        await self._empty.wait()
+
+
 class Replays:
     def __init__(self, replay_builder):
-        self._replays = {}
+        self._replays = AsyncDict()
         self._replay_builder = replay_builder
         self._closing = False
 
@@ -42,5 +72,5 @@ class Replays:
         replays = self._replays.values()
         for replay in replays:
             replay.do_not_wait_for_more_connections()
-        for replay in replays:
-            await replay.wait_for_ended()
+            replay.close()
+        await self._replays.wait_until_empty()

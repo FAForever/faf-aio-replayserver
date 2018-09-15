@@ -1,7 +1,8 @@
 import pytest
-import decorator
 import asyncio
 import asynctest
+from tests import timeout
+
 from replayserver.server.server import Server
 from replayserver.errors import StreamEndedError
 
@@ -56,39 +57,6 @@ class MockConnectionBuilder:
         item = self._items.pop(0)
         item.configure_mock(_reader=reader, _writer=writer)
         return item
-
-
-def mock_connection(reader, writer):
-    class C:
-        async def read_header():
-            pass
-
-        async def read():
-            pass
-
-        async def write():
-            pass
-
-        def close():
-            pass
-
-    return asynctest.Mock(spec=C, _reader=reader, _writer=writer)
-
-
-@pytest.fixture
-def mock_connections():
-    def build(reader, writer):
-        return mock_connection(reader, writer)
-    return build
-
-
-def timeout(time):
-    def deco(coro):
-        async def wrapper_function(coro, *args, **kwargs):
-            return (await asyncio.wait_for(coro(*args, **kwargs), time))
-        # Needed for fixtures to work
-        return decorator.decorator(wrapper_function, coro)
-    return deco
 
 
 @pytest.mark.asyncio

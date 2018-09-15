@@ -6,6 +6,7 @@ from asyncio.locks import Event
 
 from replayserver.server.connection import Connection
 from replayserver.server.replays import Replays
+from replayserver.errors import CannotAcceptConnectionError
 
 
 def mock_replay():
@@ -54,7 +55,8 @@ async def test_reader_with_no_existing_replay_is_not_processed(
     connection.uid = 1
 
     replays = Replays(mock_replay_builder)
-    await replays.handle_connection(connection)
+    with pytest.raises(CannotAcceptConnectionError):
+        await replays.handle_connection(connection)
     mock_replay_builder.assert_not_called()
 
 
@@ -110,6 +112,25 @@ async def test_replays_closing(
 
 @pytest.mark.asyncio
 @timeout(1)
+async def test_replays_closing_waits_for_replay(
+        mock_replays, mock_replay_builder, mock_connections):
+    writer = mock_connections(None, None)
+    writer.type = Connection.Type.WRITER
+    writer.uid = 1
+    mock_replay = mock_replays()
+    mock_replay_builder.side_effect = [mock_replay]
+    replays = Replays(mock_replay_builder)
+
+    await replays.handle_connection(writer)
+    f = asyncio.ensure_future(replays.stop())
+    await asyncio.sleep(0.1)    # FIXME - sensitive to races
+    assert not f.done()
+    mock_replay._manual_replay_end.set()
+    await f
+
+
+@pytest.mark.asyncio
+@timeout(1)
 async def test_replay_ending_is_tracked(
         mock_replays, mock_replay_builder, mock_connections):
     writer = mock_connections(None, None)
@@ -124,3 +145,30 @@ async def test_replay_ending_is_tracked(
     mock_replay._manual_replay_end.set()
     while 1 in replays:
         await asyncio.sleep(0.01)
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connections_are_not_accepted_when_closing(
+        mock_replays, mock_replay_builder, mock_connections):
+    writer = mock_connections(None, None)
+    writer.type = Connection.Type.WRITER
+    writer.uid = 1
+
+    writer_2 = mock_connections(None, None)
+    writer_2.type = Connection.Type.WRITER
+    writer_2.uid = 2
+
+    mock_replay = mock_replays()
+    mock_replay_builder.side_effect = [mock_replay, mock_replay]
+    replays = Replays(mock_replay_builder)
+
+    await replays.handle_connection(writer)
+    f = asyncio.ensure_future(replays.stop())
+    await asyncio.sleep(0.1)    # FIXME - sensitive to races
+
+    with pytest.raises(CannotAcceptConnectionError):
+        await replays.handle_connection(writer_2)
+
+    mock_replay._manual_replay_end.set()
+    await f

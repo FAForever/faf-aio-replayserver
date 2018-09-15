@@ -4,6 +4,7 @@ from collections.abc import MutableMapping
 
 from replayserver.server.replay import Replay
 from replayserver.server.connection import Connection
+from replayserver.errors import CannotAcceptConnectionError
 
 
 class AsyncDict(MutableMapping):
@@ -45,16 +46,20 @@ class Replays:
 
     async def handle_connection(self, connection):
         if not self._can_add_to_replay(connection):
-            return
+            raise CannotAcceptConnectionError(
+                "Cannot add connection to a replay")    # FIXME - details
         if connection.uid not in self._replays:
             self._create(connection.uid)
         replay = self._replays[connection.uid]
         await replay.handle_connection(connection)
 
     def _can_add_to_replay(self, connection):
-        return not (connection.type == Connection.Type.READER
-                    and connection.uid not in self._replays
-                    and not self._closing)
+        if self._closing:
+            return False
+        if (connection.type == Connection.Type.READER
+                and connection.uid not in self._replays):
+            return False
+        return True
 
     def _create(self, uid):
         if uid in self._replays:

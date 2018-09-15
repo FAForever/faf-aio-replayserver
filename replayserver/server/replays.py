@@ -74,3 +74,7 @@ class Replays:
             replay.do_not_wait_for_more_connections()
             replay.close()
         await self._replays.wait_until_empty()
+
+    # Tiny bit of introspection for easier testing
+    def __contains__(self, uid):
+        return uid in self._replays

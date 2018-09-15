@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 import asynctest
 from tests import timeout
@@ -60,7 +61,7 @@ async def test_reader_with_no_existing_replay_is_not_processed(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_readers_successful_connection(
-        mock_replays, mock_replay_builder, mock_connections, mocker):
+        mock_replays, mock_replay_builder, mock_connections):
     writer = mock_connections(None, None)
     writer.type = Connection.Type.WRITER
     writer.uid = 1
@@ -85,3 +86,41 @@ async def test_readers_successful_connection(
 
     mock_replay._manual_replay_end.set()
     await replays.stop()
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_replays_closing(
+        mock_replays, mock_replay_builder, mock_connections):
+    writer = mock_connections(None, None)
+    writer.type = Connection.Type.WRITER
+    writer.uid = 1
+    mock_replay = mock_replays()
+    mock_replay_builder.side_effect = [mock_replay]
+    replays = Replays(mock_replay_builder)
+
+    await replays.handle_connection(writer)
+    assert 1 in replays
+    mock_replay._manual_replay_end.set()
+    await replays.stop()
+    mock_replay.close.assert_called()
+    mock_replay.wait_for_ended.assert_awaited()     # Only true if await ended
+    assert 1 not in replays
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_replay_ending_is_tracked(
+        mock_replays, mock_replay_builder, mock_connections):
+    writer = mock_connections(None, None)
+    writer.type = Connection.Type.WRITER
+    writer.uid = 1
+
+    mock_replay = mock_replays()
+    mock_replay_builder.side_effect = [mock_replay, mock_replay]
+    replays = Replays(mock_replay_builder)
+
+    await replays.handle_connection(writer)
+    mock_replay._manual_replay_end.set()
+    while 1 in replays:
+        await asyncio.sleep(0.01)

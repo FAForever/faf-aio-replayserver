@@ -1,7 +1,8 @@
 from asyncio.locks import Event
+from contextlib import contextmanager
+
 from replayserver.send.stream import DelayedReplayStream
-from replayserver.errors import CannotAcceptConnectionError, \
-    BadConnectionError
+from replayserver.errors import CannotAcceptConnectionError
 
 
 class Sender:
@@ -24,18 +25,21 @@ class Sender:
     def accepts_connections(self):
         return not self._stream.is_finished() and not self._closed
 
-    async def handle_connection(self, connection):
-        if not self.accepts_connections():
-            raise CannotAcceptConnectionError(
-                "Replay cannot be read from anymore")
+    @contextmanager
+    def _connection_ownership(self, connection):
         self._add_connection(connection)
         try:
-            await self._write_header(connection)
-            await self._write_replay(connection)
-        except BadConnectionError:
-            raise
+            yield
         finally:
             self._remove_connection(connection)
+
+    async def handle_connection(self, connection):
+        with self._connection_ownership(connection):
+            if not self.accepts_connections():
+                raise CannotAcceptConnectionError(
+                    "Replay cannot be read from anymore")
+            await self._write_header(connection)
+            await self._write_replay(connection)
 
     async def _write_header(self, connection):
         header = await self._stream.read_header()

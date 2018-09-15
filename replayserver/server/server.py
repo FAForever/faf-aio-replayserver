@@ -1,4 +1,6 @@
 import asyncio
+from contextlib import contextmanager
+
 from replayserver.errors import BadConnectionError
 from replayserver.server.connection import Connection
 from replayserver.server.replays import Replays
@@ -30,14 +32,20 @@ class Server:
             connection.close()
         await self._replays.stop()
 
-    async def handle_connection(self, reader, writer):
+    @contextmanager
+    def _get_connection(self, reader, writer):
         connection = self._replay_connection_builder(reader, writer)
         self._connections.add(connection)
         try:
-            await connection.read_header()
-            await self._replays.handle_connection(connection)
-        except BadConnectionError:
-            pass    # TODO - log
+            yield connection
         finally:
-            connection.close()
             self._connections.remove(connection)
+            connection.close()
+
+    async def handle_connection(self, reader, writer):
+        with self._get_connection(reader, writer) as connection:
+            try:
+                await connection.read_header()
+                await self._replays.handle_connection(connection)
+            except BadConnectionError:
+                pass    # TODO - log

@@ -4,6 +4,9 @@ import asynctest
 
 def mock_connection(reader, writer):
     class C:
+        type = None
+        uid = None
+
         async def read_header():
             pass
 

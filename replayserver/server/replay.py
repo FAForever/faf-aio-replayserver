@@ -1,24 +1,46 @@
 import asyncio
+from asyncio.locks import Event
 from replayserver.server.connection import Connection
 from replayserver.send.sender import Sender
 from replayserver.receive.merger import Merger
+from replayserver.bookkeeping.bookkeeper import Bookkeeper
 from replayserver.errors import MalformedDataError
+
+
+class ReplayTimeout:
+    def __init__(self):
+        self._timeout = None
+
+    def set(self, timeout, cb):
+        if self._timeout is not None:
+            self.cancel()
+        self._timeout = asyncio.ensure_future(self._wait(timeout))
+        self._timeout.add_done_callback(lambda _: cb())
+
+    def cancel(self):
+        if self._timeout is not None:
+            self._timeout.cancel()
+            self._timeout = None
 
 
 class Replay:
     REPLAY_TIMEOUT = 60 * 60 * 5
 
-    def __init__(self, merger, sender):
+    def __init__(self, merger, sender, bookkeeper, timeout):
         self.merger = merger
         self.sender = sender
-        self._timeout = asyncio.ensure_future(self._wait_until_timeout())
-        self._timeout.add_done_callback(lambda _: self.close())
+        self.bookkeeper = bookkeeper
+        self._timeout = ReplayTimeout()
+        self._timeout.set(timeout, self.close)
+        asyncio.ensure_future(self._replay_lifetime())
+        self._ended = Event()
 
     @classmethod
     def build(cls):
         merger = Merger.build()
         sender = Sender(merger.canonical_replay)
-        return cls(merger, sender)
+        bookkeeper = Bookkeeper()
+        return cls(merger, sender, bookkeeper, cls.REPLAY_TIMEOUT)
 
     async def handle_connection(self, connection):
         if connection.type == Connection.Type.READER:
@@ -28,16 +50,19 @@ class Replay:
         else:
             raise MalformedDataError("Invalid connection type")
 
-    async def _wait_until_timeout(self):
-        await asyncio.sleep(self.REPLAY_TIMEOUT)
+    async def _wait_until_timeout(self, timeout):
+        await asyncio.sleep(timeout)
 
     def close(self):
-        if self._timeout is not None:
-            self._timeout.cancel()
-            self._timeout = None
+        self._timeout.cancel()
         self.merger.close()
         self.sender.close()
 
-    async def wait_for_ended(self):
+    async def _replay_lifetime(self):
         await self.merger.wait_for_ended()
+        await self.bookkeeping.save_replay()
         await self.sender.wait_for_ended()
+        self._ended.set()
+
+    async def wait_for_ended(self):
+        await self._ended.wait()

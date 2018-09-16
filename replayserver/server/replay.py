@@ -15,7 +15,8 @@ class ReplayTimeout:
         if self._timeout is not None:
             self.cancel()
         self._timeout = asyncio.ensure_future(self._wait(timeout))
-        self._timeout.add_done_callback(lambda _: cb())
+        self._timeout.add_done_callback(
+            lambda f: cb() if not f.cancelled() else None)
 
     async def _wait(self, timeout):
         await asyncio.sleep(timeout)

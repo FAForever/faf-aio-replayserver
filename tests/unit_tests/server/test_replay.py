@@ -71,4 +71,15 @@ async def test_replay_closes_after_timeout(
 @timeout(1)
 async def test_replay_close_cancels_timeout(
         mock_merger, mock_sender, mock_bookkeeper):
-    pass
+    timeout = 0.1
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+    await asyncio.sleep(0.01)
+    replay.close()
+    mock_merger.close.assert_called()
+    mock_sender.close.assert_called()
+    mock_merger.close.reset_mock()
+    mock_sender.close.reset_mock()
+
+    await asyncio.sleep(0.2)
+    mock_merger.close.assert_not_called()
+    mock_sender.close.assert_not_called()

@@ -35,10 +35,10 @@ def locked_mock_coroutines(event_loop):
     def get():
         manual_end = Event(loop=event_loop)
 
-        async def manual_ended_wait():
+        async def manual_wait():
             await manual_end.wait()
 
-        ended_wait_mock = asynctest.CoroutineMock(wraps=manual_ended_wait)
+        ended_wait_mock = asynctest.CoroutineMock(side_effect=manual_wait)
         return (manual_end, ended_wait_mock)
 
     return get

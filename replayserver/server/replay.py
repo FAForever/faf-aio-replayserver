@@ -63,6 +63,7 @@ class Replay:
         await self.merger.wait_for_ended()
         await self.bookkeeper.save_replay()
         await self.sender.wait_for_ended()
+        self._timeout.cancel()
         self._ended.set()
 
     async def wait_for_ended(self):

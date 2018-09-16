@@ -126,3 +126,26 @@ async def test_replay_forwarding_connections(
     mock_merger._manual_end.set()
     mock_sender._manual_end.set()
     await replay.wait_for_ended()
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_replay_keeps_proper_event_order(
+        mock_merger, mock_sender, mock_bookkeeper):
+
+    async def bookkeeper_check(*args, **kwargs):
+        # Merging has to end before bookkeeping starts
+        mock_merger.wait_for_ended.assert_awaited()
+        # We shall not wait for stream sending to end before bookkeeping
+        mock_sender.wait_for_ended.assert_not_awaited()
+        return
+
+    mock_bookkeeper.save_replay.side_effect = bookkeeper_check
+
+    timeout = 0.2
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+    asyncio.sleep(0.05)
+    mock_merger._manual_end.set()
+    asyncio.sleep(0.05)
+    mock_sender._manual_end.set()
+    await replay.wait_for_ended()

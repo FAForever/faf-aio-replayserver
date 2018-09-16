@@ -47,10 +47,10 @@ class Replay:
         return cls(merger, sender, bookkeeper, cls.REPLAY_TIMEOUT)
 
     async def handle_connection(self, connection):
-        if connection.type == Connection.Type.READER:
+        if connection.type == Connection.Type.WRITER:
             await self.merger.handle_connection(connection)
-        elif connection.type == Connection.Type.WRITER:
-            await self.stream.handle_connection(connection)
+        elif connection.type == Connection.Type.READER:
+            await self.sender.handle_connection(connection)
         else:
             raise MalformedDataError("Invalid connection type")
 

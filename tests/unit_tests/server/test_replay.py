@@ -1,8 +1,11 @@
 import pytest
 import asynctest
 import asyncio
-from replayserver.server.replay import Replay
+
 from tests import timeout
+from replayserver.server.replay import Replay
+from replayserver.server.connection import Connection
+from replayserver.errors import MalformedDataError
 
 
 @pytest.fixture
@@ -83,3 +86,43 @@ async def test_replay_close_cancels_timeout(
     await asyncio.sleep(0.2)
     mock_merger.close.assert_not_called()
     mock_sender.close.assert_not_called()
+
+    mock_merger._manual_end.set()
+    mock_sender._manual_end.set()
+    await replay.wait_for_ended()
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_replay_forwarding_connections(
+        mock_merger, mock_sender, mock_bookkeeper, mock_connections):
+    reader = mock_connections(None, None)
+    reader.uid = 1
+    reader.type = Connection.Type.READER
+    writer = mock_connections(None, None)
+    writer.uid = 1
+    writer.type = Connection.Type.WRITER
+    invalid = mock_connections(None, None)
+    invalid.uid = 1
+    invalid.type = 17
+    timeout = 0.1
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+
+    await replay.handle_connection(reader)
+    mock_merger.handle_connection.assert_not_awaited()
+    mock_sender.handle_connection.assert_awaited_with(reader)
+    mock_sender.handle_connection.reset_mock()
+
+    await replay.handle_connection(writer)
+    mock_sender.handle_connection.assert_not_awaited()
+    mock_merger.handle_connection.assert_awaited_with(writer)
+    mock_merger.handle_connection.reset_mock()
+
+    with pytest.raises(MalformedDataError):
+        await replay.handle_connection(invalid)
+    mock_sender.handle_connection.assert_not_awaited()
+    mock_merger.handle_connection.assert_not_awaited()
+
+    mock_merger._manual_end.set()
+    mock_sender._manual_end.set()
+    await replay.wait_for_ended()

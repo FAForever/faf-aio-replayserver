@@ -1,8 +1,9 @@
 import asyncio
 import pytest
 import asynctest
-from tests import timeout
+from asynctest.helpers import exhaust_callbacks
 
+from tests import timeout
 from replayserver.server.connection import Connection
 from replayserver.server.replays import Replays
 from replayserver.errors import CannotAcceptConnectionError
@@ -104,7 +105,7 @@ async def test_replays_closing(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replays_closing_waits_for_replay(
-        mock_replays, mock_replay_builder, mock_connections):
+        mock_replays, mock_replay_builder, mock_connections, event_loop):
     writer = mock_connections(None, None)
     writer.type = Connection.Type.WRITER
     writer.uid = 1
@@ -114,7 +115,7 @@ async def test_replays_closing_waits_for_replay(
 
     await replays.handle_connection(writer)
     f = asyncio.ensure_future(replays.stop())
-    await asyncio.sleep(0.1)    # FIXME - sensitive to races
+    await exhaust_callbacks(event_loop)
     assert not f.done()
     mock_replay._manual_end.set()
     await f
@@ -123,7 +124,7 @@ async def test_replays_closing_waits_for_replay(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replay_ending_is_tracked(
-        mock_replays, mock_replay_builder, mock_connections):
+        mock_replays, mock_replay_builder, mock_connections, event_loop):
     writer = mock_connections(None, None)
     writer.type = Connection.Type.WRITER
     writer.uid = 1
@@ -134,14 +135,14 @@ async def test_replay_ending_is_tracked(
 
     await replays.handle_connection(writer)
     mock_replay._manual_end.set()
-    while 1 in replays:
-        await asyncio.sleep(0.01)
+    await exhaust_callbacks(event_loop)
+    assert 1 not in replays
 
 
 @pytest.mark.asyncio
 @timeout(1)
 async def test_connections_are_not_accepted_when_closing(
-        mock_replays, mock_replay_builder, mock_connections):
+        mock_replays, mock_replay_builder, mock_connections, event_loop):
     writer = mock_connections(None, None)
     writer.type = Connection.Type.WRITER
     writer.uid = 1
@@ -156,7 +157,7 @@ async def test_connections_are_not_accepted_when_closing(
 
     await replays.handle_connection(writer)
     f = asyncio.ensure_future(replays.stop())
-    await asyncio.sleep(0.1)    # FIXME - sensitive to races
+    await exhaust_callbacks(event_loop)
 
     with pytest.raises(CannotAcceptConnectionError):
         await replays.handle_connection(writer_2)

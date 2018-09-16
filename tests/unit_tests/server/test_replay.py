@@ -1,6 +1,7 @@
 import pytest
 import asynctest
 import asyncio
+from asynctest.helpers import exhaust_callbacks
 
 from tests import timeout
 from replayserver.server.replay import Replay
@@ -56,12 +57,13 @@ def mock_bookkeeper():
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replay_closes_after_timeout(
-        mock_merger, mock_sender, mock_bookkeeper):
-    timeout = 0.1
+        mock_merger, mock_sender, mock_bookkeeper, event_loop):
+    timeout = 0.01
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
     mock_merger.close.assert_not_called()
     mock_sender.close.assert_not_called()
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.02)
+    exhaust_callbacks(event_loop)
     mock_merger.close.assert_called()
     mock_sender.close.assert_called()
 
@@ -73,17 +75,18 @@ async def test_replay_closes_after_timeout(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replay_close_cancels_timeout(
-        mock_merger, mock_sender, mock_bookkeeper):
-    timeout = 0.1
+        mock_merger, mock_sender, mock_bookkeeper, event_loop):
+    timeout = 0.01
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
-    await asyncio.sleep(0.01)
+    exhaust_callbacks(event_loop)
     replay.close()
     mock_merger.close.assert_called()
     mock_sender.close.assert_called()
     mock_merger.close.reset_mock()
     mock_sender.close.reset_mock()
 
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.02)
+    exhaust_callbacks(event_loop)
     mock_merger.close.assert_not_called()
     mock_sender.close.assert_not_called()
 
@@ -131,7 +134,7 @@ async def test_replay_forwarding_connections(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replay_keeps_proper_event_order(
-        mock_merger, mock_sender, mock_bookkeeper):
+        mock_merger, mock_sender, mock_bookkeeper, event_loop):
 
     async def bookkeeper_check(*args, **kwargs):
         # Merging has to end before bookkeeping starts
@@ -144,8 +147,8 @@ async def test_replay_keeps_proper_event_order(
 
     timeout = 0.2
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
-    asyncio.sleep(0.05)
+    await exhaust_callbacks(event_loop)
     mock_merger._manual_end.set()
-    asyncio.sleep(0.05)
+    await exhaust_callbacks(event_loop)
     mock_sender._manual_end.set()
     await replay.wait_for_ended()

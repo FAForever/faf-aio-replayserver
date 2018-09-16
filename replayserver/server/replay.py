@@ -54,9 +54,6 @@ class Replay:
         else:
             raise MalformedDataError("Invalid connection type")
 
-    async def _wait_until_timeout(self, timeout):
-        await asyncio.sleep(timeout)
-
     def close(self):
         self._timeout.cancel()
         self.merger.close()

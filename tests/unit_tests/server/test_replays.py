@@ -2,14 +2,13 @@ import asyncio
 import pytest
 import asynctest
 from tests import timeout
-from asyncio.locks import Event
 
 from replayserver.server.connection import Connection
 from replayserver.server.replays import Replays
 from replayserver.errors import CannotAcceptConnectionError
 
 
-def mock_replay():
+def mock_replay(locked_mock_coroutines):
     class R:
         async def handle_connection():
             pass
@@ -23,22 +22,14 @@ def mock_replay():
         async def wait_for_ended():
             pass
 
-    manual_replay_end = Event()
-    mr = asynctest.Mock(spec=R)
-
-    async def manual_ended_wait():
-        await manual_replay_end.wait()
-
-    ended_wait_mock = asynctest.CoroutineMock(wraps=manual_ended_wait)
-
-    mr.configure_mock(_manual_replay_end=manual_replay_end,
-                      wait_for_ended=ended_wait_mock)
-    return mr
+    replay_end, ended_wait = locked_mock_coroutines()
+    return asynctest.Mock(spec=R, _manual_end=replay_end,
+                          wait_for_ended=ended_wait)
 
 
 @pytest.fixture
-def mock_replays():
-    return mock_replay
+def mock_replays(locked_mock_coroutines):
+    return lambda: mock_replay(locked_mock_coroutines)
 
 
 @pytest.fixture
@@ -86,7 +77,7 @@ async def test_readers_successful_connection(
     mock_replay.handle_connection.reset_mock()
     mock_replay_builder.reset_mock()
 
-    mock_replay._manual_replay_end.set()
+    mock_replay._manual_end.set()
     await replays.stop()
 
 
@@ -103,7 +94,7 @@ async def test_replays_closing(
 
     await replays.handle_connection(writer)
     assert 1 in replays
-    mock_replay._manual_replay_end.set()
+    mock_replay._manual_end.set()
     await replays.stop()
     mock_replay.close.assert_called()
     mock_replay.wait_for_ended.assert_awaited()     # Only true if await ended
@@ -125,7 +116,7 @@ async def test_replays_closing_waits_for_replay(
     f = asyncio.ensure_future(replays.stop())
     await asyncio.sleep(0.1)    # FIXME - sensitive to races
     assert not f.done()
-    mock_replay._manual_replay_end.set()
+    mock_replay._manual_end.set()
     await f
 
 
@@ -142,7 +133,7 @@ async def test_replay_ending_is_tracked(
     replays = Replays(mock_replay_builder)
 
     await replays.handle_connection(writer)
-    mock_replay._manual_replay_end.set()
+    mock_replay._manual_end.set()
     while 1 in replays:
         await asyncio.sleep(0.01)
 
@@ -170,5 +161,5 @@ async def test_connections_are_not_accepted_when_closing(
     with pytest.raises(CannotAcceptConnectionError):
         await replays.handle_connection(writer_2)
 
-    mock_replay._manual_replay_end.set()
+    mock_replay._manual_end.set()
     await f

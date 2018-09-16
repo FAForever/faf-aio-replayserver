@@ -17,6 +17,9 @@ class ReplayTimeout:
         self._timeout = asyncio.ensure_future(self._wait(timeout))
         self._timeout.add_done_callback(lambda _: cb())
 
+    async def _wait(self, timeout):
+        await asyncio.sleep(timeout)
+
     def cancel(self):
         if self._timeout is not None:
             self._timeout.cancel()
@@ -60,7 +63,7 @@ class Replay:
 
     async def _replay_lifetime(self):
         await self.merger.wait_for_ended()
-        await self.bookkeeping.save_replay()
+        await self.bookkeeper.save_replay()
         await self.sender.wait_for_ended()
         self._ended.set()
 

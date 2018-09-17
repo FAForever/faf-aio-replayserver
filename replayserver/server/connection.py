@@ -35,7 +35,8 @@ class Connection:
 
     async def _get_replay_name(self):
         try:
-            line = await self.reader.readuntil(b'\0')[:-1].encode()
+            line = await self.reader.readuntil(b'\0')
+            line = line[:-1].decode()
             self.uid, self.name = line.split("/", 1)
         except IncompleteReadError as e:
             raise MalformedDataError(

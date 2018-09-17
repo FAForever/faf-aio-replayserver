@@ -38,6 +38,7 @@ class Connection:
             line = await self.reader.readuntil(b'\0')
             line = line[:-1].decode()
             self.uid, self.name = line.split("/", 1)
+            self.uid = int(self.uid)
         except IncompleteReadError as e:
             raise MalformedDataError(
                 f"EOF before connection header, got '{e.partial[:100]}'")
@@ -50,8 +51,8 @@ class Connection:
 
     async def write(self, data):
         self.writer.write(data)
-        await self.writer.drain()
+        await self.writer.drain()   # TODO - might hurt performance?
 
     def close(self):
-        self.writer.close()
-        self.reader.close()
+        self.writer.transport.abort()   # Drop connection immediately
+        # We don't need to close reader (according to docs?)

@@ -51,3 +51,24 @@ def test_generator_wrapper_exceptions():
     wrapper.send(17)
     with pytest.raises(ValueError):
         wrapper.send(42)
+
+
+# From here on we'll assume Generator{Data,Wrapper} work. A tiny violation of
+# unit testing rules, but oh well.
+def test_read_exactly():
+    gen = streamread.GeneratorData()
+    gen.data = b"abcdefgh"
+    gen.position = 4
+    cor = streamread.read_exactly(gen, 3)
+    with pytest.raises(StopIteration) as v:
+        cor.send(None)
+        assert v.value == b"efg"
+
+    gen.data = b"1234"
+    gen.position = 3
+    cor = streamread.read_exactly(gen, 3)
+    cor.send(None)
+    cor.send(b"5")
+    with pytest.raises(StopIteration) as v:
+        cor.send(b"678")
+        assert v.value == "456"

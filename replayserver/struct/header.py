@@ -15,6 +15,7 @@ class LuaType(Enum):
 
 
 def read_value(gen, fmt, size):
+    fmt = "<" + fmt     # All data is little-endian.
     data = yield from read_exactly(gen, size)
     try:
         return struct.unpack(fmt, data)

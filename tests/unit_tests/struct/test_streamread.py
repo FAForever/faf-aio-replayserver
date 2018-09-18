@@ -22,3 +22,32 @@ def test_generator_data():
     assert data == b"ar"
     assert gen.position == 6
     assert gen.data == b"foobar"
+
+
+def test_generator_wrapper():
+    def testing_coro():
+        stuff = yield
+        assert stuff == 17
+        more_stuff = yield
+        assert more_stuff == 42
+        return 66
+
+    wrapper = streamread.GeneratorWrapper(testing_coro())
+    assert not wrapper.done()
+    wrapper.send(17)
+    assert not wrapper.done()
+    wrapper.send(42)
+    assert wrapper.done
+    assert wrapper.result() == 66
+
+
+def test_generator_wrapper_exceptions():
+    def throwing_coro():
+        yield
+        yield
+        raise ValueError
+
+    wrapper = streamread.GeneratorWrapper(throwing_coro())
+    wrapper.send(17)
+    with pytest.raises(ValueError):
+        wrapper.send(42)

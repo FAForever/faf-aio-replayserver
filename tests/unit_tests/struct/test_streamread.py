@@ -24,6 +24,39 @@ def test_generator_data():
     assert gen.data == b"foobar"
 
 
+def test_generator_maxlen():
+    def do_send(gen, data):
+        cor = gen.more()
+        cor.send(None)
+        try:
+            cor.send(data)
+        except StopIteration:
+            pass
+
+    gen = streamread.GeneratorData(maxlen=8)
+    do_send(gen, b"12345678")
+    with pytest.raises(ValueError):
+        do_send(gen, b"12345678")
+
+    gen = streamread.GeneratorData(maxlen=6)
+    do_send(gen, b"12345678")
+    with pytest.raises(ValueError):
+        do_send(gen, b"12345678")
+
+    gen = streamread.GeneratorData(maxlen=6)
+    do_send(gen, b"12345678")
+    gen.take(6)
+    gen.take(0)
+    with pytest.raises(ValueError):
+        gen.take(2)
+
+    gen = streamread.GeneratorData(maxlen=6)
+    do_send(gen, b"12345678")
+    gen.take(5)
+    with pytest.raises(ValueError):
+        gen.take(2)
+
+
 def test_generator_wrapper():
     def testing_coro():
         stuff = yield

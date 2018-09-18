@@ -9,14 +9,17 @@ class GeneratorData:
         self._maxlen = maxlen
 
     def more(self):
-        if self._maxlen is not None and self._maxlen < len(self.data):
+        if self._maxlen is not None and self._maxlen <= len(self.data):
             raise ValueError
         more_data = yield
         self.data += more_data
         return len(more_data)
 
     def take(self, amount):
-        data = self.data[self.position:self.position+amount]
+        next_pos = self.position + amount
+        if self._maxlen is not None and next_pos > self._maxlen:
+            raise ValueError
+        data = self.data[self.position:next_pos]
         self.position += amount
         return data
 

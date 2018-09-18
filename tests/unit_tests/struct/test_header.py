@@ -1,4 +1,5 @@
 import pytest
+import struct
 
 from replayserver.struct.streamread import GeneratorData
 from replayserver.struct import header
@@ -54,3 +55,38 @@ def test_read_lua_type():
     cor = header.read_lua_type(gen)
     with pytest.raises(ValueError):
         cor.send(None)
+
+
+def test_lua_nil_value():
+    gen = GeneratorData()
+    gen.data = b"\2"
+    cor = header.read_lua_value(gen)
+    with pytest.raises(StopIteration) as v:
+        cor.send(None)
+    assert v.value.value is None
+
+
+def test_lua_number_value():
+    gen = GeneratorData()
+    number = 2.375  # Nice representable number
+    gen.data = b"\0" + struct.pack("<f", number)
+    cor = header.read_lua_value(gen)
+    with pytest.raises(StopIteration) as v:
+        cor.send(None)
+    assert v.value.value == number
+
+
+def test_lua_bool_value():
+    gen = GeneratorData()
+    gen.data = b"\3\x17"
+    cor = header.read_lua_value(gen)
+    with pytest.raises(StopIteration) as v:
+        cor.send(None)
+    assert v.value.value is False   # Not a typo
+
+    gen = GeneratorData()
+    gen.data = b"\3\0"
+    cor = header.read_lua_value(gen)
+    with pytest.raises(StopIteration) as v:
+        cor.send(None)
+    assert v.value.value is True   # Not a typo

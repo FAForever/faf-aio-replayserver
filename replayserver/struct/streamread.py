@@ -60,6 +60,6 @@ def read_until(gen, b):
         return gen.data.find(b, search_pos)
 
     while bytepos(b) == -1:
-        search_pos += yield from gen.more()
-    target_pos = search_pos + bytepos(b)
-    return gen.take(target_pos - gen.position)
+        search_pos = len(gen.data)
+        yield from gen.more()
+    return gen.take(bytepos(b) - gen.position + 1)  # Take inclusive

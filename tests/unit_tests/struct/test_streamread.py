@@ -8,7 +8,7 @@ def test_generator_data():
     cor.send(None)
     with pytest.raises(StopIteration) as v:
         cor.send(b"foobar")
-        assert v.value == 6
+    assert v.value.value == 6
 
     assert gen.data == b"foobar"
     assert gen.position == 0
@@ -95,7 +95,7 @@ def test_read_exactly():
     cor = streamread.read_exactly(gen, 3)
     with pytest.raises(StopIteration) as v:
         cor.send(None)
-        assert v.value == b"efg"
+    assert v.value.value == b"efg"
 
     gen.data = b"1234"
     gen.position = 3
@@ -104,7 +104,7 @@ def test_read_exactly():
     cor.send(b"5")
     with pytest.raises(StopIteration) as v:
         cor.send(b"678")
-        assert v.value == "456"
+    assert v.value.value == b"456"
 
 
 def test_read_until():
@@ -114,7 +114,7 @@ def test_read_until():
     cor = streamread.read_until(gen, b"g")
     with pytest.raises(StopIteration) as v:
         cor.send(None)
-        assert v.value == b"efg"
+    assert v.value.value == b"efg"
 
     gen.data = b"aaa"
     gen.position = 0
@@ -124,4 +124,4 @@ def test_read_until():
     cor.send(b"ccc")
     with pytest.raises(StopIteration) as v:
         cor.send(b"dbd")
-        assert v.value == b"aaaaaacccdb"
+    assert v.value.value == b"aaaaaacccdb"

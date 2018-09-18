@@ -33,12 +33,12 @@ def read_string(gen):
 
 
 def read_lua_type(gen):
-    type_ = yield from read_value(gen, "b", 1)
+    type_ = yield from read_value(gen, "B", 1)
     return LuaType(type_)     # can raise ValueError
 
 
-def read_lua_value(gen):
-    type_ = yield from read_lua_type()
+def read_lua_value(gen, can_be_lua_end=False):
+    type_ = yield from read_lua_type(gen)
 
     if type_ == LuaType.NUMBER:
         return (yield from read_value(gen, "f", 4))
@@ -47,13 +47,17 @@ def read_lua_value(gen):
     elif type_ == LuaType.NIL:
         return None
     elif type_ == LuaType.BOOL:
-        return (yield from read_value(gen, "b", 1))
+        ret = (yield from read_value(gen, "B", 1))
+        return ret == 0     # Not a typo
     elif type_ == LuaType.LUA_END:
-        return LuaType.LUA_END
+        if can_be_lua_end:
+            return LuaType.LUA_END
+        else:
+            raise ValueError
     elif type_ == LuaType.LUA:
         result = {}
         while True:
-            key = yield from read_lua_value(gen)
+            key = yield from read_lua_value(gen, True)
             if key == LuaType.LUA_END:
                 return result
             value = yield from read_lua_value(gen)
@@ -72,34 +76,34 @@ def read_header(gen):
     result["map_name"] = map_name
     yield from read_exactly(gen, 4)     # skip
 
-    yield from read_value(gen, "f", 4)  # Mod (data?) size
+    yield from read_value(gen, "I", 4)  # Mod (data?) size
     result["mods"] = yield from read_lua_value(gen)
 
-    yield from read_value(gen, "f", 4)  # Scenario (data?) size
+    yield from read_value(gen, "I", 4)  # Scenario (data?) size
     result["scenario"] = yield from read_lua_value(gen)
 
     player_count = yield from read_value(gen, "b", 1)
-    players = {}
+    timeouts = {}
     for i in range(player_count):
         name = yield from read_string(gen)
-        player_id = yield from read_value(gen, "f", 4)
-        players[name] = player_id
-    result["players"] = players
+        number = yield from read_value(gen, "I", 4)
+        timeouts[name] = number
+    result["remaining_timeouts"] = timeouts
 
-    result["cheats_enabled"] = yield from read_value(gen, "b", 1)
+    result["cheats_enabled"] = yield from read_value(gen, "B", 1)
 
-    army_count = yield from read_value(gen, "b", 1)
+    army_count = yield from read_value(gen, "B", 1)
     armies = {}
     for i in range(army_count):
-        yield from read_value(gen, "f", 4)  # Army (data?) size
+        yield from read_value(gen, "I", 4)  # Army (data?) size
         army = yield from read_lua_value(gen)
-        player_id = yield from read_value(gen, "b", 1)
+        player_id = yield from read_value(gen, "B", 1)
         armies[player_id] = army
         if player_id != 255:
             yield from read_exactly(1)      # Unknown skip
     result["armies"] = armies
 
-    result["random_seed"] = yield from read_value(gen, "f", 4)
+    result["random_seed"] = yield from read_value(gen, "I", 4)
     return result
 
 

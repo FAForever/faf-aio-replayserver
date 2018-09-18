@@ -105,3 +105,23 @@ def test_read_exactly():
     with pytest.raises(StopIteration) as v:
         cor.send(b"678")
         assert v.value == "456"
+
+
+def test_read_until():
+    gen = streamread.GeneratorData()
+    gen.data = b"abcdefgh"
+    gen.position = 4
+    cor = streamread.read_until(gen, b"g")
+    with pytest.raises(StopIteration) as v:
+        cor.send(None)
+        assert v.value == b"efg"
+
+    gen.data = b"aaa"
+    gen.position = 0
+    cor = streamread.read_until(gen, b"b")
+    cor.send(None)
+    cor.send(b"aaa")
+    cor.send(b"ccc")
+    with pytest.raises(StopIteration) as v:
+        cor.send(b"dbd")
+        assert v.value == b"aaaaaacccdb"

@@ -9,7 +9,7 @@ class GeneratorData:
         self._maxlen = maxlen
 
     def more(self):
-        if self._maxlen < len(self.data):
+        if self._maxlen is not None and self._maxlen < len(self.data):
             raise ValueError
         more_data = yield
         self.data += more_data
@@ -25,19 +25,19 @@ class GeneratorWrapper:
     """
     Tiny wrapper for using generator like an object.
     """
-    def __init__(self, gen, ):
-        self._data = GeneratorData()
-        self._last_value = self._gen.send(None)
+    def __init__(self, gen):
+        self._gen = gen
+        self._gen.send(None)
         self._result = None
 
     def done(self):
         return self._result is not None
 
-    def feed(self, data):
+    def send(self, data):
         try:
-            self._last_value = self._gen.send(data)
-        except StopIteration:
-            self._result = self._last_value
+            self._gen.send(data)
+        except StopIteration as v:
+            self._result = v.value
 
     def result(self):
         return self._result

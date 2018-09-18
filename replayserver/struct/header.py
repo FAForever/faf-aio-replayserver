@@ -14,11 +14,12 @@ class LuaType(Enum):
     LUA_END = 5
 
 
+# Expects to receive exactly one value to unpack in format.
 def read_value(gen, fmt, size):
     fmt = "<" + fmt     # All data is little-endian.
     data = yield from read_exactly(gen, size)
     try:
-        return struct.unpack(fmt, data)
+        return struct.unpack(fmt, data)[0]
     except struct.error:
         raise ValueError
 
@@ -26,7 +27,7 @@ def read_value(gen, fmt, size):
 def read_string(gen):
     data = yield from read_until(gen, b'\0')
     try:
-        return data.decode()
+        return data[:-1].decode()
     except UnicodeDecodeError:
         raise ValueError
 

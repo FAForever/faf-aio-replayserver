@@ -71,7 +71,7 @@ class Merger:
 
     @contextmanager
     def _get_stream(self, connection):
-        stream = ConnectionReplayStream(connection, self)
+        stream = ConnectionReplayStream.build(connection)
         self._connections.add(connection)
         self._lifetime.stream_added()
         try:

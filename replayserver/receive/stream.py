@@ -1,20 +1,39 @@
 from asyncio.locks import Condition
 
 from replayserver.stream import ConcreteReplayStream
+from replayserver.struct.header import ReplayHeader
 from replayserver.errors import MalformedDataError
 
 
 class ConnectionReplayStream(ConcreteReplayStream):
-    def __init__(self, connection):
+    def __init__(self, header_reader, connection):
         ConcreteReplayStream.__init__(self)
+        self._header_reader = header_reader
         self._connection = connection
         self._finished = False
 
+    @classmethod
+    def build(cls, connection):
+        header_reader = ReplayHeader.generator()
+        return cls(header_reader, connection)
+
     async def read_header(self):
-        pass    # TODO
+        if self.header is not None:
+            return
+        while not self._header_reader.done():
+            data = await self._connection.read(4096)
+            if not data:
+                raise MalformedDataError("Replay header ended prematurely")
+            try:
+                self._header_reader.send(data)
+            except ValueError:
+                # TODO - more informative logs
+                raise MalformedDataError("Malformed replay header")
+        self.header, leftovers = self._header_reader.result
+        self.data += leftovers
 
     async def read(self):
-        data = self._connection.read(4096)
+        data = await self._connection.read(4096)
         if not data:
             self._finished = True
         self.data += data

@@ -120,7 +120,7 @@ class ReplayHeader:
         self.header = header
 
     @classmethod
-    def generate(cls, maxlen):
+    def _generate(cls, maxlen):
         gen = GeneratorData(maxlen)
         header = yield from read_header(gen)
         data = gen.data[:gen.position]
@@ -129,4 +129,4 @@ class ReplayHeader:
 
     @classmethod
     def generator(cls):
-        return GeneratorWrapper(cls.generate)
+        return GeneratorWrapper(cls._generate(cls.MAXLEN))

@@ -70,7 +70,7 @@ def test_generator_wrapper():
     wrapper.send(17)
     assert not wrapper.done()
     wrapper.send(42)
-    assert wrapper.done
+    assert wrapper.done()
     assert wrapper.result() == 66
 
 

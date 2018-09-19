@@ -256,8 +256,23 @@ EXPECTED_EXAMPLE_HEADER = {
 def test_load_example_header():
     replay_data = load_replay("example")
     with pytest.raises(StopIteration) as v:
-        gen = GeneratorData()
-        gen.data = replay_data
-        cor = header.read_header(gen)
-        cor.send(None)
+        run_cor(header.read_header, replay_data)
     assert v.value.value == EXPECTED_EXAMPLE_HEADER
+
+
+def test_replayheader_generator():
+    replay_data = load_replay("example")
+    generator = header.ReplayHeader.generator()
+
+    chunks = (replay_data[i:i+100] for i in range(0, len(replay_data), 100))
+    processed_chunks = bytearray()
+    for chunk in chunks:
+        if generator.done():
+            break
+        generator.send(chunk)
+        processed_chunks += chunk
+
+    assert generator.done()
+    head, leftovers = generator.result()
+    assert head.header == EXPECTED_EXAMPLE_HEADER
+    assert head.data + leftovers == processed_chunks

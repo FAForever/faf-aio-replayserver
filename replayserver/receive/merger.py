@@ -76,11 +76,10 @@ class Merger:
                 "Writer connection arrived after replay writing finished")
         with self._get_stream(connection) as stream:
             await stream.read_header()
-            self._merge_strategy.stream_added(stream)
-            while not stream.is_complete():
-                await stream.read()
-                self._merge_strategy.new_data(stream)
-            self._merge_strategy.stream_removed(stream)
+            with self._merge_strategy.stream_in_strategy(stream):
+                while not stream.is_complete():
+                    await stream.read()
+                    self._merge_strategy.new_data(stream)
 
     def close(self):
         self._end_grace_period.disable()

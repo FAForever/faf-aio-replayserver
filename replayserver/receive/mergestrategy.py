@@ -1,3 +1,6 @@
+from contextlib import contextmanager
+
+
 class MergeStrategy:
     def __init__(self, sink_stream):
         self._streams = set()
@@ -14,6 +17,14 @@ class MergeStrategy:
 
     def finalize(self):
         raise NotImplementedError
+
+    @contextmanager
+    def stream_in_strategy(self, stream):
+        self.stream_added(stream)
+        try:
+            yield
+        finally:
+            self.stream_removed(stream)
 
 
 class GreedyMergeStrategy(MergeStrategy):

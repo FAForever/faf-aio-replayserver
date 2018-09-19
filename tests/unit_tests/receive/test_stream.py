@@ -27,7 +27,6 @@ async def test_replay_stream_read_header(mock_header_reader, mock_connections):
     stream = ConnectionReplayStream(mock_header_reader, mock_conn)
 
     mock_conn.read.side_effect = [b"Lorem ", b"ipsum ", b"dolor"]
-
     read_data = b""
 
     def mock_send(data):
@@ -55,7 +54,6 @@ async def test_replay_stream_invalid_header(
     stream = ConnectionReplayStream(mock_header_reader, mock_conn)
 
     mock_conn.read.side_effect = [b"Lorem ", b"ipsum ", b"dolor"]
-
     read_data = b""
 
     def mock_send(data):
@@ -79,7 +77,6 @@ async def test_replay_stream_too_short_header(
     stream = ConnectionReplayStream(mock_header_reader, mock_conn)
 
     mock_conn.read.side_effect = [b"Lorem ", b"ip", b""]
-
     read_data = b""
 
     def mock_send(data):
@@ -94,3 +91,22 @@ async def test_replay_stream_too_short_header(
 
     with pytest.raises(MalformedDataError):
         await stream.read_header()
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_replay_stream_read(
+        mock_header_reader, mock_connections):
+    mock_conn = mock_connections(None, None)
+    stream = ConnectionReplayStream(mock_header_reader, mock_conn)
+
+    mock_conn.read.side_effect = [b"Lorem ", b"ipsum", b""]
+    await stream.read()
+    assert stream.data == b"Lorem "
+    assert not stream.is_complete()
+    await stream.read()
+    assert stream.data == b"Lorem ipsum"
+    assert not stream.is_complete()
+    await stream.read()
+    assert stream.data == b"Lorem ipsum"
+    assert stream.is_complete()

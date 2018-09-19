@@ -49,5 +49,5 @@ MYSQL_DNS = {
     "port": int(os.environ.get("MYSQL_PORT", 3306)),
     "user": os.environ.get("MYSQL_USER", "root"),
     "password": os.environ.get("MYSQL_PASSWORD", "banana"),
-    "db": os.environ.get("MYSQL_DB", "faf-db"),
+    "db": os.environ.get("MYSQL_DB", "faf"),
 }

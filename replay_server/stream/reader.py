@@ -1,8 +1,10 @@
 import asyncio
+from datetime import datetime
 from io import RawIOBase
 from typing import List, Any, Dict
+from time import time
 
-from replay_server.constants import READ_BUFFER_SIZE, WAIT_STEP
+from replay_server.constants import READ_BUFFER_SIZE, WAIT_STEP, REPLAY_TIMEOUT
 from replay_server.logger import logger
 from replay_server.replay_parser.replay_parser.parser import parse
 from replay_server.stream.base import ReplayWorkerBase
@@ -53,6 +55,11 @@ class ReplayReader(ReplayWorkerBase):
         self._connection.writer.write(data)
         logger.info("Header for %s with length %s", self.get_uid(), len(data))
 
+        replay_start_time = ReplayStorage.get_replay_start_time(self.get_uid())
+        now = time()
+        if now < replay_start_time + REPLAY_TIMEOUT:
+            await asyncio.sleep((replay_start_time + REPLAY_TIMEOUT) - now)
+
         # read common stream
         while True:
             data = get_greatest_common_stream(self.buffers, self.body_positions, self.position, READ_BUFFER_SIZE)
@@ -77,6 +84,9 @@ class ReplayReader(ReplayWorkerBase):
         logger.info("Closing buffers for %s", self.get_uid())
         for buffer in self.buffers:
             buffer.close()
+
+        # remove current worker from storage
+        WorkerStorage.remove_worker(self.get_uid(), self)
 
         online_workers = WorkerStorage.get_online_workers(self.get_uid())
         if len(online_workers) == 0:

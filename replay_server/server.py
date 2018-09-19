@@ -36,12 +36,12 @@ class ReplayServer:
         except ConnectionError as e:
             logger.exception("Connection problems occurs!")
             if replay_worker:
-                replay_worker.cleanup()
+                await replay_worker.cleanup()
             connection.writer.write(str(e).encode('raw_unicode_escape'))
         except Exception as e:
             logger.exception("Something goes terribly wrong!")
             if replay_worker:
-                replay_worker.cleanup()
+                await replay_worker.cleanup()
             connection.writer.write("Wrong request".encode('raw_unicode_escape'))
             connection.writer.write(str(e).encode('raw_unicode_escape'))
         finally:

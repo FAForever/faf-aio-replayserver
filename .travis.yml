@@ -4,24 +4,37 @@ python: 3.6
 sudo: required
 services: docker
 
-install:
-  - "pip3 install -r requirements.txt"
-
 before_install:
-  - docker pull faforever/faf-db
-
-before_script:
   - sudo /etc/init.d/mysql stop
-  - docker run -d -p 127.0.0.1:3306:3306 faforever/faf-db
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/1.16.1/docker-compose-`uname -s`-`uname -m` > /tmp/docker-compose
+  - chmod +x /tmp/docker-compose
+  - sudo mv /tmp/docker-compose /usr/local/bin
+
+install:
+  - git clone https://github.com/FAForever/faf-stack.git faf-stack
+      && pushd faf-stack
+      && cp -r config.template config
+      && popd
+  - pip3 install -r requirements.txt
+  - docker-compose -f faf-stack/docker-compose.yml up -d faf-db
+  - ./docker-build.sh
 
 script:
-  - ./test.sh
+  - sleep 60
+  - docker ps -a
+  - sudo netstat -alnp | grep 3306
+  - ifconfig
+  - MYSQL_HOST=127.0.0.1 MYSQL_USER=root MYSQL_PASSWORD=banana ./test.sh
+
+after_script:
+  - docker logs faf-db
+  - docker-compose -f faf-stack/docker-compose.yml down -d faf-db
 
 after_success:
-  # - export REPO=faforever/faf-aio-replayserver
-  # - if [ -n "${TRAVIS_TAG}" ]; then
-  #     docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}";
-  #     docker tag faf-aio-replayserver ${REPO}:${TRAVIS_TAG};
-  #     docker push ${REPO};
-  #   fi
-  - coveralls
+  - export REPO=faforever/faf-aio-replayserver
+  - if [ -n "${TRAVIS_TAG}" ]; then
+      docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}";
+      docker tag faforever/faf-aio-replayserver ${REPO}:${TRAVIS_TAG};
+      docker push ${REPO};
+    fi

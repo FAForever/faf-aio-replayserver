@@ -1,4 +1,4 @@
-from asyncio.locks import Condition
+from asyncio.locks import Event
 
 from replayserver.stream import ConcreteReplayStream
 from replayserver.struct.header import ReplayHeader
@@ -46,11 +46,15 @@ class OutsideSourceReplayStream(ConcreteReplayStream):
     def __init__(self):
         ConcreteReplayStream.__init__(self)
         self._finished = False
-        self._new_data = Condition()
+        self._new_data = Event()
 
     async def _wait_for(self, condition):
-        async with self._new_data:
-            await self._new_data.wait_for(condition)
+        while not condition():
+            await self._new_data.wait()
+
+    def _notify(self):
+        self._new_data.set()
+        self._new_data.clear()
 
     async def read_header(self):
         await self._wait_for(lambda: self.header is not None
@@ -62,7 +66,7 @@ class OutsideSourceReplayStream(ConcreteReplayStream):
 
     def set_header(self, header):
         self.header = header
-        self._new_data.notify_all()
+        self._notify()
 
     async def read(self):
         current_len = self.data_length()
@@ -72,7 +76,7 @@ class OutsideSourceReplayStream(ConcreteReplayStream):
 
     def feed_data(self, data):
         self.data += data
-        self._new_data.notify_all()
+        self._notify()
 
     def is_complete(self):
         return self._finished

@@ -1,7 +1,9 @@
 import pytest
+import asyncio
 from tests import timeout
 
-from replayserver.receive.stream import ConnectionReplayStream
+from replayserver.receive.stream import ConnectionReplayStream, \
+    OutsideSourceReplayStream
 from replayserver.errors import MalformedDataError
 
 
@@ -110,3 +112,14 @@ async def test_replay_stream_read(
     await stream.read()
     assert stream.data == b"Lorem ipsum"
     assert stream.is_complete()
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_outside_source_stream_read_header():
+    stream = OutsideSourceReplayStream()
+    f = asyncio.ensure_future(stream.read_header())
+    header = "header"
+    stream.set_header(header)
+    got_header = await f
+    assert got_header is header

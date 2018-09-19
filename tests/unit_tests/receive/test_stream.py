@@ -1,6 +1,7 @@
 import pytest
 import asyncio
 from tests import timeout
+from asynctest.helpers import exhaust_callbacks
 
 from replayserver.receive.stream import ConnectionReplayStream, \
     OutsideSourceReplayStream
@@ -123,3 +124,25 @@ async def test_outside_source_stream_read_header():
     stream.set_header(header)
     got_header = await f
     assert got_header is header
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_outside_source_stream_read(event_loop):
+    stream = OutsideSourceReplayStream()
+    f = asyncio.ensure_future(stream.read())
+    await exhaust_callbacks(event_loop)
+    assert not f.done()
+    stream.feed_data(b"Lorem")
+    await f
+    assert stream.data == b"Lorem"
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_outside_source_stream_immediate_feed(event_loop):
+    stream = OutsideSourceReplayStream()
+    f = asyncio.ensure_future(stream.read())
+    stream.feed_data(b"Lorem")
+    await f
+    assert stream.data == b"Lorem"

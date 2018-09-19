@@ -68,9 +68,17 @@ class OutsideSourceReplayStream(ConcreteReplayStream):
         self.header = header
         self._notify()
 
-    async def read(self):
-        current_len = self.data_length()
-        await self._wait_for(lambda: current_len < self.data_length()
+    # We need the following indirection because of a race condition.
+    # If a coroutine awaits on read(), and another coroutine feeds data before
+    # read() starts, we would read the new length and await further instead
+    # of returning.
+    #
+    # By reading and saving current position immediately, we prevent that.
+    def read(self):
+        return self._read_from(self.data_length())
+
+    async def _read_from(self, position):
+        await self._wait_for(lambda: position < self.data_length()
                              or self.is_complete())
         return
 

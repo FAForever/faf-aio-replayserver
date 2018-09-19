@@ -146,3 +146,13 @@ async def test_outside_source_stream_immediate_feed(event_loop):
     stream.feed_data(b"Lorem")
     await f
     assert stream.data == b"Lorem"
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_outside_source_stream_finish(event_loop):
+    stream = OutsideSourceReplayStream()
+    f = asyncio.ensure_future(stream.read())
+    stream.finish()
+    await f
+    assert stream.is_complete()

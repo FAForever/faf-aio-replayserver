@@ -61,6 +61,10 @@ def read_lua_value(gen, can_be_lua_end=False):
             if key == LuaType.LUA_END:
                 return result
             value = yield from read_lua_value(gen)
+            if isinstance(key, dict):
+                # We could use some 'hashable dict' subclass here, but we
+                # never expect such oddities - let's just bail out safely
+                raise ValueError
             result[key] = value
 
 

@@ -98,7 +98,7 @@ def test_lua_string_value():
     cor = header.read_lua_value(gen)
     with pytest.raises(StopIteration) as v:
         cor.send(None)
-    assert v.value.value == "aaaaa"   # Not a typo
+    assert v.value.value == "aaaaa"
 
     # Check invalid unicode just in case
     gen = GeneratorData()
@@ -106,3 +106,26 @@ def test_lua_string_value():
     cor = header.read_lua_value(gen)
     with pytest.raises(ValueError) as v:
         cor.send(None)
+
+
+def test_lua_dict_value():
+    gen = GeneratorData()
+    gen.data = b"\4\1a\0\1b\0\5"
+    cor = header.read_lua_value(gen)
+    with pytest.raises(StopIteration) as v:
+        cor.send(None)
+    assert v.value.value == {"a": "b"}
+
+    gen = GeneratorData()
+    gen.data = b"\4\5"
+    cor = header.read_lua_value(gen)
+    with pytest.raises(StopIteration) as v:
+        cor.send(None)
+    assert v.value.value == {}
+
+    gen = GeneratorData()
+    gen.data = b"\4\2\4\1a\0\1b\0\5\5"
+    cor = header.read_lua_value(gen)
+    with pytest.raises(StopIteration) as v:
+        cor.send(None)
+    assert v.value.value == {None: {"a": "b"}}

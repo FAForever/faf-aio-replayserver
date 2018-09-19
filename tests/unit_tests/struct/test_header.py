@@ -129,3 +129,19 @@ def test_lua_dict_value():
     with pytest.raises(StopIteration) as v:
         cor.send(None)
     assert v.value.value == {None: {"a": "b"}}
+
+
+def test_lua_dict_as_key():
+    gen = GeneratorData()
+    gen.data = b"\4\4\5\2\5"
+    cor = header.read_lua_value(gen)
+    with pytest.raises(ValueError):
+        cor.send(None)
+
+
+def test_lua_unpaired_dict_end():
+    gen = GeneratorData()
+    gen.data = b"\4\5\4\2\4\5\5\5\4"
+    cor = header.read_lua_value(gen)
+    with pytest.raises(ValueError):
+        cor.send(None)

@@ -90,3 +90,19 @@ def test_lua_bool_value():
     with pytest.raises(StopIteration) as v:
         cor.send(None)
     assert v.value.value is True   # Not a typo
+
+
+def test_lua_string_value():
+    gen = GeneratorData()
+    gen.data = b"\1aaaaa\0"
+    cor = header.read_lua_value(gen)
+    with pytest.raises(StopIteration) as v:
+        cor.send(None)
+    assert v.value.value == "aaaaa"   # Not a typo
+
+    # Check invalid unicode just in case
+    gen = GeneratorData()
+    gen.data = b"\1aaaa\xc0 \0"
+    cor = header.read_lua_value(gen)
+    with pytest.raises(ValueError) as v:
+        cor.send(None)

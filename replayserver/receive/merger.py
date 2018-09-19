@@ -8,100 +8,87 @@ from replayserver.receive.stream import ConnectionReplayStream, \
 from replayserver.receive.mergestrategy import GreedyMergeStrategy
 
 
-class StreamLifetime:
-    GRACE_PERIOD = 30
-
-    def __init__(self):
-        self._stream_count = 0
-        self.ended = Event()
+class GracePeriod:
+    def __init__(self, grace_period_time):
+        self._grace_period_time = grace_period_time
+        self._ended = Event()
         self._grace_period = None
-        self._grace_period_enabled = True
 
     def is_over(self):
         return self.ended.is_set()
 
-    def stream_added(self):
-        self._stream_count += 1
-        self._cancel_grace_period()
-
-    def stream_removed(self):
-        self._stream_count -= 1
-        if self._stream_count == 0:
-            self._start_grace_period()
-
-    def disable_grace_period(self):
-        self._grace_period_enabled = False
+    def disable(self):
+        self._grace_period_time = 0
         if self._grace_period is not None:
-            self._cancel_grace_period()
-            self._start_grace_period()
+            self.stop()
+            self.start()
 
-    def _cancel_grace_period(self):
+    def start(self):
         if self._grace_period is not None:
-            self._grace_period.cancel()
-            self._grace_period = None
+            return
+        self._grace_period = asyncio.ensure_future(self._grace_period_wait())
 
-    def _start_grace_period(self):
+    def stop(self):
         if self._grace_period is None:
-            self._grace_period = asyncio.ensure_future(
-                self._no_streams_grace_period())
+            return
+        self._grace_period.cancel()
+        self._grace_period = None
 
-    async def _no_streams_grace_period(self):
-        if self._grace_period_enabled:
-            grace_period = self.GRACE_PERIOD
-        else:
-            grace_period = 0
-        await asyncio.sleep(grace_period)
-        self.ended.set()
+    async def elapsed(self):
+        await self._ended()
+
+    async def _grace_period_wait(self):
+        await asyncio.sleep(self._grace_period_time)
+        self._ended.set()
 
 
 class Merger:
-    def __init__(self, lifetime, merge_strategy, canonical_stream):
-        self._lifetime = lifetime
+    GRACE_PERIOD_TIME = 30
+
+    def __init__(self, grace_period_time, merge_strategy, canonical_stream):
+        self._end_grace_period = GracePeriod(grace_period_time)
         self._merge_strategy = merge_strategy
         self.canonical_stream = canonical_stream
         self._ended = Event()
-        asyncio.ensure_future(self._finalize_after_lifetime_ends())
+        asyncio.ensure_future(self._finalize_after_ending)
 
     @classmethod
     def build(cls):
-        lifetime = StreamLifetime()
         canonical_replay = OutsideSourceReplayStream()
         merge_strategy = GreedyMergeStrategy(canonical_replay)
-        return cls(lifetime, merge_strategy, canonical_replay)
+        return cls(cls.GRACE_PERIOD_TIME, merge_strategy, canonical_replay)
 
     @contextmanager
     def _get_stream(self, connection):
         stream = ConnectionReplayStream.build(connection)
         self._connections.add(connection)
-        self._lifetime.stream_added()
+        self._end_grace_period.stop()
         try:
             yield stream
         finally:
             self._connections.remove(connection)
-            self._lifetime.stream_removed()
+            if not self._connections:
+                self._end_grace_period.start()
 
     async def handle_connection(self, connection):
-        if self._lifetime.is_over():
+        if self._end_grace_period.is_over():
             raise CannotAcceptConnectionError(
                 "Writer connection arrived after replay writing finished")
         with self._get_stream(connection) as stream:
-            await self._handle_stream(stream)
-
-    async def _handle_stream(self, stream):
-        await stream.read_header()
-        self._merge_strategy.stream_added(stream)
-        while not stream.is_complete():
-            await stream.read()
-            self._merge_strategy.new_data(stream)
-        self._merge_strategy.stream_removed(stream)
+            await stream.read_header()
+            self._merge_strategy.stream_added(stream)
+            while not stream.is_complete():
+                await stream.read()
+                self._merge_strategy.new_data(stream)
+            self._merge_strategy.stream_removed(stream)
 
     def close(self):
-        self._lifetime.disable_grace_period()
+        self._end_grace_period.disable()
         for c in self._connections:
             c.close()
 
-    async def finalize_after_lifetime_ends(self):
-        await self._lifetime.ended.wait()
+    async def _finalize_after_ending(self):
+        await self._end_grace_period.elapsed()
         self._merge_strategy.finalize()
         self._ended.set()
 

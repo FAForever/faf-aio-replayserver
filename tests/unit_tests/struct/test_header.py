@@ -1,6 +1,7 @@
 import pytest
 import struct
 
+from tests.replays import load_replay
 from replayserver.struct.streamread import GeneratorData
 from replayserver.struct import header
 
@@ -116,3 +117,147 @@ def test_lua_dict_odd_item_number():
     data = b"\4\1a\0\1b\0\1c\0\5"
     with pytest.raises(ValueError):
         run_cor(header.read_lua_value, data)
+
+
+# FIXME - this header has been generated *BY* the function being tested.
+# Make sure to replace this with independently generated data!
+EXPECTED_EXAMPLE_HEADER = {
+    'armies': {
+        0: {
+            'AIPersonality': '',
+            'ArmyColor': 2.0,
+            'ArmyName': 'ARMY_1',
+            'BadMap': True,
+            'Civilian': True,
+            'Country': 'pl',
+            'DEV': 97.84439849853516,
+            'Faction': 3.0,
+            'Human': False,
+            'MEAN': 1817.47998046875,
+            'NG': 1633.0,
+            'ObserverListIndex': -1.0,
+            'OwnerID': '6579',
+            'PL': 1500.0,
+            'PlayerClan': 'SNF',
+            'PlayerColor': 2.0,
+            'PlayerName': 'MazorNoob',
+            'Ready': False,
+            'StartSpot': 1.0,
+            'Team': 2.0},
+        1: {
+            'AIPersonality': '',
+            'ArmyColor': 1.0,
+            'ArmyName': 'ARMY_2',
+            'BadMap': True,
+            'Civilian': True,
+            'Country': 'cz',
+            'DEV': 153.16900634765625,
+            'Faction': 3.0,
+            'Human': False,
+            'MEAN': 1282.280029296875,
+            'NG': 45.0,
+            'ObserverListIndex': -1.0,
+            'OwnerID': '191414',
+            'PL': 800.0,
+            'PlayerClan': '',
+            'PlayerColor': 1.0,
+            'PlayerName': 'dragonite',
+            'Ready': False,
+            'StartSpot': 2.0,
+            'Team': 3.0
+        }
+    },
+    'cheats_enabled': 0,
+    'map_name': '/maps/SCMP_016/SCMP_016.scmap',
+    'mods': {},
+    'random_seed': 65637294,
+    'remaining_timeouts': {
+        'MazorNoob': 3,
+        'dragonite': 3
+    },
+    'replay_version': 'Replay v1.9',
+    'scenario': {
+        'Configurations': {
+            'standard': {
+                'customprops': {},
+                'teams': {
+                    1.0: {
+                        'armies': {
+                            1.0: 'ARMY_1',
+                            2.0: 'ARMY_2'
+                        },
+                        'name': 'FFA'
+                    }
+                }
+            }
+        },
+        'Options': {
+            'AllowObservers': False,
+            'AutoTeams': 'tvsb',
+            'BuildMult': '2.0',
+            'CheatMult': '2.0',
+            'CheatsEnabled': 'false',
+            'CivilianAlliance': 'enemy',
+            'ClanTags': {
+                'MazorNoob': 'SNF',
+                'dragonite': ''
+            },
+            'FogOfWar': 'explored',
+            'GameSpeed': 'normal',
+            'LandExpansionsAllowed': '5',
+            'NavalExpansionsAllowed': '4',
+            'NoRushOption': 'Off',
+            'OmniCheat': 'on',
+            'PrebuiltUnits': 'Off',
+            'Quality': 35.875,
+            'RandomMap': 'Off',
+            'Ratings': {
+                'MazorNoob': 1500.0,
+                'dragonite': 800.0
+            },
+            'RevealCivilians': 'Yes',
+            'ScenarioFile': '/maps/scmp_016/scmp_016_scenario.lua',
+            'Score': 'no',
+            'Share': 'ShareUntilDeath',
+            'ShareUnitCap': 'none',
+            'TMLRandom': '0',
+            'TeamLock': 'locked',
+            'TeamSpawn': 'fixed',
+            'Timeouts': '3',
+            'UnitCap': '1000',
+            'Victory': 'demoralization'
+        },
+        'description': ('<LOC SCMP_016_Description>Canis River is known '
+                        'for two things. The first is the river, which is '
+                        'home to mineral deposits, especially gold. The '
+                        "second is that it's ideal for a one-on-one "
+                        'fight.'),
+        'map': '/maps/SCMP_016/SCMP_016.scmap',
+        'name': 'Canis River',
+        'norushoffsetX_ARMY_1': 5.0,
+        'norushoffsetX_ARMY_2': -25.0,
+        'norushoffsetY_ARMY_1': -20.0,
+        'norushoffsetY_ARMY_2': 0.0,
+        'norushradius': 75.0,
+        'preview': '',
+        'save': '/maps/SCMP_016/SCMP_016_save.lua',
+        'script': '/maps/SCMP_016/SCMP_016_script.lua',
+        'size': {
+            1.0: 256.0,
+            2.0: 256.0
+        },
+        'starts': False,
+        'type': 'skirmish'
+    },
+    'version': 'Supreme Commander v1.50.3696'
+}
+
+
+def test_load_example_header():
+    replay_data = load_replay("example")
+    with pytest.raises(StopIteration) as v:
+        gen = GeneratorData()
+        gen.data = replay_data
+        cor = header.read_header(gen)
+        cor.send(None)
+    assert v.value.value == EXPECTED_EXAMPLE_HEADER

@@ -75,7 +75,7 @@ def read_header(gen):
 
     replay_version_and_map = yield from read_string(gen)
     # can raise ValueError
-    replay_version, map_name = replay_version_and_map.split(b"\n", 2)
+    replay_version, map_name = replay_version_and_map.split("\r\n", 2)
     result["replay_version"] = replay_version
     result["map_name"] = map_name
     yield from read_exactly(gen, 4)     # skip
@@ -104,7 +104,7 @@ def read_header(gen):
         player_id = yield from read_value(gen, "B", 1)
         armies[player_id] = army
         if player_id != 255:
-            yield from read_exactly(1)      # Unknown skip
+            yield from read_exactly(gen, 1)     # Unknown skip
     result["armies"] = armies
 
     result["random_seed"] = yield from read_value(gen, "I", 4)
@@ -112,7 +112,8 @@ def read_header(gen):
 
 
 class ReplayHeader:
-    MAXLEN = 32 * 1024  # 32 kbytes ought to be enough for everyone
+    # Headers are pretty large, but 1MB should absolutely be enough
+    MAXLEN = 1024 * 1024
 
     def __init__(self, data, header):
         self.data = data

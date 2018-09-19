@@ -29,7 +29,7 @@ class ConnectionReplayStream(ConcreteReplayStream):
             except ValueError:
                 # TODO - more informative logs
                 raise MalformedDataError("Malformed replay header")
-        self.header, leftovers = self._header_reader.result
+        self.header, leftovers = self._header_reader.result()
         self.data += leftovers
 
     async def read(self):

@@ -51,6 +51,9 @@ class Merger:
         self.canonical_stream = canonical_stream
         self._ended = Event()
         asyncio.ensure_future(self._finalize_after_ending)
+        # In case no connections arrive at all, we still want to end
+        # (e.g. exception between replay creation and reaching the merger
+        self._end_grace_period.start()
 
     @classmethod
     def build(cls):

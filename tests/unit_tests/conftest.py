@@ -42,3 +42,49 @@ def locked_mock_coroutines(event_loop):
         return (manual_end, ended_wait_mock)
 
     return get
+
+
+@pytest.fixture
+def mock_replay_stream():
+    class S:
+        async def read_header():
+            pass
+
+        async def read():
+            pass
+
+        def data_length():
+            pass
+
+        def data_from():
+            pass
+
+        def is_complete():
+            pass
+
+        async def read_data():
+            pass
+
+    return asynctest.Mock(spec=S)
+
+
+@pytest.fixture
+def mock_concrete_replay_stream(mock_replay_stream):
+    mock_replay_stream.mock_add_spec(["data", "header"])
+    return mock_replay_stream
+
+
+@pytest.fixture
+def mock_outside_source_stream(mock_concrete_replay_stream):
+    class OS:
+        def set_header():
+            pass
+
+        def feed_data():
+            pass
+
+        def finish():
+            pass
+
+    mock_concrete_replay_stream.mock_add_spec(OS)
+    return mock_concrete_replay_stream

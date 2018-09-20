@@ -35,7 +35,7 @@ class GracePeriod:
         self._grace_period = None
 
     async def elapsed(self):
-        await self._ended()
+        await self._ended.wait()
 
     async def _grace_period_wait(self):
         await asyncio.sleep(self._grace_period_time)
@@ -50,7 +50,7 @@ class Merger:
         self._merge_strategy = merge_strategy
         self.canonical_stream = canonical_stream
         self._ended = Event()
-        asyncio.ensure_future(self._finalize_after_ending)
+        asyncio.ensure_future(self._finalize_after_ending())
         # In case no connections arrive at all, we still want to end
         # (e.g. exception between replay creation and reaching the merger
         self._end_grace_period.start()
@@ -92,6 +92,7 @@ class Merger:
     async def _finalize_after_ending(self):
         await self._end_grace_period.elapsed()
         self._merge_strategy.finalize()
+        self.canonical_stream.finish()
         self._ended.set()
 
     async def wait_for_ended(self):

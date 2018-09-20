@@ -41,7 +41,7 @@ class GreedyMergeStrategy(MergeStrategy):
         self._check_for_new_data(stream)
 
     def finalize(self):
-        self.sink_stream.finish()
+        pass
 
     def _check_for_new_data(self, stream):
         canon_len = self.sink_stream.data_length()

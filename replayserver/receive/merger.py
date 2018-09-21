@@ -49,6 +49,7 @@ class Merger:
         self._end_grace_period = GracePeriod(grace_period_time)
         self._merge_strategy = merge_strategy
         self.canonical_stream = canonical_stream
+        self._stream_count = 0
         self._ended = Event()
         asyncio.ensure_future(self._finalize_after_ending())
         # In case no connections arrive at all, we still want to end
@@ -64,13 +65,13 @@ class Merger:
     @contextmanager
     def _get_stream(self, connection):
         stream = ConnectionReplayStream.build(connection)
-        self._connections.add(connection)
+        self._stream_count += 1
         self._end_grace_period.stop()
         try:
             yield stream
         finally:
-            self._connections.remove(connection)
-            if not self._connections:
+            self._stream_count -= 1
+            if self._stream_count == 0:
                 self._end_grace_period.start()
 
     async def handle_connection(self, connection):
@@ -86,8 +87,6 @@ class Merger:
 
     def close(self):
         self._end_grace_period.disable()
-        for c in self._connections:
-            c.close()
 
     async def _finalize_after_ending(self):
         await self._end_grace_period.elapsed()

@@ -6,11 +6,8 @@ class MergeStrategy:
         self._streams = set()
         self.sink_stream = sink_stream
 
-    def stream_added(self, stream):
-        self.streams.add(stream)
-
-    def stream_removed(self, stream):
-        self.streams.remove(stream)
+    def new_header(self, stream):
+        raise NotImplementedError
 
     def new_data(self, stream):
         raise NotImplementedError
@@ -18,13 +15,11 @@ class MergeStrategy:
     def finalize(self):
         raise NotImplementedError
 
-    @contextmanager
-    def stream_in_strategy(self, stream):
-        self.stream_added(stream)
-        try:
-            yield
-        finally:
-            self.stream_removed(stream)
+    def stream_added(self, stream):
+        self.streams.add(stream)
+
+    def stream_removed(self, stream):
+        self.streams.remove(stream)
 
 
 class GreedyMergeStrategy(MergeStrategy):
@@ -33,9 +28,11 @@ class GreedyMergeStrategy(MergeStrategy):
 
     def stream_added(self, stream):
         MergeStrategy.stream_added(self, stream)
+        self._check_for_new_data(stream)
+
+    def new_header(self, stream):
         if self.sink_stream.header is None:
             self.sink_stream.set_header(stream.header)
-        self._check_for_new_data(stream)
 
     def new_data(self, stream):
         self._check_for_new_data(stream)

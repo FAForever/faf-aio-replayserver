@@ -67,13 +67,15 @@ class Merger:
                    canonical_replay)
 
     @contextmanager
-    def _get_stream(self, connection):
+    def _stream_lifetime(self, connection):
         stream = self._stream_builder(connection)
+        self._merge_strategy.stream_added(stream)
         self._stream_count += 1
         self._end_grace_period.stop()
         try:
             yield stream
         finally:
+            self._merge_strategy.stream_removed(stream)
             self._stream_count -= 1
             if self._stream_count == 0:
                 self._end_grace_period.start()
@@ -82,12 +84,12 @@ class Merger:
         if self._end_grace_period.is_over():
             raise CannotAcceptConnectionError(
                 "Writer connection arrived after replay writing finished")
-        with self._get_stream(connection) as stream:
+        with self._stream_lifetime(connection) as stream:
             await stream.read_header()
-            with self._merge_strategy.stream_in_strategy(stream):
-                while not stream.is_complete():
-                    await stream.read()
-                    self._merge_strategy.new_data(stream)
+            self._merge_strategy.new_header()
+            while not stream.ended():
+                await stream.read()
+                self._merge_strategy.new_data(stream)
 
     def close(self):
         self._end_grace_period.disable()

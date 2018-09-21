@@ -46,7 +46,7 @@ async def test_replay_stream_read_header(mock_header_reader, mock_connections):
     await stream.read_header()
     assert mock_conn.read.await_count == 2
     assert stream.header == b"Lorem ips"
-    assert stream.data == b"um "
+    assert stream.data.bytes() == b"um "
 
 
 @pytest.mark.asyncio
@@ -70,6 +70,7 @@ async def test_replay_stream_invalid_header(
 
     with pytest.raises(MalformedDataError):
         await stream.read_header()
+    assert stream.ended()
 
 
 @pytest.mark.asyncio
@@ -94,6 +95,7 @@ async def test_replay_stream_too_short_header(
 
     with pytest.raises(MalformedDataError):
         await stream.read_header()
+    assert stream.ended()
 
 
 @pytest.mark.asyncio
@@ -105,21 +107,21 @@ async def test_replay_stream_read(
 
     mock_conn.read.side_effect = [b"Lorem ", b"ipsum", b""]
     await stream.read()
-    assert stream.data == b"Lorem "
-    assert not stream.is_complete()
+    assert stream.data.bytes() == b"Lorem "
+    assert not stream.ended()
     await stream.read()
-    assert stream.data == b"Lorem ipsum"
-    assert not stream.is_complete()
+    assert stream.data.bytes() == b"Lorem ipsum"
+    assert not stream.ended()
     await stream.read()
-    assert stream.data == b"Lorem ipsum"
-    assert stream.is_complete()
+    assert stream.data.bytes() == b"Lorem ipsum"
+    assert stream.ended()
 
 
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_outside_source_stream_read_header():
     stream = OutsideSourceReplayStream()
-    f = asyncio.ensure_future(stream.read_header())
+    f = asyncio.ensure_future(stream.wait_for_header())
     header = "header"
     stream.set_header(header)
     got_header = await f
@@ -130,29 +132,29 @@ async def test_outside_source_stream_read_header():
 @timeout(0.1)
 async def test_outside_source_stream_read(event_loop):
     stream = OutsideSourceReplayStream()
-    f = asyncio.ensure_future(stream.read())
+    f = asyncio.ensure_future(stream.wait_for_data())
     await exhaust_callbacks(event_loop)
     assert not f.done()
     stream.feed_data(b"Lorem")
     await f
-    assert stream.data == b"Lorem"
+    assert stream.data.bytes() == b"Lorem"
 
 
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_outside_source_stream_immediate_feed(event_loop):
     stream = OutsideSourceReplayStream()
-    f = asyncio.ensure_future(stream.read())
+    f = asyncio.ensure_future(stream.wait_for_data())
     stream.feed_data(b"Lorem")
     await f
-    assert stream.data == b"Lorem"
+    assert stream.data.bytes() == b"Lorem"
 
 
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_outside_source_stream_finish(event_loop):
     stream = OutsideSourceReplayStream()
-    f = asyncio.ensure_future(stream.read())
+    f = asyncio.ensure_future(stream.wait_for_data())
     stream.finish()
     await f
-    assert stream.is_complete()
+    assert stream.ended()

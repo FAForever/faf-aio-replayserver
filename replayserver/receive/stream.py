@@ -15,6 +15,7 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
         self._header_reader = header_reader
         self._connection = connection
         self._ended = False
+        self._leftovers = b""
 
     @classmethod
     def build(cls, connection):
@@ -23,13 +24,15 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
 
     async def read_header(self):
         try:
-            self._header, leftovers = await self._feed_header_reader()
-            self._data += leftovers
+            # We avoid appending leftover data right away - it would force the
+            # caller to make extra checks after reading header, to make sure it
+            # didn't miss data. It's easier to guarantee here that first read()
+            # always starts from 0.
+            self._header, self._leftovers = await self._feed_header_reader()
         except MalformedDataError as e:
             self._ended = True
             raise
         finally:
-            self._signal_new_data_or_ended()
             self._signal_header_read_or_ended()
 
     async def _feed_header_reader(self):
@@ -44,9 +47,13 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
         return self._header_reader.result()
 
     async def read(self):
-        data = await self._connection.read(4096)
-        if not data:
-            self._ended = True
+        if self._leftovers:
+            data = self._leftovers
+            self._leftovers = b""
+        else:
+            data = await self._connection.read(4096)
+            if not data:
+                self._ended = True
         self._data += data
         self._signal_new_data_or_ended()
 

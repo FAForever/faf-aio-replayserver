@@ -46,7 +46,11 @@ async def test_replay_stream_read_header(mock_header_reader, mock_connections):
     await stream.read_header()
     assert mock_conn.read.await_count == 2
     assert stream.header == b"Lorem ips"
-    assert stream.data.bytes() == b"um "
+
+    # Replay stream should withhold data until we call read()
+    assert stream.data.bytes() == b""
+    await stream.read()
+    assert stream.data.bytes().startswith(b"um ")
 
 
 @pytest.mark.asyncio

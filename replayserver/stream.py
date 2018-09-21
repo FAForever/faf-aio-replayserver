@@ -45,7 +45,7 @@ class ReplayStream:
         None if the header was not read yet or if reading the header resulted
         in an error.
         """
-        raise NotImplementedError
+        pass
 
     async def wait_for_header(self):
         """ Wait until either the header was read or the stream ended. """

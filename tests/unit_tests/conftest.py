@@ -1,6 +1,7 @@
 import pytest
 import asynctest
 from asyncio.locks import Event
+from replayserver.stream import ReplayStream
 
 
 def mock_connection(reader, writer):
@@ -46,36 +47,12 @@ def locked_mock_coroutines(event_loop):
 
 @pytest.fixture
 def mock_replay_stream():
-    class S:
-        async def read_header():
-            pass
-
-        async def read():
-            pass
-
-        def data_length():
-            pass
-
-        def data_from():
-            pass
-
-        def is_complete():
-            pass
-
-        async def read_data():
-            pass
-
-    return asynctest.Mock(spec=S)
+    stream = ReplayStream()
+    return asynctest.Mock(spec=stream, autospec=True)
 
 
 @pytest.fixture
-def mock_concrete_replay_stream(mock_replay_stream):
-    mock_replay_stream.mock_add_spec(["data", "header"])
-    return mock_replay_stream
-
-
-@pytest.fixture
-def mock_outside_source_stream(mock_concrete_replay_stream):
+def mock_outside_source_stream(mock_replay_stream):
     class OS:
         def set_header():
             pass
@@ -86,5 +63,5 @@ def mock_outside_source_stream(mock_concrete_replay_stream):
         def finish():
             pass
 
-    mock_concrete_replay_stream.mock_add_spec(OS)
-    return mock_concrete_replay_stream
+    mock_replay_stream.mock_add_spec(OS)
+    return mock_replay_stream

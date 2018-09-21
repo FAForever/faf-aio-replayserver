@@ -27,7 +27,7 @@ def test_data_uses_right_stream_methods():
     assert s.data[1:2:1] == b"b"
 
 
-class TestHeaderMixinStream(HeaderEventMixin, ReplayStream):
+class HeaderMixinStream(HeaderEventMixin, ReplayStream):
     def __init__(self):
         HeaderEventMixin.__init__(self)
         ReplayStream.__init__(self)
@@ -45,7 +45,7 @@ class TestHeaderMixinStream(HeaderEventMixin, ReplayStream):
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_header_mixin_waits_on_header(event_loop):
-    s = TestHeaderMixinStream()
+    s = HeaderMixinStream()
     f = asyncio.ensure_future(s.wait_for_header())
     exhaust_callbacks(event_loop)
     assert not f.done()
@@ -58,7 +58,7 @@ async def test_header_mixin_waits_on_header(event_loop):
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_header_mixin_waits_on_ended(event_loop):
-    s = TestHeaderMixinStream()
+    s = HeaderMixinStream()
     f = asyncio.ensure_future(s.wait_for_header())
     exhaust_callbacks(event_loop)
     assert not f.done()
@@ -71,18 +71,18 @@ async def test_header_mixin_waits_on_ended(event_loop):
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_header_mixin_immediate_return(event_loop):
-    s = TestHeaderMixinStream()
+    s = HeaderMixinStream()
     s._header = "Thing"
     header = await s.wait_for_header()
     assert header == "Thing"
 
-    s = TestHeaderMixinStream()
+    s = HeaderMixinStream()
     s._ended = True
     header = await s.wait_for_header()
     assert header is None
 
 
-class TestDataMixinStream(DataEventMixin, ReplayStream):
+class DataMixinStream(DataEventMixin, ReplayStream):
     def __init__(self):
         DataEventMixin.__init__(self)
         ReplayStream.__init__(self)
@@ -105,7 +105,7 @@ class TestDataMixinStream(DataEventMixin, ReplayStream):
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_data_mixin_waits_on_data(event_loop):
-    s = TestDataMixinStream()
+    s = DataMixinStream()
     f = asyncio.ensure_future(s.wait_for_data())
     exhaust_callbacks(event_loop)
     assert not f.done()
@@ -118,7 +118,7 @@ async def test_data_mixin_waits_on_data(event_loop):
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_data_mixin_waits_on_ended(event_loop):
-    s = TestDataMixinStream()
+    s = DataMixinStream()
     f = asyncio.ensure_future(s.wait_for_data())
     exhaust_callbacks(event_loop)
     assert not f.done()
@@ -131,7 +131,7 @@ async def test_data_mixin_waits_on_ended(event_loop):
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_data_mixin_immediate_data():
-    s = TestDataMixinStream()
+    s = DataMixinStream()
     f = asyncio.ensure_future(s.wait_for_data())
     s._data += b"a"
     s._signal_new_data_or_ended()
@@ -142,7 +142,7 @@ async def test_data_mixin_immediate_data():
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_data_mixin_wait_until_position(event_loop):
-    s = TestDataMixinStream()
+    s = DataMixinStream()
     f = asyncio.ensure_future(s.wait_for_data(3))
     s._data += b"a"
     s._signal_new_data_or_ended()
@@ -157,12 +157,12 @@ async def test_data_mixin_wait_until_position(event_loop):
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_data_mixin_immediate_return(event_loop):
-    s = TestDataMixinStream()
+    s = DataMixinStream()
     s._data += b"a"
     data = await s.wait_for_data(0)
     assert data == b"a"
 
-    s = TestDataMixinStream()
+    s = DataMixinStream()
     s._ended = True
     data = await s.wait_for_data()
     assert data == b""

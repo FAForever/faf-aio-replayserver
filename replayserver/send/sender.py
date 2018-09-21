@@ -2,7 +2,8 @@ from asyncio.locks import Event
 from contextlib import contextmanager
 
 from replayserver.send.stream import DelayedReplayStream
-from replayserver.errors import CannotAcceptConnectionError
+from replayserver.errors import CannotAcceptConnectionError, \
+    MalformedDataError
 
 
 class Sender:
@@ -19,11 +20,11 @@ class Sender:
 
     def _remove_connection(self, connection):
         self._connections.remove(connection)
-        if not self._connections and self._stream.is_finished():
+        if not self._connections and self._stream.ended():
             self._ended.set()
 
     def accepts_connections(self):
-        return not self._stream.is_finished() and not self._closed
+        return not self._stream.ended() and not self._closed
 
     @contextmanager
     def _connection_ownership(self, connection):
@@ -42,13 +43,15 @@ class Sender:
             await self._write_replay(connection)
 
     async def _write_header(self, connection):
-        header = await self._stream.read_header()
+        header = await self._stream.wait_for_header()
+        if header is None:
+            raise MalformedDataError("Malformed replay header")
         connection.write(header)
 
     async def _write_replay(self, connection):
         position = 0
         while not self._closed:
-            data = await self._stream.read_data(position)
+            data = await self._stream.wait_for_data(position)
             if not data:
                 break
             position += len(data)

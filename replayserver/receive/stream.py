@@ -1,16 +1,20 @@
-from asyncio.locks import Event
-
-from replayserver.stream import ConcreteReplayStream
+from replayserver.stream import ReplayStream, ConcreteDataMixin, \
+    DataEventMixin, HeaderEventMixin
 from replayserver.struct.header import ReplayHeader
 from replayserver.errors import MalformedDataError
 
 
-class ConnectionReplayStream(ConcreteReplayStream):
+class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
+                             HeaderEventMixin, ReplayStream):
     def __init__(self, header_reader, connection):
-        ConcreteReplayStream.__init__(self)
+        ConcreteDataMixin.__init__(self)
+        DataEventMixin.__init__(self)
+        HeaderEventMixin.__init__(self)
+        ReplayStream.__init__(self)
+
         self._header_reader = header_reader
         self._connection = connection
-        self._finished = False
+        self._ended = False
 
     @classmethod
     def build(cls, connection):
@@ -18,8 +22,17 @@ class ConnectionReplayStream(ConcreteReplayStream):
         return cls(header_reader, connection)
 
     async def read_header(self):
-        if self.header is not None:
-            return
+        try:
+            self._header, leftovers = await self._feed_header_reader()
+            self._data += leftovers
+        except MalformedDataError as e:
+            self._ended = True
+            raise
+        finally:
+            self._signal_new_data_or_ended()
+            self._signal_header_read_or_ended()
+
+    async def _feed_header_reader(self):
         while not self._header_reader.done():
             data = await self._connection.read(4096)
             if not data:
@@ -27,67 +40,41 @@ class ConnectionReplayStream(ConcreteReplayStream):
             try:
                 self._header_reader.send(data)
             except ValueError:
-                # TODO - more informative logs
                 raise MalformedDataError("Malformed replay header")
-        self.header, leftovers = self._header_reader.result()
-        self.data += leftovers
+        return self._header_reader.result()
 
     async def read(self):
         data = await self._connection.read(4096)
         if not data:
-            self._finished = True
-        self.data += data
+            self._ended = True
+        self._data += data
+        self._signal_new_data_or_ended()
 
-    def is_complete(self):
-        return self._finished
+    def ended(self):
+        return self._ended
 
 
-class OutsideSourceReplayStream(ConcreteReplayStream):
+class OutsideSourceReplayStream(ConcreteDataMixin, DataEventMixin,
+                                HeaderEventMixin, ReplayStream):
     def __init__(self):
-        ConcreteReplayStream.__init__(self)
-        self._finished = False
-        self._new_data = Event()
-
-    async def _wait_for(self, condition):
-        while not condition():
-            await self._new_data.wait()
-
-    def _notify(self):
-        self._new_data.set()
-        self._new_data.clear()
-
-    async def read_header(self):
-        await self._wait_for(lambda: self.header is not None
-                             or self.is_complete())
-        if self.header is None:
-            raise MalformedDataError(
-                "Source did not provide header before ending stream")
-        return self.header
+        ConcreteDataMixin.__init__(self)
+        DataEventMixin.__init__(self)
+        HeaderEventMixin.__init__(self)
+        ReplayStream.__init__(self)
+        self._ended = False
 
     def set_header(self, header):
-        self.header = header
-        self._notify()
-
-    # We need the following indirection because of a race condition.
-    # If a coroutine awaits on read(), and another coroutine feeds data before
-    # read() starts, we would read the new length and await further instead
-    # of returning.
-    #
-    # By reading and saving current position immediately, we prevent that.
-    def read(self):
-        return self._read_from(self.data_length())
-
-    async def _read_from(self, position):
-        await self._wait_for(lambda: position < self.data_length()
-                             or self.is_complete())
-        return
+        self._header = header
+        self._signal_header_read_or_ended()
 
     def feed_data(self, data):
-        self.data += data
-        self._notify()
-
-    def is_complete(self):
-        return self._finished
+        self._data += data
+        self._signal_new_data_or_ended()
 
     def finish(self):
-        self._finished = True
+        self._ended = True
+        self._signal_header_read_or_ended()
+        self._signal_new_data_or_ended()
+
+    def ended(self):
+        return self._ended

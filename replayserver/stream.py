@@ -13,7 +13,7 @@ class ReplayStreamData:
             raise ValueError
         return self._stream._data_slice(val)
 
-    def __bytes__(self):
+    def bytes(self):
         return self._stream._data_bytes()
 
 
@@ -65,6 +65,10 @@ class ReplayStream:
         Wait until there is data after current position (or 'position', if
         specified). Return the new data, or bytes() if the stream ended and
         there is no data past position.
+
+        Be aware that this should also work if it's run via ensure_future()!
+        Make sure you note down current position immediately when called or
+        you can end up missing appended data!
         """
         raise NotImplementedError
 
@@ -99,9 +103,12 @@ class DataEventMixin:
         self._new_data_or_ended.set()
         self._new_data_or_ended.clear()
 
-    async def wait_for_data(self, position=None):
+    def wait_for_data(self, position=None):
         if position is None:
             position = len(self.data)
+        return self._wait_for_data(position)
+
+    async def _wait_for_data(self, position=None):
         while position >= len(self.data) and not self.ended():
             await self._new_data_or_ended.wait()
         if position < len(self.data):

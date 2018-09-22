@@ -1,6 +1,5 @@
 class MergeStrategy:
     def __init__(self, sink_stream):
-        self._streams = set()
         self.sink_stream = sink_stream
 
     def new_header(self, stream):
@@ -14,10 +13,10 @@ class MergeStrategy:
 
     # An added stream will always start with no header and no data.
     def stream_added(self, stream):
-        self.streams.add(stream)
+        raise NotImplementedError
 
     def stream_removed(self, stream):
-        self.streams.remove(stream)
+        raise NotImplementedError
 
 
 class GreedyMergeStrategy(MergeStrategy):
@@ -25,20 +24,20 @@ class GreedyMergeStrategy(MergeStrategy):
         MergeStrategy.__init__(self, sink_stream)
 
     def stream_added(self, stream):
-        MergeStrategy.stream_added(self, stream)
+        pass
+
+    def stream_removed(self, stream):
+        pass
 
     def new_header(self, stream):
         if self.sink_stream.header is None:
             self.sink_stream.set_header(stream.header)
 
     def new_data(self, stream):
-        self._check_for_new_data(stream)
-
-    def finalize(self):
-        self.sink_stream.finish()
-
-    def _check_for_new_data(self, stream):
         canon_len = len(self.sink_stream.data)
         if len(stream.data) <= canon_len:
             return
         self.sink_stream.feed_data(stream.data[:canon_len])
+
+    def finalize(self):
+        self.sink_stream.finish()

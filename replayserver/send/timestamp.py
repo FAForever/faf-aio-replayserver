@@ -10,10 +10,11 @@ class Timestamp:
         self._delay = delay
 
     async def timestamps(self):
-        stamp_number = math.ceil(self._delay / self._interval)
+        # Last item in deque size n+1 is from n intervals ago
+        stamp_number = math.ceil(self._delay / self._interval) + 1
         stamps = deque([0], maxlen=stamp_number)
-        while not self._stream.is_complete():
-            stamps.append(self._stream.data_length())
+        while not self._stream.ended():
+            stamps.append(len(self._stream.data))
             yield stamps[0]
             await asyncio.sleep(self._interval)
-        yield self._stream.data_length()
+        yield len(self._stream.data)

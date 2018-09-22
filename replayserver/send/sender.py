@@ -46,7 +46,7 @@ class Sender:
         header = await self._stream.wait_for_header()
         if header is None:
             raise MalformedDataError("Malformed replay header")
-        connection.write(header)
+        connection.write(header.data)
 
     async def _write_replay(self, connection):
         position = 0

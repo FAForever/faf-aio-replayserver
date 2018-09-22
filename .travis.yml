@@ -18,7 +18,7 @@ install:
       && popd
   - pip3 install -r requirements.txt
   - docker-compose -f faf-stack/docker-compose.yml up -d faf-db
-  -./docker-build.sh
+  - ./docker-build.sh
 
 script:
   - sleep 60

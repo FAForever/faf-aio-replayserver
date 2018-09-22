@@ -9,7 +9,7 @@ from replayserver.errors import CannotAcceptConnectionError, \
 class Sender:
     def __init__(self, delayed_stream):
         self._stream = delayed_stream
-        self._connections = set()
+        self._conn_count = 0
         self._ended = Event()
         self._closed = False
 
@@ -18,27 +18,21 @@ class Sender:
         delayed_stream = DelayedReplayStream.build(stream)
         return cls(delayed_stream)
 
-    def _add_connection(self, connection):
-        self._connections.add(connection)
-
-    def _remove_connection(self, connection):
-        self._connections.remove(connection)
-        if not self._connections and self._stream.ended():
-            self._ended.set()
-
     def accepts_connections(self):
         return not self._stream.ended() and not self._closed
 
     @contextmanager
-    def _connection_ownership(self, connection):
-        self._add_connection(connection)
+    def _connection_count(self, connection):
+        self._conn_count += 1
         try:
             yield
         finally:
-            self._remove_connection(connection)
+            self._conn_count -= 1
+            if self._conn_count == 0 and self._stream.ended():
+                self._ended.set()
 
     async def handle_connection(self, connection):
-        with self._connection_ownership(connection):
+        with self._connection_count(connection):
             if not self.accepts_connections():
                 raise CannotAcceptConnectionError(
                     "Replay cannot be read from anymore")

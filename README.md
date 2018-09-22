@@ -62,9 +62,4 @@ During saving replay, server communicates with MySQL database.
 
 TODO things:
 
-    1. tests + deployment (https://github.com/FAForever/faf-java-api/blob/develop/.travis.yml)
-        + docker push (https://github.com/FAForever/server/blob/develop/.travis.yml)
-        https://github.com/FAForever/faf-java-api/blob/develop/.travis.yml + pushing on the server
-    2. Sleep 5 min, before stream starts
-    3. Remove temporary files, after all streams are done.
-    4. https://hub.docker.com/r/faforever/faf-aio-replayserver/
+    1. https://hub.docker.com/r/faforever/faf-aio-replayserver/

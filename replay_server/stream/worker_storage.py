@@ -20,9 +20,5 @@ class WorkerStorage:
         return cls.online_workers[uid]
 
     @classmethod
-    def get_all_workers(cls):
-        return cls.online_workers
-
-    @classmethod
     def remove_worker(cls, uid, worker_instance: ReplayWorkerBase):
         cls.online_workers[uid].remove(worker_instance)

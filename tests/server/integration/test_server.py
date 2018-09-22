@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import struct
 import zlib
 from base64 import b64decode
@@ -7,6 +8,7 @@ from base64 import b64decode
 import pytest
 
 from replay_server.utils.paths import get_replay_path
+from replay_server.utils.paths import get_temp_replay_path
 
 
 @pytest.mark.asyncio
@@ -96,3 +98,23 @@ async def test_server_save_data(client, put_replay, replay_data, replay_id, db_r
 
     header_data = json.loads(replay_header)
     assert header_data['uid'] == replay_id
+
+
+@pytest.mark.asyncio
+@pytest.mark.timeout(2)
+async def test_stream_write_and_clean(client, replay_data, put_replay, replay_id, db_replay):
+    """
+    Check, that we will know that temporary file is moved at the end of replay
+    """
+    temp_replay_path = get_temp_replay_path(replay_id)
+    saved_replay_path = get_replay_path(replay_id)
+    _, writer1 = await client()
+    writer1.write(put_replay)
+    writer1.write(replay_data)
+    await writer1.drain()
+    writer1.close()
+
+    await asyncio.sleep(0.1)
+
+    assert not os.path.exists(temp_replay_path)
+    assert os.path.exists(saved_replay_path)

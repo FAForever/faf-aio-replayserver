@@ -18,7 +18,7 @@ class ReplayWriter(ReplayWorkerBase):
 
     def __init__(self, buffer: RawIOBase, *args: List[Any], **kwargs: Dict[Any, Any]):
         super(ReplayWriter, self).__init__(*args, **kwargs)
-        self.buffer = buffer
+        self.buffer: RawIOBase = buffer
         logger.info("Prepared to save stream for %s", self.get_uid())
 
     async def process(self):
@@ -49,6 +49,9 @@ class ReplayWriter(ReplayWorkerBase):
             self.position = data_end
 
     async def cleanup(self):
+        """
+        Closes buffers, removes worker from active workers, saves replay, if there is no writers.
+        """
         logger.info("Closing buffer for for %s", self.get_uid())
         self.buffer.close()
 

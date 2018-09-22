@@ -5,15 +5,21 @@ from replayserver.send.timestamp import Timestamp
 
 class DelayedReplayStream(DataEventMixin, ReplayStream):
     DELAY = 300
+    INTERVAL = 1
 
-    def __init__(self, stream):
+    def __init__(self, stream, timestamp):
         DataEventMixin.__init__(self)
         ReplayStream.__init__(self)
         self._stream = stream
+        self._timestamp = timestamp
         self._current_position = 0
         self._ended = False
-        self._timestamp = Timestamp(self._stream)
         asyncio.ensure_future(self._track_current_position)
+
+    @classmethod
+    def build(cls, stream):
+        timestamp = Timestamp(stream, cls.interval, cls.delay)
+        return cls(stream, timestamp)
 
     @property
     def header(self):

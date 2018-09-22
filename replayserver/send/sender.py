@@ -7,13 +7,16 @@ from replayserver.errors import CannotAcceptConnectionError, \
 
 
 class Sender:
-    DELAY = 300
-
-    def __init__(self, stream):
-        self._stream = DelayedReplayStream(stream)
+    def __init__(self, delayed_stream):
+        self._stream = delayed_stream
         self._connections = set()
         self._ended = Event()
         self._closed = False
+
+    @classmethod
+    def build(cls, stream):
+        delayed_stream = DelayedReplayStream.build(stream)
+        return cls(delayed_stream)
 
     def _add_connection(self, connection):
         self._connections.add(connection)

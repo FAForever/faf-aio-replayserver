@@ -146,6 +146,7 @@ async def test_merger_read_header_exception(mock_outside_source_stream,
     mock_merge_strategy.stream_added.assert_called_with(connection_stream)
     mock_merge_strategy.stream_removed.assert_called_with(connection_stream)
     mock_merge_strategy.new_header.assert_not_called()
+    await merger.wait_for_ended()
 
 
 @pytest.mark.asyncio
@@ -173,6 +174,7 @@ async def test_merger_read_data_exception(mock_outside_source_stream,
     mock_merge_strategy.stream_removed.assert_called_with(connection_stream)
     mock_merge_strategy.new_header.assert_called()
     mock_merge_strategy.new_data.assert_not_called()
+    await merger.wait_for_ended()
 
 
 @pytest.mark.asyncio

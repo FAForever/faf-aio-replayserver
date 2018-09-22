@@ -18,6 +18,7 @@ install:
       && popd
   - pip3 install -r requirements.txt
   - docker-compose -f faf-stack/docker-compose.yml up -d faf-db
+  -./docker-build.sh
 
 script:
   - sleep 60
@@ -33,7 +34,6 @@ after_script:
 after_success:
   - export REPO=faforever/faf-aio-replayserver
   - if [ -n "${TRAVIS_TAG}" ]; then
-      ./docker-build.sh;
       docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}";
       docker tag faf-aio-replayserver ${REPO}:${TRAVIS_TAG};
       docker push ${REPO};

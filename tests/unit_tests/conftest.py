@@ -2,6 +2,7 @@ import pytest
 import asynctest
 from asyncio.locks import Event
 from replayserver.stream import ReplayStream
+from tests import TimeSkipper
 
 
 def mock_connection(reader, writer):
@@ -51,3 +52,8 @@ def mock_replay_streams():
         stream = ReplayStream()
         return asynctest.create_autospec(stream)
     return build
+
+
+@pytest.fixture
+def time_skipper(event_loop):
+    return TimeSkipper(event_loop)

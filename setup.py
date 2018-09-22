@@ -13,7 +13,7 @@ setup(
     author_email="i.kotrasinsk@gmail.com",
     url="https://github.com/FAForever/faf-aio-replayserver",
     keywords="FAForever replay server",
-    license="GPL2",
+    license="GPL3",
     packages=["replayserver"],
     entry_points={
         "console_scripts": [

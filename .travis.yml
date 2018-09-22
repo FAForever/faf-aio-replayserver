@@ -35,6 +35,6 @@ after_success:
   - export REPO=faforever/faf-aio-replayserver
   - if [ -n "${TRAVIS_TAG}" ]; then
       docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}";
-      docker tag faforever/faf-aio-replayserver ${REPO}:${TRAVIS_TAG};
+      docker tag faf-aio-replayserver ${REPO}:${TRAVIS_TAG};
       docker push ${REPO};
     fi

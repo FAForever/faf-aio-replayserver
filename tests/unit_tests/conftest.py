@@ -46,22 +46,8 @@ def locked_mock_coroutines(event_loop):
 
 
 @pytest.fixture
-def mock_replay_stream():
-    stream = ReplayStream()
-    return asynctest.Mock(spec=stream, autospec=True)
-
-
-@pytest.fixture
-def mock_outside_source_stream(mock_replay_stream):
-    class OS:
-        def set_header():
-            pass
-
-        def feed_data():
-            pass
-
-        def finish():
-            pass
-
-    mock_replay_stream.mock_add_spec(OS)
-    return mock_replay_stream
+def mock_replay_streams():
+    def build():
+        stream = ReplayStream()
+        return asynctest.create_autospec(stream)
+    return build

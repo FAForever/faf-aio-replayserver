@@ -15,7 +15,7 @@ class GracePeriod:
         self._grace_period = None
 
     def is_over(self):
-        return self.ended.is_set()
+        return self._ended.is_set()
 
     def disable(self):
         self._grace_period_time = 0
@@ -86,7 +86,7 @@ class Merger:
                 "Writer connection arrived after replay writing finished")
         with self._stream_lifetime(connection) as stream:
             await stream.read_header()
-            self._merge_strategy.new_header()
+            self._merge_strategy.new_header(stream)
             while not stream.ended():
                 await stream.read()
                 self._merge_strategy.new_data(stream)

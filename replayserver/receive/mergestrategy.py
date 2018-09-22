@@ -37,7 +37,7 @@ class GreedyMergeStrategy(MergeStrategy):
         canon_len = len(self.sink_stream.data)
         if len(stream.data) <= canon_len:
             return
-        self.sink_stream.feed_data(stream.data[:canon_len])
+        self.sink_stream.feed_data(stream.data[canon_len:])
 
     def finalize(self):
         self.sink_stream.finish()

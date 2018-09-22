@@ -40,8 +40,79 @@ def mock_sink_stream():
     return MockOutsideSourceStream()
 
 
-@pytest.mark.parametrize("strategy", [GreedyMergeStrategy])
+general_test_strats = [GreedyMergeStrategy]
+
+
+@pytest.mark.parametrize("strategy", general_test_strats)
 def test_strategy_ends_stream_when_finalized(strategy, mock_sink_stream):
     strat = strategy(mock_sink_stream)
+    stream1 = MockStream()
+    strat.stream_added(stream1)
+    strat.stream_removed(stream1)
     strat.finalize()
     assert mock_sink_stream.ended()
+
+
+@pytest.mark.parametrize("strategy", general_test_strats)
+def test_strategy_picks_at_least_one_header(strategy, mock_sink_stream):
+    strat = strategy(mock_sink_stream)
+    stream1 = MockStream()
+    stream2 = MockStream()
+    stream2._header = "Header"
+
+    strat.stream_added(stream2)
+    strat.new_header(stream2)
+    strat.stream_added(stream1)
+    strat.stream_removed(stream2)
+    strat.stream_removed(stream1)
+    strat.finalize()
+    assert mock_sink_stream._header == "Header"
+
+
+@pytest.mark.parametrize("strategy", general_test_strats)
+def test_strategy_gets_all_data_of_one(strategy, mock_sink_stream):
+    strat = strategy(mock_sink_stream)
+    stream1 = MockStream()
+    stream1._header = "Header"
+
+    strat.stream_added(stream1)
+    strat.new_header(stream1)
+    stream1._data += b"Best f"
+    strat.new_data(stream1)
+    stream1._data += b"r"
+    strat.new_data(stream1)
+    stream1._data += b"iends"
+    strat.new_data(stream1)
+    strat.stream_removed(stream1)
+    strat.finalize()
+
+    assert mock_sink_stream._header == "Header"
+    assert mock_sink_stream._data == b"Best friends"
+
+
+@pytest.mark.parametrize("strategy", general_test_strats)
+def test_strategy_gets_common_prefix_of_all(strategy, mock_sink_stream):
+    strat = strategy(mock_sink_stream)
+    stream1 = MockStream()
+    stream2 = MockStream()
+    stream2._header = "Header"
+
+    strat.stream_added(stream1)
+    strat.stream_added(stream2)
+    strat.new_header(stream2)
+
+    stream1._data += b"Best f"
+    strat.new_data(stream1)
+    stream2._data += b"Best"
+    strat.new_data(stream2)
+    stream1._data += b"r"
+    strat.new_data(stream1)
+    stream2._data += b" pals"
+    strat.new_data(stream2)
+    stream1._data += b"iends"
+    strat.new_data(stream1)
+
+    strat.stream_removed(stream2)
+    strat.stream_removed(stream1)
+    strat.finalize()
+    assert mock_sink_stream._data.startswith(b"Best ")

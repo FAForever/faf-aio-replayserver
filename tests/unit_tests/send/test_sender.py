@@ -22,6 +22,7 @@ async def test_sender_not_accepting_after_stream_ends(mock_connections,
     outside_source_stream.finish()
     with pytest.raises(CannotAcceptConnectionError):
         await sender.handle_connection(connection)
+    await sender.wait_for_ended()
 
 
 @pytest.mark.asyncio
@@ -33,6 +34,8 @@ async def test_sender_not_accepting_after_explicit_end(mock_connections,
     sender.close()
     with pytest.raises(CannotAcceptConnectionError):
         await sender.handle_connection(connection)
+    outside_source_stream.finish()
+    await sender.wait_for_ended()
 
 
 @pytest.mark.asyncio

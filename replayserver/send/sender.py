@@ -1,3 +1,4 @@
+import asyncio
 from asyncio.locks import Event
 from contextlib import contextmanager
 
@@ -12,6 +13,10 @@ class Sender:
         self._conn_count = 0
         self._ended = Event()
         self._closed = False
+        self._stream_end_check = asyncio.ensure_future(
+            self._stream.wait_for_ended())
+        self._stream_end_check.add_done_callback(
+            lambda f: None if f.cancelled() else self._check_ended())
 
     @classmethod
     def build(cls, stream):
@@ -32,6 +37,7 @@ class Sender:
 
     def _check_ended(self):
         if self._conn_count == 0 and self._stream.ended():
+            self._stream_end_check.cancel()
             self._ended.set()
 
     async def handle_connection(self, connection):

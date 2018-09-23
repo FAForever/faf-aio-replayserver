@@ -28,8 +28,11 @@ class Sender:
             yield
         finally:
             self._conn_count -= 1
-            if self._conn_count == 0 and self._stream.ended():
-                self._ended.set()
+            self._check_ended()
+
+    def _check_ended(self):
+        if self._conn_count == 0 and self._stream.ended():
+            self._ended.set()
 
     async def handle_connection(self, connection):
         with self._connection_count(connection):

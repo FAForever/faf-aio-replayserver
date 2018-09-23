@@ -56,3 +56,12 @@ async def test_sender_doesnt_end_while_connection_runs(
     end.set()
     await h
     await w
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_sender_ends_with_ended_stream_and_no_connections(
+        outside_source_stream):
+    sender = Sender(outside_source_stream)
+    outside_source_stream.finish()
+    await sender.wait_for_ended()

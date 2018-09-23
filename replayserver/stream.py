@@ -79,6 +79,9 @@ class ReplayStream:
         """
         raise NotImplementedError
 
+    async def wait_for_ended(self):
+        raise NotImplementedError
+
 
 class HeaderEventMixin:
     """ Useful when the class adds header via a coroutine. """
@@ -115,6 +118,21 @@ class DataEventMixin:
             return self.data[position:]
         if self.ended():
             return b""
+
+
+class EndedEventMixin:
+    """ Useful when the class adds header via a coroutine. """
+    def __init__(self):
+        self._ended = Event()
+
+    def _end(self):
+        self._ended.set()
+
+    def ended(self):
+        return self._ended.is_set()
+
+    async def wait_for_ended(self):
+        await self._ended.wait()
 
 
 class ConcreteDataMixin:

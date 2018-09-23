@@ -1,19 +1,19 @@
 import asyncio
-from replayserver.stream import ReplayStream, DataEventMixin
+from replayserver.stream import ReplayStream, DataEventMixin, EndedEventMixin
 from replayserver.send.timestamp import Timestamp
 
 
-class DelayedReplayStream(DataEventMixin, ReplayStream):
+class DelayedReplayStream(DataEventMixin, EndedEventMixin, ReplayStream):
     DELAY = 300
     INTERVAL = 1
 
     def __init__(self, stream, timestamp):
         DataEventMixin.__init__(self)
+        EndedEventMixin.__init__(self)
         ReplayStream.__init__(self)
         self._stream = stream
         self._timestamp = timestamp
         self._current_position = 0
-        self._ended = False
         asyncio.ensure_future(self._track_current_position())
 
     @classmethod
@@ -41,14 +41,11 @@ class DelayedReplayStream(DataEventMixin, ReplayStream):
     def _data_bytes(self):
         return self._stream.data[:self._current_position]
 
-    def ended(self):
-        return self._ended
-
     async def _track_current_position(self):
         async for position in self._timestamp.timestamps():
             if position <= self._current_position:
                 continue
             self._current_position = position
             self._signal_new_data_or_ended()
-        self._ended = True
+        self._end()
         self._signal_new_data_or_ended()

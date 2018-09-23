@@ -1,20 +1,20 @@
 from replayserver.stream import ReplayStream, ConcreteDataMixin, \
-    DataEventMixin, HeaderEventMixin
+    DataEventMixin, HeaderEventMixin, EndedEventMixin
 from replayserver.struct.header import ReplayHeader
 from replayserver.errors import MalformedDataError
 
 
 class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
-                             HeaderEventMixin, ReplayStream):
+                             HeaderEventMixin, EndedEventMixin, ReplayStream):
     def __init__(self, header_reader, connection):
         ConcreteDataMixin.__init__(self)
         DataEventMixin.__init__(self)
         HeaderEventMixin.__init__(self)
+        EndedEventMixin.__init__(self)
         ReplayStream.__init__(self)
 
         self._header_reader = header_reader
         self._connection = connection
-        self._ended = False
         self._leftovers = b""
 
     @classmethod
@@ -30,7 +30,7 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
             # always starts from 0.
             self._header, self._leftovers = await self._feed_header_reader()
         except MalformedDataError as e:
-            self._ended = True
+            self._end()
             raise
         finally:
             self._signal_header_read_or_ended()
@@ -53,22 +53,20 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
         else:
             data = await self._connection.read(4096)
             if not data:
-                self._ended = True
+                self._end()
         self._data += data
         self._signal_new_data_or_ended()
 
-    def ended(self):
-        return self._ended
-
 
 class OutsideSourceReplayStream(ConcreteDataMixin, DataEventMixin,
-                                HeaderEventMixin, ReplayStream):
+                                HeaderEventMixin, EndedEventMixin,
+                                ReplayStream):
     def __init__(self):
         ConcreteDataMixin.__init__(self)
         DataEventMixin.__init__(self)
         HeaderEventMixin.__init__(self)
+        EndedEventMixin.__init__(self)
         ReplayStream.__init__(self)
-        self._ended = False
 
     def set_header(self, header):
         self._header = header
@@ -79,9 +77,6 @@ class OutsideSourceReplayStream(ConcreteDataMixin, DataEventMixin,
         self._signal_new_data_or_ended()
 
     def finish(self):
-        self._ended = True
+        self._end()
         self._signal_header_read_or_ended()
         self._signal_new_data_or_ended()
-
-    def ended(self):
-        return self._ended

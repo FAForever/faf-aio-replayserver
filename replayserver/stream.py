@@ -42,8 +42,9 @@ class ReplayStream:
     @property
     def header(self):
         """
-        None if the header was not read yet or if reading the header resulted
-        in an error.
+        None until the header is successfully read. Note that you can't tell if
+        reading the header failed until the stream (eventually) ends.
+        If set, MUST be a ReplayHeader instance.
         """
         pass
 
@@ -92,8 +93,7 @@ class HeaderEventMixin:
         self._header_read_or_ended.set()
 
     async def wait_for_header(self):
-        while self.header is None and not self.ended():
-            await self._header_read_or_ended.wait()
+        await self._header_read_or_ended.wait()
         return self.header
 
 

@@ -26,7 +26,12 @@ class DelayedReplayStream(DataEventMixin, EndedEventMixin, ReplayStream):
         return self._stream.header
 
     async def wait_for_header(self):
-        return (await self._stream.wait_for_header())
+        h = await self._stream.wait_for_header()
+        if h is None:
+            # Stream ended without setting the header. Respect the 'wait until
+            # header is set or stream ends' rule and wait for our own end.
+            await self.wait_for_ended()
+        return h
 
     def _data_length(self):
         return min(len(self._stream.data), self._current_position)

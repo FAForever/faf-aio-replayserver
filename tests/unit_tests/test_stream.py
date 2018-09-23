@@ -68,6 +68,16 @@ async def test_header_mixin_waits_on_ended(event_loop):
     assert head is None
 
 
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_header_mixin_immediate_header(event_loop):
+    s = HeaderMixinStream()
+    s._header = "Header"
+    s._signal_header_read_or_ended()
+    head = await s.wait_for_header()
+    assert head is "Header"
+
+
 class DataMixinStream(DataEventMixin, ReplayStream):
     def __init__(self):
         DataEventMixin.__init__(self)

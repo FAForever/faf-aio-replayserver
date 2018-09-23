@@ -2,6 +2,7 @@ import pytest
 import asynctest
 from asyncio.locks import Event
 from replayserver.stream import ReplayStream
+from replayserver.receive.stream import OutsideSourceReplayStream
 from tests import TimeSkipper
 
 
@@ -57,3 +58,16 @@ def mock_replay_streams():
 @pytest.fixture
 def time_skipper(event_loop):
     return TimeSkipper(event_loop)
+
+
+# Used as a mock stream we can control. Technically we're breaking the unittest
+# rule of not involving other units. In practice for testing purposes we'd
+# basically have to reimplement OutsideSourceReplayStream, so let's just use it
+# - at least it's unit-tested itself.
+#
+# Yes, OutsideSourceReplayStream can change in the future so it's not useful
+# for unit testing anymore. We'll just haul the current implementation here
+# when that happens.
+@pytest.fixture
+def outside_source_stream(event_loop):
+    return asynctest.Mock(wraps=OutsideSourceReplayStream())

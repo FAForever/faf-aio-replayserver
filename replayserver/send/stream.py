@@ -14,11 +14,11 @@ class DelayedReplayStream(DataEventMixin, ReplayStream):
         self._timestamp = timestamp
         self._current_position = 0
         self._ended = False
-        asyncio.ensure_future(self._track_current_position)
+        asyncio.ensure_future(self._track_current_position())
 
     @classmethod
     def build(cls, stream):
-        timestamp = Timestamp(stream, cls.interval, cls.delay)
+        timestamp = Timestamp(stream, cls.INTERVAL, cls.DELAY)
         return cls(stream, timestamp)
 
     @property
@@ -45,7 +45,7 @@ class DelayedReplayStream(DataEventMixin, ReplayStream):
         return self._ended
 
     async def _track_current_position(self):
-        async for position in self._timestamp.timestamps(self.DELAY):
+        async for position in self._timestamp.timestamps():
             if position <= self._current_position:
                 continue
             self._current_position = position

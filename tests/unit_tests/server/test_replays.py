@@ -42,9 +42,7 @@ def mock_replay_builder(mocker):
 @timeout(1)
 async def test_reader_with_no_existing_replay_is_not_processed(
         mock_connections, mock_replay_builder):
-    connection = mock_connections(None, None)
-    connection.type = Connection.Type.READER
-    connection.uid = 1
+    connection = mock_connections(Connection.Type.READER, 1)
 
     replays = Replays(mock_replay_builder)
     with pytest.raises(CannotAcceptConnectionError):
@@ -56,12 +54,8 @@ async def test_reader_with_no_existing_replay_is_not_processed(
 @timeout(1)
 async def test_readers_successful_connection(
         mock_replays, mock_replay_builder, mock_connections):
-    writer = mock_connections(None, None)
-    writer.type = Connection.Type.WRITER
-    writer.uid = 1
-    reader = mock_connections(None, None)
-    reader.type = Connection.Type.READER
-    reader.uid = 1
+    writer = mock_connections(Connection.Type.WRITER, 1)
+    reader = mock_connections(Connection.Type.READER, 1)
     mock_replay = mock_replays()
     mock_replay_builder.side_effect = [mock_replay]
     replays = Replays(mock_replay_builder)
@@ -86,9 +80,7 @@ async def test_readers_successful_connection(
 @timeout(1)
 async def test_replays_closing(
         mock_replays, mock_replay_builder, mock_connections):
-    writer = mock_connections(None, None)
-    writer.type = Connection.Type.WRITER
-    writer.uid = 1
+    writer = mock_connections(Connection.Type.WRITER, 1)
     mock_replay = mock_replays()
     mock_replay_builder.side_effect = [mock_replay]
     replays = Replays(mock_replay_builder)
@@ -106,9 +98,7 @@ async def test_replays_closing(
 @timeout(1)
 async def test_replays_closing_waits_for_replay(
         mock_replays, mock_replay_builder, mock_connections, event_loop):
-    writer = mock_connections(None, None)
-    writer.type = Connection.Type.WRITER
-    writer.uid = 1
+    writer = mock_connections(Connection.Type.WRITER, 1)
     mock_replay = mock_replays()
     mock_replay_builder.side_effect = [mock_replay]
     replays = Replays(mock_replay_builder)
@@ -125,9 +115,7 @@ async def test_replays_closing_waits_for_replay(
 @timeout(1)
 async def test_replay_ending_is_tracked(
         mock_replays, mock_replay_builder, mock_connections, event_loop):
-    writer = mock_connections(None, None)
-    writer.type = Connection.Type.WRITER
-    writer.uid = 1
+    writer = mock_connections(Connection.Type.WRITER, 1)
 
     mock_replay = mock_replays()
     mock_replay_builder.side_effect = [mock_replay, mock_replay]
@@ -143,13 +131,8 @@ async def test_replay_ending_is_tracked(
 @timeout(1)
 async def test_connections_are_not_accepted_when_closing(
         mock_replays, mock_replay_builder, mock_connections, event_loop):
-    writer = mock_connections(None, None)
-    writer.type = Connection.Type.WRITER
-    writer.uid = 1
-
-    writer_2 = mock_connections(None, None)
-    writer_2.type = Connection.Type.WRITER
-    writer_2.uid = 2
+    writer = mock_connections(Connection.Type.WRITER, 1)
+    writer_2 = mock_connections(Connection.Type.WRITER, 1)
 
     mock_replay = mock_replays()
     mock_replay_builder.side_effect = [mock_replay, mock_replay]

@@ -61,8 +61,9 @@ class MockConnectionBuilder:
 
 @pytest.mark.asyncio
 @timeout(1)
-async def test_server_start(mock_replays, mock_server_maker, mock_connections):
-    connection = mock_connections(None, None)
+async def test_server_start(mock_replays, mock_server_maker,
+                            mock_unhandled_connections):
+    connection = mock_unhandled_connections(None, None)
     mock_connection_builder = MockConnectionBuilder([connection])
     server = Server(mock_server_maker, mock_replays, mock_connection_builder)
     await server.start()
@@ -72,8 +73,8 @@ async def test_server_start(mock_replays, mock_server_maker, mock_connections):
 @pytest.mark.asyncio
 @timeout(1)
 async def test_server_successful_connection(mock_replays, mock_server_maker,
-                                            mock_connections):
-    connection = mock_connections(None, None)
+                                            mock_unhandled_connections):
+    connection = mock_unhandled_connections(None, None)
     mock_connection_builder = MockConnectionBuilder([connection])
     server = Server(mock_server_maker, mock_replays, mock_connection_builder)
 
@@ -89,11 +90,11 @@ async def test_server_successful_connection(mock_replays, mock_server_maker,
 @pytest.mark.asyncio
 @timeout(1)
 async def test_server_stopping(mock_replays, mock_server_maker,
-                               mock_connections):
+                               mock_unhandled_connections):
     read_header_called = asyncio.locks.Event()
     verified = asyncio.locks.Event()
 
-    connection = mock_connections(None, None)
+    connection = mock_unhandled_connections(None, None)
     mock_connection_builder = MockConnectionBuilder([connection])
 
     async def at_header_read():
@@ -119,9 +120,9 @@ async def test_server_stopping(mock_replays, mock_server_maker,
 @pytest.mark.asyncio
 @timeout(1)
 async def test_header_read_valueerror_closes_connection(
-        mock_replays, mock_server_maker, mock_connections):
+        mock_replays, mock_server_maker, mock_unhandled_connections):
 
-    connection = mock_connections(None, None)
+    connection = mock_unhandled_connections(None, None)
     mock_connection_builder = MockConnectionBuilder([connection])
 
     async def at_header_read():
@@ -137,9 +138,9 @@ async def test_header_read_valueerror_closes_connection(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replays_handling_error_closes_connection(
-        mock_replays, mock_server_maker, mock_connections):
+        mock_replays, mock_server_maker, mock_unhandled_connections):
 
-    connection = mock_connections(None, None)
+    connection = mock_unhandled_connections(None, None)
     mock_connection_builder = MockConnectionBuilder([connection])
 
     async def throwing_handle():

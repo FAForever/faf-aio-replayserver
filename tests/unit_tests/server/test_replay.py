@@ -99,15 +99,9 @@ async def test_replay_close_cancels_timeout(
 @timeout(1)
 async def test_replay_forwarding_connections(
         mock_merger, mock_sender, mock_bookkeeper, mock_connections):
-    reader = mock_connections(None, None)
-    reader.uid = 1
-    reader.type = Connection.Type.READER
-    writer = mock_connections(None, None)
-    writer.uid = 1
-    writer.type = Connection.Type.WRITER
-    invalid = mock_connections(None, None)
-    invalid.uid = 1
-    invalid.type = 17
+    reader = mock_connections(Connection.Type.READER, 1)
+    writer = mock_connections(Connection.Type.WRITER, 1)
+    invalid = mock_connections(17, 1)
     timeout = 0.1
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
 

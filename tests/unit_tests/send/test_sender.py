@@ -9,9 +9,7 @@ from replayserver.server.connection import Connection
 @timeout(0.1)
 async def test_sender_not_accepting_after_stream_ends(mock_connections,
                                                       outside_source_stream):
-    connection = mock_connections(None, None)
-    connection.type = Connection.Type.READER
-    connection.uid = 1
+    connection = mock_connections(Connection.Type.READER, 1)
 
     sender = Sender(outside_source_stream)
     outside_source_stream.finish()

@@ -27,9 +27,19 @@ def mock_connection(reader, writer):
 
 
 @pytest.fixture
-def mock_connections():
+def mock_unhandled_connections():
     def build(reader, writer):
         return mock_connection(reader, writer)
+    return build
+
+
+@pytest.fixture
+def mock_connections(mock_unhandled_connections):
+    def build(type_, uid):
+        conn = mock_unhandled_connections(None, None)
+        conn.type = type_
+        conn.uid = uid
+        return conn
     return build
 
 

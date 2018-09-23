@@ -70,9 +70,7 @@ async def test_merger_rejects_writers_after_ending(outside_source_stream,
                                                    mock_merge_strategy,
                                                    mock_stream_builder,
                                                    mock_connections):
-    connection = mock_connections(None, None)
-    connection.type = Connection.Type.WRITER
-    connection.uid = 1
+    connection = mock_connections(Connection.Type.WRITER, 1)
     canonical_stream = outside_source_stream
 
     merger = Merger(mock_stream_builder, 0.01, mock_merge_strategy,
@@ -90,7 +88,7 @@ async def test_merger_one_connection_lifetime(outside_source_stream,
                                               mock_stream_builder,
                                               mock_connection_streams,
                                               mock_connections):
-    connection = mock_connections(None, None)
+    connection = mock_connections(Connection.Type.WRITER, 1)
     connection_stream = mock_connection_streams()
     mock_stream_builder.side_effect = [connection_stream]
     canonical_stream = outside_source_stream
@@ -131,7 +129,7 @@ async def test_merger_read_header_exception(outside_source_stream,
                                             mock_stream_builder,
                                             mock_connection_streams,
                                             mock_connections):
-    connection = mock_connections(None, None)
+    connection = mock_connections(Connection.Type.WRITER, 1)
     connection_stream = mock_connection_streams()
     mock_stream_builder.side_effect = [connection_stream]
     canonical_stream = outside_source_stream
@@ -156,7 +154,7 @@ async def test_merger_read_data_exception(outside_source_stream,
                                           mock_stream_builder,
                                           mock_connection_streams,
                                           mock_connections):
-    connection = mock_connections(None, None)
+    connection = mock_connections(Connection.Type.WRITER, 1)
     connection_stream = mock_connection_streams()
     mock_stream_builder.side_effect = [connection_stream]
     canonical_stream = outside_source_stream
@@ -182,7 +180,7 @@ async def test_merger_read_data_exception(outside_source_stream,
 async def test_merger_connection_extends_grace_period(
         outside_source_stream, mock_merge_strategy, mock_stream_builder,
         mock_connection_streams, mock_connections, event_loop):
-    connection = mock_connections(None, None)
+    connection = mock_connections(Connection.Type.WRITER, 1)
     connection_stream = mock_connection_streams()
     mock_stream_builder.side_effect = [connection_stream]
     canonical_stream = outside_source_stream
@@ -205,7 +203,7 @@ async def test_merger_connection_extends_grace_period(
 async def test_merger_active_connection_prevents_ending(
         outside_source_stream, mock_merge_strategy, mock_stream_builder,
         mock_connection_streams, mock_connections, event_loop):
-    connection = mock_connections(None, None)
+    connection = mock_connections(Connection.Type.WRITER, 1)
     connection_stream = mock_connection_streams()
     mock_stream_builder.side_effect = [connection_stream]
     canonical_stream = outside_source_stream

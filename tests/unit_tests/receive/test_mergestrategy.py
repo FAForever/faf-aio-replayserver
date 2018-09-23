@@ -16,46 +16,22 @@ class MockStream(ConcreteDataMixin, ReplayStream):
         return self._ended
 
 
-class MockOutsideSourceStream(ConcreteDataMixin, ReplayStream):
-    def __init__(self):
-        ConcreteDataMixin.__init__(self)
-        ReplayStream.__init__(self)
-        self._ended = False
-
-    def set_header(self, header):
-        self._header = header
-
-    def feed_data(self, data):
-        self._data += data
-
-    def finish(self):
-        self._ended = True
-
-    def ended(self):
-        return self._ended
-
-
-@pytest.fixture
-def mock_sink_stream():
-    return MockOutsideSourceStream()
-
-
 general_test_strats = [GreedyMergeStrategy]
 
 
 @pytest.mark.parametrize("strategy", general_test_strats)
-def test_strategy_ends_stream_when_finalized(strategy, mock_sink_stream):
-    strat = strategy(mock_sink_stream)
+def test_strategy_ends_stream_when_finalized(strategy, outside_source_stream):
+    strat = strategy(outside_source_stream)
     stream1 = MockStream()
     strat.stream_added(stream1)
     strat.stream_removed(stream1)
     strat.finalize()
-    assert mock_sink_stream.ended()
+    assert outside_source_stream.ended()
 
 
 @pytest.mark.parametrize("strategy", general_test_strats)
-def test_strategy_picks_at_least_one_header(strategy, mock_sink_stream):
-    strat = strategy(mock_sink_stream)
+def test_strategy_picks_at_least_one_header(strategy, outside_source_stream):
+    strat = strategy(outside_source_stream)
     stream1 = MockStream()
     stream2 = MockStream()
     stream2._header = "Header"
@@ -66,12 +42,12 @@ def test_strategy_picks_at_least_one_header(strategy, mock_sink_stream):
     strat.stream_removed(stream2)
     strat.stream_removed(stream1)
     strat.finalize()
-    assert mock_sink_stream._header == "Header"
+    assert outside_source_stream.header == "Header"
 
 
 @pytest.mark.parametrize("strategy", general_test_strats)
-def test_strategy_gets_all_data_of_one(strategy, mock_sink_stream):
-    strat = strategy(mock_sink_stream)
+def test_strategy_gets_all_data_of_one(strategy, outside_source_stream):
+    strat = strategy(outside_source_stream)
     stream1 = MockStream()
     stream1._header = "Header"
 
@@ -86,13 +62,13 @@ def test_strategy_gets_all_data_of_one(strategy, mock_sink_stream):
     strat.stream_removed(stream1)
     strat.finalize()
 
-    assert mock_sink_stream._header == "Header"
-    assert mock_sink_stream._data == b"Best friends"
+    assert outside_source_stream.header == "Header"
+    assert outside_source_stream.data.bytes() == b"Best friends"
 
 
 @pytest.mark.parametrize("strategy", general_test_strats)
-def test_strategy_gets_common_prefix_of_all(strategy, mock_sink_stream):
-    strat = strategy(mock_sink_stream)
+def test_strategy_gets_common_prefix_of_all(strategy, outside_source_stream):
+    strat = strategy(outside_source_stream)
     stream1 = MockStream()
     stream2 = MockStream()
     stream2._header = "Header"
@@ -115,4 +91,4 @@ def test_strategy_gets_common_prefix_of_all(strategy, mock_sink_stream):
     strat.stream_removed(stream2)
     strat.stream_removed(stream1)
     strat.finalize()
-    assert mock_sink_stream._data.startswith(b"Best ")
+    assert outside_source_stream.data.bytes().startswith(b"Best ")

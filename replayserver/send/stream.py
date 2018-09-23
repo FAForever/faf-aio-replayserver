@@ -33,10 +33,10 @@ class DelayedReplayStream(DataEventMixin, ReplayStream):
 
     def _data_slice(self, s):
         if s.stop is None:
-            s.stop = self._current_position
+            new_stop = self._current_position
         else:
-            s.stop = min(s.stop, self._current_position)
-        return self._stream.data[s]
+            new_stop = min(s.stop, self._current_position)
+        return self._stream.data[slice(s.start, new_stop, s.step)]
 
     def _data_bytes(self):
         return self._stream.data[:self._current_position]

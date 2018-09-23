@@ -70,4 +70,8 @@ def time_skipper(event_loop):
 # when that happens.
 @pytest.fixture
 def outside_source_stream(event_loop):
-    return asynctest.Mock(wraps=OutsideSourceReplayStream())
+    m = asynctest.MagicMock(wraps=OutsideSourceReplayStream())
+    # Wrapping does not include magic methods
+    m.data.__getitem__.side_effect = lambda v: m._data_slice(v)
+    m.data.__len__.side_effect = lambda: m._data_length()
+    return m

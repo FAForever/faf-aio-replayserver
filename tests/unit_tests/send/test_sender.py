@@ -1,7 +1,8 @@
 import pytest
 import asyncio
-from tests import timeout
+import asynctest
 from asynctest.helpers import exhaust_callbacks
+from tests import timeout
 
 from replayserver.send.sender import Sender
 from replayserver.errors import CannotAcceptConnectionError, \
@@ -83,4 +84,23 @@ async def test_sender_no_header(mock_connections, outside_source_stream,
     with pytest.raises(MalformedDataError):
         await f
 
+    connection.write.assert_not_called()
+    await sender.wait_for_ended()
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_sender_connection_calls(mock_connections, outside_source_stream,
+                                       mock_header, event_loop):
+    connection = mock_connections(Connection.Type.READER, 1)
+    mock_header.data = b"Header"
+    sender = Sender(outside_source_stream)
+    outside_source_stream.set_header(mock_header)
+    outside_source_stream.feed_data(b"Data")
+    f = asyncio.ensure_future(sender.handle_connection(connection))
+    await exhaust_callbacks(event_loop)
+    outside_source_stream.finish()
+    await f
+    connection.write.assert_has_awaits([asynctest.call(b"Header"),
+                                        asynctest.call(b"Data")])
     await sender.wait_for_ended()

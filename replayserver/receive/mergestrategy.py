@@ -1,3 +1,14 @@
+from enum import Enum
+
+
+class MergeStrategies(Enum):
+    GREEDY = 0
+
+    def builder(self):
+        if self == MergeStrategies.GREEDY:
+            return GreedyMergeStrategy.build
+
+
 class MergeStrategy:
     def __init__(self, sink_stream):
         self.sink_stream = sink_stream
@@ -22,6 +33,10 @@ class MergeStrategy:
 class GreedyMergeStrategy(MergeStrategy):
     def __init__(self, sink_stream):
         MergeStrategy.__init__(self, sink_stream)
+
+    @classmethod
+    def build(cls, sink_stream, **kwargs):
+        return cls(sink_stream)
 
     def stream_added(self, stream):
         pass

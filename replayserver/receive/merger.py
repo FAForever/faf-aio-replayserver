@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from replayserver.errors import CannotAcceptConnectionError
 from replayserver.receive.stream import ConnectionReplayStream, \
     OutsideSourceReplayStream
-from replayserver.receive.mergestrategy import GreedyMergeStrategy
 
 
 class GracePeriod:
@@ -57,9 +56,11 @@ class Merger:
         self._end_grace_period.start()
 
     @classmethod
-    def build(cls, *, config_merger_grace_period_time, **kwargs):
+    def build(cls, *, config_merger_grace_period_time,
+              config_replay_merge_strategy, **kwargs):
         canonical_replay = OutsideSourceReplayStream()
-        merge_strategy = GreedyMergeStrategy(canonical_replay)
+        merge_strategy = config_replay_merge_strategy.builder(
+            canonical_replay, **kwargs)
         stream_builder = ConnectionReplayStream.build
         return cls(stream_builder, config_merger_grace_period_time,
                    merge_strategy, canonical_replay)

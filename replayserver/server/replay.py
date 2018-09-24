@@ -28,8 +28,6 @@ class ReplayTimeout:
 
 
 class Replay:
-    REPLAY_TIMEOUT = 60 * 60 * 5
-
     def __init__(self, merger, sender, bookkeeper, timeout):
         self.merger = merger
         self.sender = sender
@@ -40,11 +38,11 @@ class Replay:
         self._ended = Event()
 
     @classmethod
-    def build(cls):
-        merger = Merger.build()
+    def build(cls, *, config_replay_forced_end_time, **kwargs):
+        merger = Merger.build(**kwargs)
         sender = Sender(merger.canonical_replay)
         bookkeeper = Bookkeeper()
-        return cls(merger, sender, bookkeeper, cls.REPLAY_TIMEOUT)
+        return cls(merger, sender, bookkeeper, config_replay_forced_end_time)
 
     async def handle_connection(self, connection):
         if connection.type == Connection.Type.WRITER:

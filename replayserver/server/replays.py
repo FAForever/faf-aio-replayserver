@@ -41,8 +41,8 @@ class Replays:
         self._closing = False
 
     @classmethod
-    def build(cls):
-        return cls(Replay.build)
+    def build(cls, **kwargs):
+        return cls(lambda: Replay.build(**kwargs))
 
     async def handle_connection(self, connection):
         if not self._can_add_to_replay(connection):

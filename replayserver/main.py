@@ -2,9 +2,18 @@ import asyncio
 from replayserver import Server
 
 
+config = {
+    "merger_grace_period_time": 30,
+    "sent_replay_delay": 5 * 60,
+    "sent_replay_position_update_interval": 1,
+    "replay_forced_end_time": 5 * 60 * 60,
+    "server_port": 15000
+}
+config = {"config_" + k: v for k, v in config.items()}
+
+
 def main():
-    PORT = 15000
-    server = Server.build(PORT)
+    server = Server.build(**config)
     loop = asyncio.get_event_loop()
     asyncio.ensure_future(server.start())
     try:

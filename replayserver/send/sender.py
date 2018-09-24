@@ -19,8 +19,8 @@ class Sender:
             lambda f: None if f.cancelled() else self._check_ended())
 
     @classmethod
-    def build(cls, stream):
-        delayed_stream = DelayedReplayStream.build(stream)
+    def build(cls, stream, **kwargs):
+        delayed_stream = DelayedReplayStream.build(stream, **kwargs)
         return cls(delayed_stream)
 
     def accepts_connections(self):

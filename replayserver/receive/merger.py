@@ -43,8 +43,6 @@ class GracePeriod:
 
 
 class Merger:
-    GRACE_PERIOD_TIME = 30
-
     def __init__(self, stream_builder, grace_period_time, merge_strategy,
                  canonical_stream):
         self._stream_builder = stream_builder
@@ -59,12 +57,12 @@ class Merger:
         self._end_grace_period.start()
 
     @classmethod
-    def build(cls):
+    def build(cls, *, config_merger_grace_period_time, **kwargs):
         canonical_replay = OutsideSourceReplayStream()
         merge_strategy = GreedyMergeStrategy(canonical_replay)
         stream_builder = ConnectionReplayStream.build
-        return cls(stream_builder, cls.GRACE_PERIOD_TIME, merge_strategy,
-                   canonical_replay)
+        return cls(stream_builder, config_merger_grace_period_time,
+                   merge_strategy, canonical_replay)
 
     @contextmanager
     def _stream_lifetime(self, connection):

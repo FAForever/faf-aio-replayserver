@@ -4,9 +4,9 @@ from enum import Enum
 class MergeStrategies(Enum):
     GREEDY = 0
 
-    def builder(self):
+    def build(self, *args, **kwargs):
         if self == MergeStrategies.GREEDY:
-            return GreedyMergeStrategy.build
+            return GreedyMergeStrategy.build(*args, **kwargs)
 
 
 class MergeStrategy:

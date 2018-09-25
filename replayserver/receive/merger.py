@@ -59,7 +59,7 @@ class Merger:
     def build(cls, *, config_merger_grace_period_time,
               config_replay_merge_strategy, **kwargs):
         canonical_replay = OutsideSourceReplayStream()
-        merge_strategy = config_replay_merge_strategy.builder(
+        merge_strategy = config_replay_merge_strategy.build(
             canonical_replay, **kwargs)
         stream_builder = ConnectionReplayStream.build
         return cls(stream_builder, config_merger_grace_period_time,

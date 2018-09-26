@@ -1,11 +1,14 @@
 import asyncio
 import pytest
+from tests import fast_forward_time, timeout
 
 from replayserver.send.timestamp import Timestamp
 
 
 @pytest.mark.asyncio
-async def test_timestamp(mock_replay_streams, time_skipper, event_loop):
+@fast_forward_time(0.25, 25)
+@timeout(20)
+async def test_timestamp(event_loop, mock_replay_streams):
     mock_replay_stream = mock_replay_streams()
     stamp = Timestamp(mock_replay_stream, 1, 5)
     mock_replay_stream.configure_mock(data=b"")
@@ -36,8 +39,6 @@ async def test_timestamp(mock_replay_streams, time_skipper, event_loop):
 
     f = asyncio.ensure_future(add_data())
     g = asyncio.ensure_future(check_timestamps())
-    for i in range(0, 50):
-        await time_skipper.advance(0.25)
 
     await f
     await g

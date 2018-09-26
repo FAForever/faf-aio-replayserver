@@ -38,5 +38,7 @@ async def test_merger_successful_connection(event_loop, mock_connections):
 
     merger = Merger.build(**config)
     await merger.handle_connection(conn)
+    await merger.wait_for_ended()
     stream = merger.canonical_stream
+    assert stream.ended()
     assert stream.header.data + stream.data.bytes() == replay_data

@@ -1,7 +1,7 @@
 import pytest
 import struct
 
-from tests.replays import load_replay
+from tests.replays import example_replay
 from replayserver.struct.streamread import GeneratorData
 from replayserver.struct import header
 
@@ -254,14 +254,14 @@ EXPECTED_EXAMPLE_HEADER = {
 
 
 def test_load_example_header():
-    replay_data = load_replay("example")
+    replay_data = example_replay.data
     with pytest.raises(StopIteration) as v:
         run_cor(header.read_header, replay_data)
     assert v.value.value == EXPECTED_EXAMPLE_HEADER
 
 
 def test_replayheader_generator():
-    replay_data = load_replay("example")
+    replay_data = example_replay.data
     generator = header.ReplayHeader.generator()
 
     chunks = (replay_data[i:i+100] for i in range(0, len(replay_data), 100))

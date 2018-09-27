@@ -15,6 +15,23 @@ config = {
 }
 
 
+@pytest.fixture
+def data_send_mixin():
+    def build(mock_connection, replay_data, sleep_time, data_at_once):
+        replay_data_pos = 0
+
+        async def read_data(amount):
+            nonlocal replay_data_pos
+            new_pos = replay_data_pos + data_at_once
+            data = replay_data[replay_data_pos:new_pos]
+            replay_data_pos = new_pos
+            await asyncio.sleep(sleep_time)
+            return data
+
+        mock_connection.read.side_effect = read_data
+    return build
+
+
 def test_merger_init():
     Merger.build(**config)
 
@@ -22,20 +39,11 @@ def test_merger_init():
 @pytest.mark.asyncio
 @fast_forward_time(0.1, 3000)
 @timeout(2500)
-async def test_merger_successful_connection(event_loop, mock_connections):
+async def test_merger_successful_connection(event_loop, mock_connections,
+                                            data_send_mixin):
     conn = mock_connections(Connection.Type.WRITER, 1)
     replay_data = example_replay.data
-    replay_data_pos = 0
-
-    async def read_data(amount):
-        nonlocal replay_data_pos
-        new_pos = replay_data_pos + 100
-        data = replay_data[replay_data_pos:new_pos]
-        replay_data_pos = new_pos
-        await asyncio.sleep(0.25)
-        return data
-
-    conn.read.side_effect = read_data
+    data_send_mixin(conn, replay_data, 0.25, 100)
 
     merger = Merger.build(**config)
     await merger.handle_connection(conn)
@@ -48,20 +56,11 @@ async def test_merger_successful_connection(event_loop, mock_connections):
 @pytest.mark.asyncio
 @fast_forward_time(0.1, 3000)
 @timeout(2500)
-async def test_merger_incomplete_header(event_loop, mock_connections):
+async def test_merger_incomplete_header(event_loop, mock_connections,
+                                        data_send_mixin):
     conn = mock_connections(Connection.Type.WRITER, 1)
     replay_data = example_replay.data[:example_replay.header_size - 100]
-    replay_data_pos = 0
-
-    async def read_data(amount):
-        nonlocal replay_data_pos
-        new_pos = replay_data_pos + 100
-        data = replay_data[replay_data_pos:new_pos]
-        replay_data_pos = new_pos
-        await asyncio.sleep(0.25)
-        return data
-
-    conn.read.side_effect = read_data
+    data_send_mixin(conn, replay_data, 0.25, 100)
 
     merger = Merger.build(**config)
     with pytest.raises(MalformedDataError):

@@ -154,3 +154,21 @@ async def test_merger_ends(event_loop, mock_connections, data_send_mixin):
     with pytest.raises(CannotAcceptConnectionError):
         await merger.handle_connection(conn_2)
     await verify_merger_ending_with_data(merger, replay_data)
+
+
+@pytest.mark.asyncio
+@fast_forward_time(0.1, 2000)
+@timeout(1000)
+async def test_merger_closes_fast(event_loop, mock_connections,
+                                  data_send_mixin):
+    conn = mock_connections(Connection.Type.WRITER, 1)
+    replay_data = example_replay.data
+    data_send_mixin(conn, replay_data, 0.6, 80)
+
+    merger = Merger.build(**config)
+    f = asyncio.ensure_future(merger.handle_connection(conn))
+    await asyncio.sleep(45)
+    conn.read.side_effect = lambda _: b""   # Simulate connection.close()
+    merger.close()
+    await asyncio.wait_for(merger.wait_for_ended(), 1)
+    await asyncio.wait_for(f, 1)

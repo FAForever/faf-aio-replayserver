@@ -6,6 +6,7 @@ from tests import fast_forward_time, timeout
 from replayserver.receive.mergestrategy import MergeStrategies
 from replayserver.receive.merger import Merger
 from replayserver.server.connection import Connection
+from replayserver.errors import MalformedDataError
 
 
 config = {
@@ -42,3 +43,31 @@ async def test_merger_successful_connection(event_loop, mock_connections):
     stream = merger.canonical_stream
     assert stream.ended()
     assert stream.header.data + stream.data.bytes() == replay_data
+
+
+@pytest.mark.asyncio
+@fast_forward_time(0.1, 3000)
+@timeout(2500)
+async def test_merger_incomplete_header(event_loop, mock_connections):
+    conn = mock_connections(Connection.Type.WRITER, 1)
+    replay_data = example_replay.data[:example_replay.header_size - 100]
+    replay_data_pos = 0
+
+    async def read_data(amount):
+        nonlocal replay_data_pos
+        new_pos = replay_data_pos + 100
+        data = replay_data[replay_data_pos:new_pos]
+        replay_data_pos = new_pos
+        await asyncio.sleep(0.25)
+        return data
+
+    conn.read.side_effect = read_data
+
+    merger = Merger.build(**config)
+    with pytest.raises(MalformedDataError):
+        await merger.handle_connection(conn)
+    await merger.wait_for_ended()
+    stream = merger.canonical_stream
+    assert stream.ended()
+    assert stream.header is None
+    assert stream.data.bytes() == b""

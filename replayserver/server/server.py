@@ -14,7 +14,7 @@ class Server:
         self._connections = set()
 
     @classmethod
-    async def build(cls, *, config_server_port, **kwargs):
+    def build(cls, *, config_server_port, **kwargs):
         def server(cb):
             return asyncio.streams.start_server(cb, port=config_server_port)
         replays = Replays.build(**kwargs)

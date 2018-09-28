@@ -19,5 +19,8 @@ setup(
         "console_scripts": [
             "faf_replay_server = replayserver.main:main",
         ],
+    install_requires=[
+        "aiomysql",
+        ],
     },
 )

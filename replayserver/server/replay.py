@@ -32,17 +32,12 @@ class ReplayTimeout:
 
 
 class Replay:
-    class ReplayPhase(Enum):
-        READING = 0
-        WRITING = 1
-        CLOSING = 2
-
     def __init__(self, merger, sender, bookkeeper, timeout):
         self.merger = merger
         self.sender = sender
         self.bookkeeper = bookkeeper
         self._connections = set()
-        self._phase = self.ReplayPhase.READING
+        self._accepts_connections = True
         self._timeout = ReplayTimeout()
         self._timeout.set(timeout, self.close)
         asyncio.ensure_future(self._replay_lifetime())
@@ -64,11 +59,9 @@ class Replay:
             self._connections.remove(connection)
 
     async def handle_connection(self, connection):
-        if self._phase == self.ReplayPhase.CLOSING:
-            raise CannotAcceptConnectionError("Replay is closing")
-        if self._phase == self.ReplayPhase.WRITING:
+        if not self._accepts_connections:
             raise CannotAcceptConnectionError(
-                "Replay is done reading streams, no new connections accepted")
+                "Replay does not accept connections anymore")
         with self._track_connection(connection):
             if connection.type == Connection.Type.WRITER:
                 await self.merger.handle_connection(connection)
@@ -78,7 +71,7 @@ class Replay:
                 raise MalformedDataError("Invalid connection type")
 
     def close(self):
-        self._phase = self.ReplayPhase.CLOSING
+        self._accepts_connections = False
         self._timeout.cancel()
         self.merger.close()
         self.sender.close()
@@ -87,8 +80,7 @@ class Replay:
 
     async def _replay_lifetime(self):
         await self.merger.wait_for_ended()
-        if self._phase != self.ReplayPhase.CLOSING:
-            self._phase = self.ReplayPhase.WRITING
+        self._accepts_connections = False
         await self.bookkeeper.save_replay()
         await self.sender.wait_for_ended()
         self._timeout.cancel()

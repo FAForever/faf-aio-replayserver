@@ -1,12 +1,11 @@
-Replay server
-=============
+# Replay server
 
 Read streams from users and stores them into the files on server side.
 Also can read stream most common stream to other users.
 After the game is end, chooses the biggest common streams and saves them.
 
 
-Configuring project for development:
+## Configuring project for development:
 
     - git clone https://github.com/FAForever/faf-aio-replayserver.git
     - cd faf-aio-replayserver
@@ -19,14 +18,14 @@ Configuring project for development:
     - configure connection to MySQL databse in faf-aio-replayserver/replay_server/constants.py
 
 
-Running project via faf-stack:
+## Running project via faf-stack:
 
     - git clone https://github.com/FAForever/faf-stack.git
     - cd faf-stack
     - docker-compose up faf-aio-replayserver
 
 
-Project directory structure:
+## Project directory structure:
 
     - replay_server - contains code
         - __main__.py - starts server
@@ -49,7 +48,7 @@ Project directory structure:
     - tmp - configurable directory by env. variables for saving files during upload
 
 
-How it works:
+## How it works:
 
 Request is handled in `server.py` by `handle_connection` method.
 From incoming data the request type is determined by `connection.py`.

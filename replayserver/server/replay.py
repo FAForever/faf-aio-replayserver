@@ -40,7 +40,7 @@ class Replay:
     @classmethod
     def build(cls, *, config_replay_forced_end_time, **kwargs):
         merger = Merger.build(**kwargs)
-        sender = Sender(merger.canonical_replay)
+        sender = Sender(merger.canonical_stream)
         bookkeeper = Bookkeeper()
         return cls(merger, sender, bookkeeper, config_replay_forced_end_time)
 

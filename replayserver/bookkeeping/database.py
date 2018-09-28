@@ -1,5 +1,6 @@
 import aiomysql
 from aiomysql import create_pool
+from replayserver.errors import BookkeepingError
 
 
 class Database:
@@ -31,7 +32,7 @@ class ReplayDatabaseQueries:
     def __init__(self, db):
         self._db = db
 
-    async def get_players_in_game(self, game_id):
+    async def get_teams_in_game(self, game_id):
         query = """
             SELECT
                 `login`.`login` AS login,
@@ -43,7 +44,13 @@ class ReplayDatabaseQueries:
               ON `login`.id = `game_player_stats`.`playerId`
             WHERE `game_stats`.`id` = %s
         """
-        return await self._db.execute(query, (game_id,))
+        players = await self._db.execute(query, (game_id,))
+        if not players:
+            raise BookkeepingError("No game players found")
+        teams = {}
+        for player in players:
+            teams.setdefault(player['team'], []).append(player['login'])
+        return teams
 
     async def get_game_stats(self, game_id):
         """
@@ -74,9 +81,23 @@ class ReplayDatabaseQueries:
               ON `game_stats`.`gameMod` = `game_featuredMods`.`id`
             WHERE `game_stats`.`id` = %s
         """
-        return await self._db.execute(query, (game_id,))
+        game_stats = await self._db.execute(query, (game_id,))
+        if not game_stats:
+            raise BookkeepingError("No game stats found")
+        return {
+            'featured_mod': game_stats[0]['game_mod'],
+            'game_type': game_stats[0]['game_type'],
+            'recorder': game_stats[0]['host'],
+            'host': game_stats[0]['host'],
+            'launched_at': game_stats[0]['start_time'],
+            'game_end': game_stats[0]['end_time'],
+            'title': game_stats[0]['game_name'],
+            'mapname': game_stats[0]['map_name'],
+            'map_file_path': game_stats[0]['file_name'],
+            'num_players': len(game_stats)
+        }
 
-    async def get_featured_mod_version(self, mod):
+    async def get_mod_versions(self, mod):
         query = """
             SELECT
                 `updates_{mod}_files`.`fileId` AS file_id,
@@ -85,4 +106,6 @@ class ReplayDatabaseQueries:
             LEFT JOIN `updates_{mod}_files` ON `fileId` = `updates_{mod}`.`id`
             GROUP BY `updates_{mod}_files`.`fileId`
         """.format(mod=mod)
-        return await self._db.execute(query)
+        featured_mods = await self._db.execute(query)
+        return {str(mod['file_id']): mod['version']
+                for mod in featured_mods}

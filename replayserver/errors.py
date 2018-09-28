@@ -17,3 +17,7 @@ class CannotAcceptConnectionError(BadConnectionError):
     when the server is closing)
     """
     pass
+
+
+class BookkeepingError(Exception):
+    pass

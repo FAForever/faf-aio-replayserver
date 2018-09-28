@@ -58,8 +58,3 @@ Writer workers are storing data into temporary files, and when the last one is d
 Reader workers are sending most common data to connected clients.
 When there is no connections, temporary data are destroyed.
 During saving replay, server communicates with MySQL database.
-
-
-TODO things:
-
-    1. https://hub.docker.com/r/faforever/faf-aio-replayserver/

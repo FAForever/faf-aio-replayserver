@@ -17,31 +17,6 @@ def mock_header(mocker):
 
 @pytest.mark.asyncio
 @timeout(0.1)
-async def test_sender_not_accepting_after_stream_ends(mock_connections,
-                                                      outside_source_stream):
-    connection = mock_connections(Connection.Type.READER, 1)
-    sender = Sender(outside_source_stream)
-    outside_source_stream.finish()
-    with pytest.raises(CannotAcceptConnectionError):
-        await sender.handle_connection(connection)
-    await sender.wait_for_ended()
-
-
-@pytest.mark.asyncio
-@timeout(0.1)
-async def test_sender_not_accepting_after_explicit_end(mock_connections,
-                                                       outside_source_stream):
-    connection = mock_connections(Connection.Type.READER, 1)
-    sender = Sender(outside_source_stream)
-    sender.close()
-    with pytest.raises(CannotAcceptConnectionError):
-        await sender.handle_connection(connection)
-    outside_source_stream.finish()
-    await sender.wait_for_ended()
-
-
-@pytest.mark.asyncio
-@timeout(0.1)
 async def test_sender_doesnt_end_while_connection_runs(
         mock_connections, outside_source_stream, locked_mock_coroutines,
         mock_header, event_loop):

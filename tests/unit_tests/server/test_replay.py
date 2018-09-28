@@ -3,10 +3,11 @@ import asynctest
 import asyncio
 from asynctest.helpers import exhaust_callbacks
 
-from tests import timeout
+from tests import timeout, fast_forward_time
 from replayserver.server.replay import Replay
 from replayserver.server.connection import Connection
-from replayserver.errors import MalformedDataError
+from replayserver.errors import MalformedDataError, \
+    CannotAcceptConnectionError
 
 
 @pytest.fixture
@@ -55,14 +56,15 @@ def mock_bookkeeper():
 
 
 @pytest.mark.asyncio
-@timeout(1)
+@fast_forward_time(1, 40)
+@timeout(30)
 async def test_replay_closes_after_timeout(
-        mock_merger, mock_sender, mock_bookkeeper, event_loop):
-    timeout = 0.01
+        event_loop, mock_merger, mock_sender, mock_bookkeeper):
+    timeout = 15
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
     mock_merger.close.assert_not_called()
     mock_sender.close.assert_not_called()
-    await asyncio.sleep(0.02)
+    await asyncio.sleep(20)
     exhaust_callbacks(event_loop)
     mock_merger.close.assert_called()
     mock_sender.close.assert_called()
@@ -73,10 +75,11 @@ async def test_replay_closes_after_timeout(
 
 
 @pytest.mark.asyncio
-@timeout(1)
+@fast_forward_time(1, 40)
+@timeout(30)
 async def test_replay_close_cancels_timeout(
-        mock_merger, mock_sender, mock_bookkeeper, event_loop):
-    timeout = 0.01
+        event_loop, mock_merger, mock_sender, mock_bookkeeper):
+    timeout = 15
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
     exhaust_callbacks(event_loop)
     replay.close()
@@ -85,7 +88,7 @@ async def test_replay_close_cancels_timeout(
     mock_merger.close.reset_mock()
     mock_sender.close.reset_mock()
 
-    await asyncio.sleep(0.02)
+    await asyncio.sleep(20)
     exhaust_callbacks(event_loop)
     mock_merger.close.assert_not_called()
     mock_sender.close.assert_not_called()
@@ -96,13 +99,15 @@ async def test_replay_close_cancels_timeout(
 
 
 @pytest.mark.asyncio
-@timeout(1)
-async def test_replay_forwarding_connections(
-        mock_merger, mock_sender, mock_bookkeeper, mock_connections):
+@fast_forward_time(1, 40)
+@timeout(30)
+async def test_replay_forwarding_connections(event_loop, mock_merger,
+                                             mock_sender, mock_bookkeeper,
+                                             mock_connections):
     reader = mock_connections(Connection.Type.READER, 1)
     writer = mock_connections(Connection.Type.WRITER, 1)
     invalid = mock_connections(17, 1)
-    timeout = 0.1
+    timeout = 15
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
 
     await replay.handle_connection(reader)
@@ -128,7 +133,7 @@ async def test_replay_forwarding_connections(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replay_keeps_proper_event_order(
-        mock_merger, mock_sender, mock_bookkeeper, event_loop):
+        event_loop, mock_merger, mock_sender, mock_bookkeeper):
 
     async def bookkeeper_check(*args, **kwargs):
         # Merging has to end before bookkeeping starts
@@ -139,10 +144,51 @@ async def test_replay_keeps_proper_event_order(
 
     mock_bookkeeper.save_replay.side_effect = bookkeeper_check
 
-    timeout = 0.2
+    timeout = 0.1
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
     await exhaust_callbacks(event_loop)
     mock_merger._manual_end.set()
     await exhaust_callbacks(event_loop)
+    mock_sender._manual_end.set()
+    await replay.wait_for_ended()
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_replay_refuses_connections_after_merger_end(
+        event_loop, mock_merger, mock_sender, mock_bookkeeper,
+        mock_connections):
+    conn_r = mock_connections(Connection.Type.READER, 1)
+    conn_w = mock_connections(Connection.Type.WRITER, 1)
+    timeout = 0.1
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+    mock_merger._manual_end.set()
+    await exhaust_callbacks(event_loop)
+    with pytest.raises(CannotAcceptConnectionError):
+        await replay.handle_connection(conn_r)
+    with pytest.raises(CannotAcceptConnectionError):
+        await replay.handle_connection(conn_w)
+
+    mock_sender._manual_end.set()
+    await replay.wait_for_ended()
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_replay_refuses_connections_after_manual_end(
+        event_loop, mock_merger, mock_sender, mock_bookkeeper,
+        mock_connections):
+    conn_r = mock_connections(Connection.Type.READER, 1)
+    conn_w = mock_connections(Connection.Type.WRITER, 1)
+    timeout = 0.1
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+    replay.close()
+    await exhaust_callbacks(event_loop)
+    with pytest.raises(CannotAcceptConnectionError):
+        await replay.handle_connection(conn_r)
+    with pytest.raises(CannotAcceptConnectionError):
+        await replay.handle_connection(conn_w)
+
+    mock_merger._manual_end.set()
     mock_sender._manual_end.set()
     await replay.wait_for_ended()

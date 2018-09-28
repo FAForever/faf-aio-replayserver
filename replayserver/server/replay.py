@@ -1,10 +1,14 @@
 import asyncio
 from asyncio.locks import Event
+from contextlib import contextmanager
+from enum import Enum
+
 from replayserver.server.connection import Connection
 from replayserver.send.sender import Sender
 from replayserver.receive.merger import Merger
 from replayserver.bookkeeping.bookkeeper import Bookkeeper
-from replayserver.errors import MalformedDataError
+from replayserver.errors import MalformedDataError, \
+    CannotAcceptConnectionError
 
 
 class ReplayTimeout:
@@ -28,10 +32,17 @@ class ReplayTimeout:
 
 
 class Replay:
+    class ReplayPhase(Enum):
+        READING = 0
+        WRITING = 1
+        CLOSING = 2
+
     def __init__(self, merger, sender, bookkeeper, timeout):
         self.merger = merger
         self.sender = sender
         self.bookkeeper = bookkeeper
+        self._connections = set()
+        self._phase = self.ReplayPhase.READING
         self._timeout = ReplayTimeout()
         self._timeout.set(timeout, self.close)
         asyncio.ensure_future(self._replay_lifetime())
@@ -44,21 +55,40 @@ class Replay:
         bookkeeper = Bookkeeper()
         return cls(merger, sender, bookkeeper, config_replay_forced_end_time)
 
+    @contextmanager
+    def _track_connection(self, connection):
+        self._connections.add(connection)
+        try:
+            yield
+        finally:
+            self._connections.remove(connection)
+
     async def handle_connection(self, connection):
-        if connection.type == Connection.Type.WRITER:
-            await self.merger.handle_connection(connection)
-        elif connection.type == Connection.Type.READER:
-            await self.sender.handle_connection(connection)
-        else:
-            raise MalformedDataError("Invalid connection type")
+        if self._phase == self.ReplayPhase.CLOSING:
+            raise CannotAcceptConnectionError("Replay is closing")
+        if self._phase == self.ReplayPhase.WRITING:
+            raise CannotAcceptConnectionError(
+                "Replay is done reading streams, no new connections accepted")
+        with self._track_connection(connection):
+            if connection.type == Connection.Type.WRITER:
+                await self.merger.handle_connection(connection)
+            elif connection.type == Connection.Type.READER:
+                await self.sender.handle_connection(connection)
+            else:
+                raise MalformedDataError("Invalid connection type")
 
     def close(self):
+        self._phase = self.ReplayPhase.CLOSING
         self._timeout.cancel()
         self.merger.close()
         self.sender.close()
+        for connection in self._connections:
+            connection.close()
 
     async def _replay_lifetime(self):
         await self.merger.wait_for_ended()
+        if self._phase != self.ReplayPhase.CLOSING:
+            self._phase = self.ReplayPhase.WRITING
         await self.bookkeeper.save_replay()
         await self.sender.wait_for_ended()
         self._timeout.cancel()

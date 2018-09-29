@@ -109,3 +109,7 @@ class ReplayDatabaseQueries:
         featured_mods = await self._db.execute(query)
         return {str(mod['file_id']): mod['version']
                 for mod in featured_mods}
+
+    async def register_replay(self, game_id):
+        query = "INSERT INTO `game_replays` (UID) VALUES (%s)"
+        await self._db.execute(query)

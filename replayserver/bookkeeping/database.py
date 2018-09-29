@@ -1,5 +1,5 @@
 import aiomysql
-from aiomysql import create_pool
+from aiomysql import create_pool, DatabaseError
 from replayserver.errors import BookkeepingError
 
 
@@ -18,10 +18,13 @@ class Database:
         return cls(pool)
 
     async def execute(self, query, params=[]):
-        async with self._connection_pool.acquire() as conn:
-            async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(query, *params)
-                return await cur.fetchall()
+        try:
+            async with self._connection_pool.acquire() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cur:
+                    await cur.execute(query, *params)
+                    return await cur.fetchall()
+        except DatabaseError as e:
+            raise BookkeepingError from e
 
     async def close(self):
         self._connection_pool.close()

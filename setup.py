@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="faf_replay_server",
@@ -14,7 +14,7 @@ setup(
     url="https://github.com/FAForever/faf-aio-replayserver",
     keywords="FAForever replay server",
     license="GPL3",
-    packages=["replayserver"],
+    packages=find_packages(exclude=["tests", "tests.*"]),
     entry_points={
         "console_scripts": [
             "faf_replay_server = replayserver.main:main",

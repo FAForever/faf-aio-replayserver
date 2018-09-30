@@ -2,6 +2,7 @@ import os
 from uuid import uuid4
 
 from replay_server import constants
+from replay_server.logger import logger
 
 __all__ = ('get_temp_replay_path', 'get_replay_path')
 

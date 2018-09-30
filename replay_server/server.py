@@ -64,7 +64,8 @@ class ReplayServer:
         logger.info("Stopping server on port %s", self._port)
 
         await db.close()
-        self._server.close()
-        await self._server.wait_closed()
+        if self._server:
+            self._server.close()
+            await self._server.wait_closed()
         logger.info("Successfully closed")
 

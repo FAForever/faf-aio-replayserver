@@ -1,3 +1,4 @@
+import os
 import sys
 
 from fixtures.server_fixtures import *

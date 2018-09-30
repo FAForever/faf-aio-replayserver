@@ -1,4 +1,3 @@
-import asyncio
 
 import pytest
 
@@ -73,7 +72,7 @@ async def test_common_read_from_multiple_different_streams(client, replay_data, 
 
 
 @pytest.mark.asyncio
-# @pytest.mark.timeout(2)
+@pytest.mark.timeout(2)
 async def test_read_waited_for_new_data(client, replay_data, put_replay, get_replay):
     """
     Check, that we will know that temporary file is moved at the end of replay

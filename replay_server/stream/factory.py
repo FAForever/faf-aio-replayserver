@@ -2,6 +2,7 @@ from io import FileIO
 
 from replay_server.connection import ReplayConnection
 from replay_server.constants import RequestType
+from replay_server.logger import logger
 from replay_server.stream.reader import ReplayReader
 from replay_server.stream.replay_storage import ReplayStorage
 from replay_server.stream.writer import ReplayWriter

@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import struct
@@ -5,11 +6,12 @@ import time
 import zlib
 from typing import List, Dict
 
+from replay_server.constants import DATABASE_WRITE_WAIT_TIME
 from replay_server.db_conn import db
-from replay_server.utils.paths import get_replay_path
+from replay_server.logger import logger
 from replay_server.replay_parser.replay_parser.parser import parse
 from replay_server.utils.greatest_common_replay import get_replay
-from replay_server.logger import logger
+from replay_server.utils.paths import get_replay_path
 
 
 async def save_replay(uid: int, file_paths: List[str]) -> None:
@@ -17,7 +19,7 @@ async def save_replay(uid: int, file_paths: List[str]) -> None:
     Saves completed replay.
     """
     logger.info("Saving data for uid %s", uid)
-    logger.info("Paths %s", str(file_paths))
+    logger.debug("Paths %s", str(list(file_paths)))
     replay_path = get_replay(file_paths)
     output_path = get_replay_path(uid)
 
@@ -32,83 +34,73 @@ async def save_replay(uid: int, file_paths: List[str]) -> None:
 async def get_replay_info(game_id: int, replay_data: bytes) -> Dict:
     """
     Returns "header" information for replay.
-
-    {"uid": 8246215, "recorder": "dragonite", "featured_mod": "faf", "launched_at": 1531572488.2116418,
-    "complete": true, "state": "PLAYING", "num_players": 2, "max_players": 2, "title":
-    "Replay format testerino", "host": "MazorNoob", "mapname": "scmp_016", "map_file_path": "maps/scmp_016.zip",
-    "teams": {"2": ["MazorNoob"], "3": ["dragonite"]}, "featured_mod_versions":
-    {"1": 3696, "2": 3658, "3": 3634, "4": 1, "5": 1, "6": 1, "8": 1, "9": 1, "11": 3696, "12": 3696,
-    "13": 3696, "14": 3696, "15": 3696, "17": 3677, "18": 3696, "19": 3696, "20": 3696, "21": 3696, "22": 3696},
-    "sim_mods": {}, "password_protected": true, "visibility": "PUBLIC", "command": "game_info",
-    "game_end": 1531572736.7742}
     """
-    logger.info("Getting replay info for uid %s", game_id)
+    logger.info("Collecting replay info for uid %s", game_id)
+    result = {'uid': game_id}
     try:
         header = parse(replay_data)['header']
         game_version = header.get("version")
-        mods = {mod['uid']: mod['version'] for mod in header.get('mods', []).values()}
-        result = {
-            'uid': game_id,
-            'sim_mods': mods,
-        }
+        result['sim_mods'] = {mod['uid']: mod['version'] for mod in header.get('mods', []).values()}
 
-        game_stats = await get_game_stats(game_id)
-        # situation, when we don't wanna loose all information, if mysql is down
-        if not game_stats:
-            return result
+        try:
+            game_stats = await get_game_stats(game_id)
+            # situation, when we don't wanna loose all information, if mysql is down
+            if not game_stats:
+                return result
 
-        players = await get_players(game_id)
-        featured_mods = await get_mod_updates(game_stats[0].get("game_mod"), game_version)
-        game_stats_first_row = game_stats[0]
+            logger.info("Querying replay info for uid %s from datbase", game_id)
+            players = await get_players(game_id)
+            featured_mods = await get_mod_updates(game_stats[0].get("game_mod"), game_version)
+            game_stats_first_row = game_stats[0]
 
-        teams = {}
-        for player in players:
-            teams.setdefault(player['team'], []).append(player['login'])
+            teams = {}
+            for player in players:
+                teams.setdefault(player['team'], []).append(player['login'])
 
-        featured_mod_versions = {}
-        for mod in featured_mods:
-            featured_mod_versions[str(mod['file_id'])] = mod['version']
+            featured_mod_versions = {}
+            for mod in featured_mods:
+                featured_mod_versions[str(mod['file_id'])] = mod['version']
 
-        return {
-            'featured_mod': game_stats_first_row['game_mod'],
-            'num_players': len(game_stats),
-            'game_type': int(game_stats_first_row['game_type']),
-            'recorder': game_stats_first_row['host'],
-            'host': game_stats_first_row['host'],
-            'launched_at': time.mktime(game_stats_first_row['start_time'].timetuple()),
-            'game_end': time.mktime(game_stats_first_row['end_time'].timetuple()),
-            'complete': True,
-            'state': 'PLAYING',
-            'title': game_stats_first_row['game_name'],
-            'mapname': game_stats_first_row['map_name'],
-            'map_file_path': game_stats_first_row['file_name'],
-            'teams': teams,
-            'featured_mod_versions': featured_mod_versions,
-            **result
-        }
+            return dict(**result, **{
+                'featured_mod': game_stats_first_row['game_mod'],
+                'num_players': len(game_stats),
+                'game_type': int(game_stats_first_row['game_type']),
+                'recorder': game_stats_first_row['host'],
+                'host': game_stats_first_row['host'],
+                'launched_at': time.mktime(game_stats_first_row['start_time'].timetuple()),
+                'game_end': time.mktime(game_stats_first_row['end_time'].timetuple()),
+                'complete': True,
+                'state': 'PLAYING',
+                'title': game_stats_first_row['game_name'],
+                'mapname': game_stats_first_row['map_name'],
+                'map_file_path': game_stats_first_row['file_name'],
+                'teams': teams,
+                'featured_mod_versions': featured_mod_versions,
+            })
+        except Exception:
+            logger.exception("Exception occured during getting replay info %s", game_id)
+            raise
     except Exception:
-        logger.exception("Exception occured during getting replay info %s", game_id)
+        logger.error("Exception during getting information about replay %s", game_id)
+        raise
 
 
-async def get_players(game_id):
+async def _get_game_stats(game_id: int):
     """
-    Returns players in game
+    Check, if result is saved already in database.
     """
-    query = """
-        SELECT
-            `login`.`login` AS login,
-            `game_player_stats`.`team` AS team
-        FROM `game_stats`
-        INNER JOIN `game_player_stats`
-          ON `game_player_stats`.`gameId` = `game_stats`.`id`
-        INNER JOIN `login`
-          ON `login`.id = `game_player_stats`.`playerId`
-        WHERE `game_stats`.`id` = %s
-    """
-    return await db.execute(query, (game_id,))
+    game_stats = None
+    await asyncio.sleep(DATABASE_WRITE_WAIT_TIME)
+    for _ in range(5):
+        game_stats = await get_game_stats(game_id)
+        # check if result is correct
+        if bool(game_stats) and bool(game_stats[0]['start_time']) and bool(game_stats[0]['end_time']):
+            return game_stats
+        await asyncio.sleep(DATABASE_WRITE_WAIT_TIME)
+    return game_stats
 
 
-async def get_game_stats(game_id):
+async def get_game_stats(game_id: int):
     """
     Gets the game information.
     """
@@ -139,6 +131,24 @@ async def get_game_stats(game_id):
     return await db.execute(query, (game_id,))
 
 
+async def get_players(game_id):
+    """
+    Returns players in game
+    """
+    query = """
+        SELECT
+            `login`.`login` AS login,
+            `game_player_stats`.`team` AS team
+        FROM `game_stats`
+        INNER JOIN `game_player_stats`
+          ON `game_player_stats`.`gameId` = `game_stats`.`id`
+        INNER JOIN `login`
+          ON `login`.id = `game_player_stats`.`playerId`
+        WHERE `game_stats`.`id` = %s
+    """
+    return await db.execute(query, (game_id,))
+
+
 async def get_mod_updates(mod: str, game_version: str):
     """
     Gets last file changes for game version.
@@ -160,9 +170,3 @@ async def get_mod_updates(mod: str, game_version: str):
         GROUP BY `updates_{mod}_files`.`fileId`
     """.format(mod=mod, filter=filter_)
     return await db.execute(query, query_params)
-
-
-async def get_sim_mods(game_id):
-    """
-    TODO: get somehow from database simulation mods (hashes) enabled for game.
-    """

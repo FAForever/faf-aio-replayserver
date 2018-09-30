@@ -3,6 +3,8 @@ from io import FileIO
 from time import time
 from typing import Dict
 
+from replay_server.logger import logger
+
 __all__ = ('ReplayStorage',)
 
 
@@ -24,6 +26,7 @@ class ReplayStorage:
 
     @classmethod
     def set_replay(cls, uid: int, file_path: str, file_: FileIO):
+        logger.debug("ReplayStorage: Setting path %s", file_path)
         cls.replay_data.setdefault(uid, {})[file_path] = file_
         if uid not in cls.replay_start_time:
             cls.replay_start_time[uid] = int(time())
@@ -33,7 +36,7 @@ class ReplayStorage:
         if uid in cls.replay_data:
             # We have saved replay, so we don't need old replays
             for temporary_file in cls.replay_data[uid]:
-                print(temporary_file)
+                logger.debug("ReplayStorage: Deleting path %s", temporary_file)
                 os.unlink(temporary_file)
 
             del cls.replay_data[uid]

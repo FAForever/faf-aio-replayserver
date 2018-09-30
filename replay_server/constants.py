@@ -15,6 +15,7 @@ WAIT_STEP = 0.1  # in seconds, it might influence fluent streaming, default is 0
 REPLAY_TIMEOUT = int(os.environ.get("REPLAY_TIMEOUT", 60 * 5))
 READ_BUFFER_SIZE = int(os.environ.get("READ_BUFFER_SIZE", 1024))
 WRITE_BUFFER_SIZE = int(os.environ.get("WRITE_BUFFER_SIZE", 1024))
+DATABASE_WRITE_WAIT_TIME = float(os.environ.get("DATABASE_WRITE_WAIT_TIME", 3))
 # base for uploading streams
 TEMPORARY_DIR = os.environ.get("TEMPORARY_DIR", "./tmp/")
 # base for uploaded streams

@@ -4,3 +4,6 @@
 .cache/*
 .idea/*
 .pytest_cache/*
+htmlcov/*
+.coverage
+

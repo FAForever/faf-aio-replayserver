@@ -8,5 +8,8 @@ install:
   - pip3 install -r requirements-test.txt
 
 script:
-  - python3 -m pytest -v
+  - python3 -m pytest -v --cov replayserver
   - python3 setup.py bdist
+
+after_success:
+  - coveralls

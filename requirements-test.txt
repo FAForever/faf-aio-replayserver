@@ -2,4 +2,5 @@ aiomysql
 decorator
 pytest-asyncio
 pytest-cov
+pytest-mock
 asynctest

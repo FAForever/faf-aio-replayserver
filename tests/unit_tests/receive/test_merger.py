@@ -1,5 +1,7 @@
 import pytest
 import asyncio
+import unittest
+import os
 from tests import timeout
 from asynctest.helpers import exhaust_callbacks
 
@@ -7,6 +9,12 @@ from replayserver.receive.merger import Merger
 from replayserver.server.connection import Connection
 from replayserver.errors import CannotAcceptConnectionError, \
     BadConnectionError
+
+
+def skip_if_needs_asynctest_107(fn):
+    unittest.skipIf(
+        "TRAVIS" in os.environ and os.environ["TRAVIS"] == "true",
+        "Needs asynctest issue #107 resolved to work")(fn)
 
 
 @pytest.fixture
@@ -80,7 +88,7 @@ async def test_merger_rejects_writers_after_ending(outside_source_stream,
         await merger.handle_connection(connection)
     mock_stream_builder.assert_not_called()
 
-
+@skip_if_needs_asynctest_107
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_one_connection_lifetime(outside_source_stream,
@@ -122,6 +130,7 @@ async def test_merger_one_connection_lifetime(outside_source_stream,
     mock_merge_strategy.finalize.assert_called()
 
 
+@skip_if_needs_asynctest_107
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_read_header_exception(outside_source_stream,
@@ -147,6 +156,7 @@ async def test_merger_read_header_exception(outside_source_stream,
     await merger.wait_for_ended()
 
 
+@skip_if_needs_asynctest_107
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_read_data_exception(outside_source_stream,
@@ -175,6 +185,7 @@ async def test_merger_read_data_exception(outside_source_stream,
     await merger.wait_for_ended()
 
 
+@skip_if_needs_asynctest_107
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_connection_extends_grace_period(
@@ -198,6 +209,7 @@ async def test_merger_connection_extends_grace_period(
     await f
 
 
+@skip_if_needs_asynctest_107
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_active_connection_prevents_ending(

@@ -1,3 +1,4 @@
 decorator
 pytest-asyncio
+pytest-cov
 asynctest

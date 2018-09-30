@@ -85,14 +85,14 @@ async def get_replay_info(game_id: int, replay_data: bytes) -> Dict:
         raise
 
 
-async def _get_game_stats(game_id: int):
+async def get_game_stats(game_id: int):
     """
     Check, if result is saved already in database.
     """
     game_stats = None
     await asyncio.sleep(DATABASE_WRITE_WAIT_TIME)
     for _ in range(5):
-        game_stats = await get_game_stats(game_id)
+        game_stats = await _get_game_stats(game_id)
         # check if result is correct
         if bool(game_stats) and bool(game_stats[0]['start_time']) and bool(game_stats[0]['end_time']):
             return game_stats
@@ -100,7 +100,7 @@ async def _get_game_stats(game_id: int):
     return game_stats
 
 
-async def get_game_stats(game_id: int):
+async def _get_game_stats(game_id: int):
     """
     Gets the game information.
     """

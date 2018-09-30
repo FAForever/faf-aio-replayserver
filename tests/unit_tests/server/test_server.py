@@ -13,6 +13,9 @@ def mock_replays():
         async def handle_connection():
             pass
 
+        async def start():
+            pass
+
         async def stop():
             pass
 

@@ -4,6 +4,7 @@ from collections.abc import MutableMapping
 
 from replayserver.server.replay import Replay
 from replayserver.server.connection import Connection
+from replayserver.bookkeeping.bookkeeper import Bookkeeper
 from replayserver.errors import CannotAcceptConnectionError
 
 
@@ -35,14 +36,20 @@ class AsyncDict(MutableMapping):
 
 
 class Replays:
-    def __init__(self, replay_builder):
+    def __init__(self, replay_builder, bookkeeper):
         self._replays = AsyncDict()
         self._replay_builder = replay_builder
+        self._bookkeeper = bookkeeper
         self._closing = False
 
     @classmethod
     def build(cls, **kwargs):
-        return cls(lambda game_id: Replay.build(game_id, **kwargs))
+        bookkeeper = Bookkeeper.build(**kwargs)
+        return cls(lambda game_id: Replay.build(game_id, bookkeeper, **kwargs),
+                   bookkeeper)
+
+    async def start(self):
+        await self._bookkeeper.start()
 
     async def handle_connection(self, connection):
         if not self._can_add_to_replay(connection):

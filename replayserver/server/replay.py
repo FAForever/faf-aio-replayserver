@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from replayserver.server.connection import Connection
 from replayserver.send.sender import Sender
 from replayserver.receive.merger import Merger
-from replayserver.bookkeeping.bookkeeper import Bookkeeper
 from replayserver.errors import MalformedDataError, \
     CannotAcceptConnectionError
 
@@ -44,10 +43,10 @@ class Replay:
         asyncio.ensure_future(self._replay_lifetime())
 
     @classmethod
-    def build(cls, game_id, *, config_replay_forced_end_time, **kwargs):
+    def build(cls, game_id, bookkeeper, *, config_replay_forced_end_time,
+              **kwargs):
         merger = Merger.build(**kwargs)
         sender = Sender(merger.canonical_stream)
-        bookkeeper = Bookkeeper()
         return cls(merger, sender, bookkeeper, config_replay_forced_end_time,
                    game_id)
 

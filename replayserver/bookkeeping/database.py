@@ -4,18 +4,22 @@ from replayserver.errors import BookkeepingError
 
 
 class Database:
-    def __init__(self, connection_pool):
-        self._connection_pool = connection_pool
+    def __init__(self, pool_starter):
+        self._pool_starter = pool_starter
+        self._connection_pool = None
 
     @classmethod
-    async def build(cls, config_db_host, config_db_port, config_db_user,
-                    config_db_password, config_db_name, **kwargs):
-        pool = await create_pool(host=config_db_host,
-                                 port=config_db_port,
-                                 user=config_db_user,
-                                 password=config_db_password,
-                                 db=config_db_name)
+    def build(cls, *, config_db_host, config_db_port, config_db_user,
+              config_db_password, config_db_name, **kwargs):
+        pool = create_pool(host=config_db_host,
+                           port=config_db_port,
+                           user=config_db_user,
+                           password=config_db_password,
+                           db=config_db_name)
         return cls(pool)
+
+    async def start(self):
+        self._connection_pool = await self._pool_starter
 
     async def execute(self, query, params=[]):
         try:

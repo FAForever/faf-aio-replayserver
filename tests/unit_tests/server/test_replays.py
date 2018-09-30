@@ -41,10 +41,10 @@ def mock_replay_builder(mocker):
 @pytest.mark.asyncio
 @timeout(1)
 async def test_reader_with_no_existing_replay_is_not_processed(
-        mock_connections, mock_replay_builder):
+        mock_connections, mock_replay_builder, mock_bookkeeper):
     connection = mock_connections(Connection.Type.READER, 1)
 
-    replays = Replays(mock_replay_builder)
+    replays = Replays(mock_replay_builder, mock_bookkeeper)
     with pytest.raises(CannotAcceptConnectionError):
         await replays.handle_connection(connection)
     mock_replay_builder.assert_not_called()
@@ -53,12 +53,12 @@ async def test_reader_with_no_existing_replay_is_not_processed(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_readers_successful_connection(
-        mock_replays, mock_replay_builder, mock_connections):
+        mock_replays, mock_replay_builder, mock_connections, mock_bookkeeper):
     writer = mock_connections(Connection.Type.WRITER, 1)
     reader = mock_connections(Connection.Type.READER, 1)
     mock_replay = mock_replays()
     mock_replay_builder.side_effect = [mock_replay]
-    replays = Replays(mock_replay_builder)
+    replays = Replays(mock_replay_builder, mock_bookkeeper)
 
     await replays.handle_connection(writer)
     mock_replay_builder.assert_called_once()
@@ -79,11 +79,11 @@ async def test_readers_successful_connection(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replays_closing(
-        mock_replays, mock_replay_builder, mock_connections):
+        mock_replays, mock_replay_builder, mock_connections, mock_bookkeeper):
     writer = mock_connections(Connection.Type.WRITER, 1)
     mock_replay = mock_replays()
     mock_replay_builder.side_effect = [mock_replay]
-    replays = Replays(mock_replay_builder)
+    replays = Replays(mock_replay_builder, mock_bookkeeper)
 
     await replays.handle_connection(writer)
     assert 1 in replays
@@ -97,11 +97,12 @@ async def test_replays_closing(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replays_closing_waits_for_replay(
-        mock_replays, mock_replay_builder, mock_connections, event_loop):
+        mock_replays, mock_replay_builder, mock_connections, event_loop,
+        mock_bookkeeper):
     writer = mock_connections(Connection.Type.WRITER, 1)
     mock_replay = mock_replays()
     mock_replay_builder.side_effect = [mock_replay]
-    replays = Replays(mock_replay_builder)
+    replays = Replays(mock_replay_builder, mock_bookkeeper)
 
     await replays.handle_connection(writer)
     f = asyncio.ensure_future(replays.stop())
@@ -114,12 +115,13 @@ async def test_replays_closing_waits_for_replay(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replay_ending_is_tracked(
-        mock_replays, mock_replay_builder, mock_connections, event_loop):
+        mock_replays, mock_replay_builder, mock_connections, event_loop,
+        mock_bookkeeper):
     writer = mock_connections(Connection.Type.WRITER, 1)
 
     mock_replay = mock_replays()
     mock_replay_builder.side_effect = [mock_replay, mock_replay]
-    replays = Replays(mock_replay_builder)
+    replays = Replays(mock_replay_builder, mock_bookkeeper)
 
     await replays.handle_connection(writer)
     mock_replay._manual_end.set()
@@ -130,13 +132,14 @@ async def test_replay_ending_is_tracked(
 @pytest.mark.asyncio
 @timeout(1)
 async def test_connections_are_not_accepted_when_closing(
-        mock_replays, mock_replay_builder, mock_connections, event_loop):
+        mock_replays, mock_replay_builder, mock_connections, event_loop,
+        mock_bookkeeper):
     writer = mock_connections(Connection.Type.WRITER, 1)
     writer_2 = mock_connections(Connection.Type.WRITER, 1)
 
     mock_replay = mock_replays()
     mock_replay_builder.side_effect = [mock_replay, mock_replay]
-    replays = Replays(mock_replay_builder)
+    replays = Replays(mock_replay_builder, mock_bookkeeper)
 
     await replays.handle_connection(writer)
     f = asyncio.ensure_future(replays.stop())

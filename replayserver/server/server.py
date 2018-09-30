@@ -21,6 +21,7 @@ class Server:
         return cls(server, replays, Connection)
 
     async def start(self):
+        await self._replays.start()
         # A tiny hack - we can't pass in a server directly since we have to
         # register our method as a callback at creation
         self._server = await self._server(self.handle_connection)

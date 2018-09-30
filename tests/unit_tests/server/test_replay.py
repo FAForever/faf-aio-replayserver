@@ -46,15 +46,6 @@ def mock_sender(locked_mock_coroutines):
                           wait_for_ended=ended_wait)
 
 
-@pytest.fixture
-def mock_bookkeeper():
-    class B:
-        async def save_replay():
-            pass
-
-    return asynctest.Mock(spec=B)
-
-
 @pytest.mark.asyncio
 @fast_forward_time(1, 40)
 @timeout(30)

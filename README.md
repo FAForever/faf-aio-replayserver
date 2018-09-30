@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/Wesmania/faf-aio-replayserver.svg?branch=master)](https://travis-ci.org/Wesmania/faf-aio-replayserver)
+[![Coverage Status](https://coveralls.io/repos/github/Wesmania/faf-aio-replayserver/badge.svg?branch=master)](https://coveralls.io/github/Wesmania/faf-aio-replayserver?branch=master)
+
 FAF replay server
 =================
 

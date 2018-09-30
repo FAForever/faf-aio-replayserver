@@ -83,8 +83,8 @@ need to describe lifetime of a Replay.
 1. The Replay is created when the first WRITER Connection for a given game ID is
    made. Not every new Connection might create a replay though - we might, for
    example, decide that we won't create a replay for an ID that already exists.
-   Along with the first WRITER connection, Replays write phase begins.
-2. As long as there are WRITER Connections matching a Replay, it's write phase
+   Along with the first WRITER connection, Replay's write phase begins.
+2. As long as there are WRITER Connections matching a Replay, its write phase
    continues. The write phase ends when there have been no WRITER Connections
    matching a Replay for some time (e.g. a grace period of 30 seconds).
 3. Both READER and WRITER connections are accepted only during the write phase.

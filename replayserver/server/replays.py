@@ -42,7 +42,7 @@ class Replays:
 
     @classmethod
     def build(cls, **kwargs):
-        return cls(lambda: Replay.build(**kwargs))
+        return cls(lambda game_id: Replay.build(game_id, **kwargs))
 
     async def handle_connection(self, connection):
         if not self._can_add_to_replay(connection):
@@ -64,7 +64,7 @@ class Replays:
     def _create(self, uid):
         if uid in self._replays:
             return
-        replay = self._replay_builder()
+        replay = self._replay_builder(uid)
         self._replays[uid] = replay
         asyncio.ensure_future(self._remove_replay_when_done(uid, replay))
 

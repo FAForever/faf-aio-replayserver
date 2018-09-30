@@ -1,7 +1,6 @@
 import asyncio
 from asyncio.locks import Event
 from contextlib import contextmanager
-from enum import Enum
 
 from replayserver.server.connection import Connection
 from replayserver.send.sender import Sender
@@ -32,23 +31,25 @@ class ReplayTimeout:
 
 
 class Replay:
-    def __init__(self, merger, sender, bookkeeper, timeout):
+    def __init__(self, merger, sender, bookkeeper, timeout, game_id):
         self.merger = merger
         self.sender = sender
         self.bookkeeper = bookkeeper
+        self._game_id = game_id
         self._connections = set()
         self._accepts_connections = True
         self._timeout = ReplayTimeout()
         self._timeout.set(timeout, self.close)
-        asyncio.ensure_future(self._replay_lifetime())
         self._ended = Event()
+        asyncio.ensure_future(self._replay_lifetime())
 
     @classmethod
-    def build(cls, *, config_replay_forced_end_time, **kwargs):
+    def build(cls, game_id, *, config_replay_forced_end_time, **kwargs):
         merger = Merger.build(**kwargs)
         sender = Sender(merger.canonical_stream)
         bookkeeper = Bookkeeper()
-        return cls(merger, sender, bookkeeper, config_replay_forced_end_time)
+        return cls(merger, sender, bookkeeper, config_replay_forced_end_time,
+                   game_id)
 
     @contextmanager
     def _track_connection(self, connection):
@@ -81,7 +82,8 @@ class Replay:
     async def _replay_lifetime(self):
         await self.merger.wait_for_ended()
         self._accepts_connections = False
-        await self.bookkeeper.save_replay()
+        await self.bookkeeper.save_replay(self._game_id,
+                                          self.merger.canonical_stream)
         await self.sender.wait_for_ended()
         self._timeout.cancel()
         self._ended.set()

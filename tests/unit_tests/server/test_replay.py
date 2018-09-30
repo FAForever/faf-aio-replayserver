@@ -61,7 +61,7 @@ def mock_bookkeeper():
 async def test_replay_closes_after_timeout(
         event_loop, mock_merger, mock_sender, mock_bookkeeper):
     timeout = 15
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
     mock_merger.close.assert_not_called()
     mock_sender.close.assert_not_called()
     await asyncio.sleep(20)
@@ -80,7 +80,7 @@ async def test_replay_closes_after_timeout(
 async def test_replay_close_cancels_timeout(
         event_loop, mock_merger, mock_sender, mock_bookkeeper):
     timeout = 15
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
     exhaust_callbacks(event_loop)
     replay.close()
     mock_merger.close.assert_called()
@@ -108,7 +108,7 @@ async def test_replay_forwarding_connections(event_loop, mock_merger,
     writer = mock_connections(Connection.Type.WRITER, 1)
     invalid = mock_connections(17, 1)
     timeout = 15
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
 
     await replay.handle_connection(reader)
     mock_merger.handle_connection.assert_not_awaited()
@@ -145,7 +145,7 @@ async def test_replay_keeps_proper_event_order(
     mock_bookkeeper.save_replay.side_effect = bookkeeper_check
 
     timeout = 0.1
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
     await exhaust_callbacks(event_loop)
     mock_merger._manual_end.set()
     await exhaust_callbacks(event_loop)
@@ -161,7 +161,7 @@ async def test_replay_refuses_connections_after_merger_end(
     conn_r = mock_connections(Connection.Type.READER, 1)
     conn_w = mock_connections(Connection.Type.WRITER, 1)
     timeout = 0.1
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
     mock_merger._manual_end.set()
     await exhaust_callbacks(event_loop)
     with pytest.raises(CannotAcceptConnectionError):
@@ -181,7 +181,7 @@ async def test_replay_refuses_connections_after_manual_end(
     conn_r = mock_connections(Connection.Type.READER, 1)
     conn_w = mock_connections(Connection.Type.WRITER, 1)
     timeout = 0.1
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout)
+    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
     replay.close()
     await exhaust_callbacks(event_loop)
     with pytest.raises(CannotAcceptConnectionError):

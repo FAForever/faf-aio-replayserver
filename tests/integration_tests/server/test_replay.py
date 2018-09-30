@@ -12,4 +12,4 @@ config = {
 
 
 def test_replay_init():
-    Replay.build(**config)
+    Replay.build(1, **config)

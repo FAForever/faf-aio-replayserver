@@ -5,7 +5,7 @@ sudo: required
 services: docker
 
 install:
-  - pip3 install -r requirements-test.txt
+  - pip3 install -r requirements-test.txt -r requirements-travis.txt
 
 script:
   - python3 -m pytest -v --cov replayserver

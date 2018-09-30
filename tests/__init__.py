@@ -22,7 +22,7 @@ def fast_forward_time(step, amount):
             event_loop = args[0]
             f = asyncio.ensure_future(coro(*args, **kwargs))
             skipper = TimeSkipper(event_loop)
-            while event_loop.time() < (step * 10 + amount):
+            while event_loop.time() < (step * 10 + amount) and not f.done():
                 await skipper.advance(step)
             await f
         return decorator.decorator(wrapper_function, coro)

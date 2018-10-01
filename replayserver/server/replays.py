@@ -51,14 +51,13 @@ class Replays:
     async def start(self):
         await self._bookkeeper.start()
 
-    async def handle_connection(self, header, connection):
+    async def get_matching_replay(self, header, connection):
         if not self._can_add_to_replay(header):
             raise CannotAcceptConnectionError(
                 "Cannot add connection to a replay")    # FIXME - details
         if header.game_id not in self._replays:
             self._create(header.game_id)
-        replay = self._replays[header.game_id]
-        await replay.handle_connection(header, connection)
+        return self._replays[header.game_id]
 
     def _can_add_to_replay(self, header):
         if self._closing:

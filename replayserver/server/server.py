@@ -48,6 +48,7 @@ class Server:
         with self._get_connection(reader, writer) as connection:
             try:
                 header = self._header_read(connection)
-                await self._replays.handle_connection(header, connection)
+                replay = await self._replays.get_matching_replay(header)
+                await replay._handle_connection(header, connection)
             except BadConnectionError:
                 pass    # TODO - log

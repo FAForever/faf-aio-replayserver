@@ -78,7 +78,7 @@ class Replays:
         await replay.wait_for_ended()
         self._replays.pop(game_id, None)
 
-    async def stop(self):
+    async def stop_all(self):
         self._closing = True
         replays = self._replays.values()
         for replay in replays:

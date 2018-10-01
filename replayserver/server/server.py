@@ -26,7 +26,7 @@ class Server:
         await self._connection_producer.stop()
         for connection in self._connections:
             connection.close()
-        await self._replays.stop()
+        await self._replays.stop_all()
 
     async def handle_connection(self, connection):
         self._connections.add(connection)

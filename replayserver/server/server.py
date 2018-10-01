@@ -2,15 +2,16 @@ import asyncio
 from contextlib import contextmanager
 
 from replayserver.errors import BadConnectionError
-from replayserver.server.connection import Connection
+from replayserver.server.connection import Connection, ConnectionHeader
 from replayserver.server.replays import Replays
 
 
 class Server:
-    def __init__(self, server, replays, replay_connection_builder):
+    def __init__(self, server, replays, connection_builder, header_read):
         self._server = server
         self._replays = replays
-        self._replay_connection_builder = replay_connection_builder
+        self._connection_builder = connection_builder
+        self._header_read = header_read
         self._connections = set()
 
     @classmethod
@@ -18,7 +19,7 @@ class Server:
         def server(cb):
             return asyncio.streams.start_server(cb, port=config_server_port)
         replays = Replays.build(**kwargs)
-        return cls(server, replays, Connection)
+        return cls(server, replays, Connection, ConnectionHeader.read)
 
     async def start(self):
         await self._replays.start()
@@ -35,7 +36,7 @@ class Server:
 
     @contextmanager
     def _get_connection(self, reader, writer):
-        connection = self._replay_connection_builder(reader, writer)
+        connection = self._connection_builder(reader, writer)
         self._connections.add(connection)
         try:
             yield connection
@@ -46,7 +47,7 @@ class Server:
     async def handle_connection(self, reader, writer):
         with self._get_connection(reader, writer) as connection:
             try:
-                await connection.read_header()
-                await self._replays.handle_connection(connection)
+                header = self._header_read(connection)
+                await self._replays.handle_connection(header, connection)
             except BadConnectionError:
                 pass    # TODO - log

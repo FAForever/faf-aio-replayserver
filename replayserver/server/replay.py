@@ -2,7 +2,7 @@ import asyncio
 from asyncio.locks import Event
 from contextlib import contextmanager
 
-from replayserver.server.connection import Connection
+from replayserver.server.connection import ConnectionHeader
 from replayserver.send.sender import Sender
 from replayserver.receive.merger import Merger
 from replayserver.errors import MalformedDataError, \
@@ -58,14 +58,14 @@ class Replay:
         finally:
             self._connections.remove(connection)
 
-    async def handle_connection(self, connection):
+    async def handle_connection(self, header, connection):
         if not self._accepts_connections:
             raise CannotAcceptConnectionError(
                 "Replay does not accept connections anymore")
         with self._track_connection(connection):
-            if connection.type == Connection.Type.WRITER:
+            if header.type == ConnectionHeader.Type.WRITER:
                 await self.merger.handle_connection(connection)
-            elif connection.type == Connection.Type.READER:
+            elif header.type == ConnectionHeader.Type.READER:
                 await self.sender.handle_connection(connection)
             else:
                 raise MalformedDataError("Invalid connection type")

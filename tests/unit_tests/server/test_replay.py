@@ -5,7 +5,7 @@ from asynctest.helpers import exhaust_callbacks
 
 from tests import timeout, fast_forward_time
 from replayserver.server.replay import Replay
-from replayserver.server.connection import Connection
+from replayserver.server.connection import ConnectionHeader
 from replayserver.errors import MalformedDataError, \
     CannotAcceptConnectionError
 
@@ -95,8 +95,8 @@ async def test_replay_close_cancels_timeout(
 async def test_replay_forwarding_connections(event_loop, mock_merger,
                                              mock_sender, mock_bookkeeper,
                                              mock_connections):
-    reader = mock_connections(Connection.Type.READER, 1)
-    writer = mock_connections(Connection.Type.WRITER, 1)
+    reader = mock_connections(ConnectionHeader.Type.READER, 1)
+    writer = mock_connections(ConnectionHeader.Type.WRITER, 1)
     invalid = mock_connections(17, 1)
     timeout = 15
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
@@ -149,8 +149,8 @@ async def test_replay_keeps_proper_event_order(
 async def test_replay_refuses_connections_after_merger_end(
         event_loop, mock_merger, mock_sender, mock_bookkeeper,
         mock_connections):
-    conn_r = mock_connections(Connection.Type.READER, 1)
-    conn_w = mock_connections(Connection.Type.WRITER, 1)
+    conn_r = mock_connections(ConnectionHeader.Type.READER, 1)
+    conn_w = mock_connections(ConnectionHeader.Type.WRITER, 1)
     timeout = 0.1
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
     mock_merger._manual_end.set()
@@ -169,8 +169,8 @@ async def test_replay_refuses_connections_after_merger_end(
 async def test_replay_refuses_connections_after_manual_end(
         event_loop, mock_merger, mock_sender, mock_bookkeeper,
         mock_connections):
-    conn_r = mock_connections(Connection.Type.READER, 1)
-    conn_w = mock_connections(Connection.Type.WRITER, 1)
+    conn_r = mock_connections(ConnectionHeader.Type.READER, 1)
+    conn_w = mock_connections(ConnectionHeader.Type.WRITER, 1)
     timeout = 0.1
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
     replay.close()

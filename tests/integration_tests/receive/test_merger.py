@@ -5,7 +5,7 @@ from tests import fast_forward_time, timeout
 
 from replayserver.receive.mergestrategy import MergeStrategies
 from replayserver.receive.merger import Merger
-from replayserver.server.connection import Connection
+from replayserver.server.connection import ConnectionHeader
 from replayserver.errors import MalformedDataError, CannotAcceptConnectionError
 
 
@@ -52,7 +52,7 @@ def test_merger_init():
 @timeout(250)
 async def test_merger_successful_connection(event_loop, mock_connections,
                                             data_send_mixin):
-    conn = mock_connections(Connection.Type.WRITER, 1)
+    conn = mock_connections(ConnectionHeader.Type.WRITER, 1)
     replay_data = example_replay.data
     data_send_mixin(conn, replay_data, 0.25, 200)
 
@@ -66,7 +66,7 @@ async def test_merger_successful_connection(event_loop, mock_connections,
 @timeout(250)
 async def test_merger_incomplete_header(event_loop, mock_connections,
                                         data_send_mixin):
-    conn = mock_connections(Connection.Type.WRITER, 1)
+    conn = mock_connections(ConnectionHeader.Type.WRITER, 1)
     replay_data = example_replay.data[:example_replay.header_size - 100]
     data_send_mixin(conn, replay_data, 0.25, 200)
 
@@ -82,8 +82,8 @@ async def test_merger_incomplete_header(event_loop, mock_connections,
 async def test_merger_incomplete_header_then_data(event_loop,
                                                   mock_connections,
                                                   data_send_mixin):
-    conn_1 = mock_connections(Connection.Type.WRITER, 1)
-    conn_2 = mock_connections(Connection.Type.WRITER, 1)
+    conn_1 = mock_connections(ConnectionHeader.Type.WRITER, 1)
+    conn_2 = mock_connections(ConnectionHeader.Type.WRITER, 1)
     replay_data = example_replay.data[:example_replay.header_size - 100]
     data_send_mixin(conn_1, replay_data, 0.25, 200)
     data_send_mixin(conn_2, example_replay.data, 0.25, 200)
@@ -101,8 +101,8 @@ async def test_merger_incomplete_header_then_data(event_loop,
 @timeout(250)
 async def test_merger_two_connections(event_loop, mock_connections,
                                       data_send_mixin):
-    conn_1 = mock_connections(Connection.Type.WRITER, 1)
-    conn_2 = mock_connections(Connection.Type.WRITER, 1)
+    conn_1 = mock_connections(ConnectionHeader.Type.WRITER, 1)
+    conn_2 = mock_connections(ConnectionHeader.Type.WRITER, 1)
     replay_data = example_replay.data
 
     # First has incomplete data, but sends faster
@@ -122,8 +122,8 @@ async def test_merger_two_connections(event_loop, mock_connections,
 @timeout(500)
 async def test_merger_sequential_connections(event_loop, mock_connections,
                                              data_send_mixin):
-    conn_1 = mock_connections(Connection.Type.WRITER, 1)
-    conn_2 = mock_connections(Connection.Type.WRITER, 1)
+    conn_1 = mock_connections(ConnectionHeader.Type.WRITER, 1)
+    conn_2 = mock_connections(ConnectionHeader.Type.WRITER, 1)
     replay_data = example_replay.data
 
     # First has incomplete data, but sends faster
@@ -141,8 +141,8 @@ async def test_merger_sequential_connections(event_loop, mock_connections,
 @fast_forward_time(0.1, 1000)
 @timeout(500)
 async def test_merger_ends(event_loop, mock_connections, data_send_mixin):
-    conn_1 = mock_connections(Connection.Type.WRITER, 1)
-    conn_2 = mock_connections(Connection.Type.WRITER, 1)
+    conn_1 = mock_connections(ConnectionHeader.Type.WRITER, 1)
+    conn_2 = mock_connections(ConnectionHeader.Type.WRITER, 1)
     replay_data = example_replay.data
 
     data_send_mixin(conn_1, replay_data, 0.6, 160)
@@ -161,7 +161,7 @@ async def test_merger_ends(event_loop, mock_connections, data_send_mixin):
 @timeout(500)
 async def test_merger_closes_fast(event_loop, mock_connections,
                                   data_send_mixin):
-    conn = mock_connections(Connection.Type.WRITER, 1)
+    conn = mock_connections(ConnectionHeader.Type.WRITER, 1)
     replay_data = example_replay.data
     data_send_mixin(conn, replay_data, 0.6, 160)
 

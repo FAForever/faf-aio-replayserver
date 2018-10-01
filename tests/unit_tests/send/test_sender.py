@@ -7,7 +7,7 @@ from tests import timeout
 from replayserver.send.sender import Sender
 from replayserver.errors import CannotAcceptConnectionError, \
    MalformedDataError
-from replayserver.server.connection import Connection
+from replayserver.server.connection import ConnectionHeader
 
 
 @pytest.fixture
@@ -20,7 +20,7 @@ def mock_header(mocker):
 async def test_sender_doesnt_end_while_connection_runs(
         mock_connections, outside_source_stream, locked_mock_coroutines,
         mock_header, event_loop):
-    connection = mock_connections(Connection.Type.READER, 1)
+    connection = mock_connections(ConnectionHeader.Type.READER, 1)
     outside_source_stream.feed_data(b"aaaaa")
     outside_source_stream.set_header(mock_header)
     end, coro = locked_mock_coroutines()
@@ -51,7 +51,7 @@ async def test_sender_ends_with_ended_stream_and_no_connections(
 @timeout(0.1)
 async def test_sender_no_header(mock_connections, outside_source_stream,
                                 event_loop):
-    connection = mock_connections(Connection.Type.READER, 1)
+    connection = mock_connections(ConnectionHeader.Type.READER, 1)
     sender = Sender(outside_source_stream)
     f = asyncio.ensure_future(sender.handle_connection(connection))
     await exhaust_callbacks(event_loop)
@@ -67,7 +67,7 @@ async def test_sender_no_header(mock_connections, outside_source_stream,
 @timeout(0.1)
 async def test_sender_connection_calls(mock_connections, outside_source_stream,
                                        mock_header, event_loop):
-    connection = mock_connections(Connection.Type.READER, 1)
+    connection = mock_connections(ConnectionHeader.Type.READER, 1)
     mock_header.data = b"Header"
     sender = Sender(outside_source_stream)
     outside_source_stream.set_header(mock_header)

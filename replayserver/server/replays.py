@@ -3,7 +3,7 @@ from asyncio.locks import Event
 from collections.abc import MutableMapping
 
 from replayserver.server.replay import Replay
-from replayserver.server.connection import Connection
+from replayserver.server.connection import ConnectionHeader
 from replayserver.bookkeeping.bookkeeper import Bookkeeper
 from replayserver.errors import CannotAcceptConnectionError
 
@@ -51,33 +51,33 @@ class Replays:
     async def start(self):
         await self._bookkeeper.start()
 
-    async def handle_connection(self, connection):
-        if not self._can_add_to_replay(connection):
+    async def handle_connection(self, header, connection):
+        if not self._can_add_to_replay(header):
             raise CannotAcceptConnectionError(
                 "Cannot add connection to a replay")    # FIXME - details
-        if connection.uid not in self._replays:
-            self._create(connection.uid)
-        replay = self._replays[connection.uid]
-        await replay.handle_connection(connection)
+        if header.game_id not in self._replays:
+            self._create(header.game_id)
+        replay = self._replays[header.game_id]
+        await replay.handle_connection(header, connection)
 
-    def _can_add_to_replay(self, connection):
+    def _can_add_to_replay(self, header):
         if self._closing:
             return False
-        if (connection.type == Connection.Type.READER
-                and connection.uid not in self._replays):
+        if (header.type == ConnectionHeader.Type.READER
+                and header.game_id not in self._replays):
             return False
         return True
 
-    def _create(self, uid):
-        if uid in self._replays:
+    def _create(self, game_id):
+        if game_id in self._replays:
             return
-        replay = self._replay_builder(uid)
-        self._replays[uid] = replay
-        asyncio.ensure_future(self._remove_replay_when_done(uid, replay))
+        replay = self._replay_builder(game_id)
+        self._replays[game_id] = replay
+        asyncio.ensure_future(self._remove_replay_when_done(game_id, replay))
 
-    async def _remove_replay_when_done(self, uid, replay):
+    async def _remove_replay_when_done(self, game_id, replay):
         await replay.wait_for_ended()
-        self._replays.pop(uid, None)
+        self._replays.pop(game_id, None)
 
     async def stop(self):
         self._closing = True
@@ -87,5 +87,5 @@ class Replays:
         await self._replays.wait_until_empty()
 
     # Tiny bit of introspection for easier testing
-    def __contains__(self, uid):
-        return uid in self._replays
+    def __contains__(self, game_id):
+        return game_id in self._replays

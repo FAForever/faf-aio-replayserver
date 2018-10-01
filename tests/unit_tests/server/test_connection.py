@@ -3,7 +3,7 @@ import asynctest
 from asyncio.streams import StreamReader, StreamWriter
 
 from tests import timeout
-from replayserver.server.connection import Connection
+from replayserver.server.connection import Connection, ConnectionHeader
 from replayserver.errors import MalformedDataError
 
 
@@ -42,12 +42,12 @@ async def test_connection_type(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"P/1/foo\0")
     connection = Connection(r, w)
     await connection.read_header()
-    assert connection.type == Connection.Type.WRITER
+    assert connection.type == ConnectionHeader.Type.WRITER
 
     r, w = rw_pairs_with_data(b"G/1/foo\0")
     connection = Connection(r, w)
     await connection.read_header()
-    assert connection.type == Connection.Type.READER
+    assert connection.type == ConnectionHeader.Type.READER
 
 
 @pytest.mark.asyncio

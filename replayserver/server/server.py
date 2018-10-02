@@ -64,7 +64,7 @@ class Server:
                    conns, replays, bookkeeper)
 
     async def start(self):
-        await self._replays.start()
+        await self._database.start()
         await self._connection_producer.start(
             self.connections.handle_connection)
 
@@ -72,6 +72,7 @@ class Server:
         await self._connection_producer.stop()
         self._connections.close_all()
         await self._replays.stop_all()
+        await self._database.stop()
 
 
 class Connections:

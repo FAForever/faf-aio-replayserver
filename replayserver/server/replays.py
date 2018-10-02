@@ -4,7 +4,6 @@ from collections.abc import MutableMapping
 
 from replayserver.server.replay import Replay
 from replayserver.server.connection import ConnectionHeader
-from replayserver.bookkeeping.bookkeeper import Bookkeeper
 from replayserver.errors import CannotAcceptConnectionError
 
 
@@ -43,8 +42,7 @@ class Replays:
         self._closing = False
 
     @classmethod
-    def build(cls, **kwargs):
-        bookkeeper = Bookkeeper.build(**kwargs)
+    def build(cls, bookkeeper, **kwargs):
         return cls(lambda game_id: Replay.build(game_id, bookkeeper, **kwargs),
                    bookkeeper)
 

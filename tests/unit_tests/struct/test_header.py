@@ -260,19 +260,10 @@ def test_load_example_header():
     assert v.value.value == EXPECTED_EXAMPLE_HEADER
 
 
-def test_replayheader_generator():
-    replay_data = example_replay.data
-    generator = header.ReplayHeader.generator()
-
-    chunks = (replay_data[i:i+100] for i in range(0, len(replay_data), 100))
-    processed_chunks = bytearray()
-    for chunk in chunks:
-        if generator.done():
-            break
-        generator.send(chunk)
-        processed_chunks += chunk
-
-    assert generator.done()
-    head, leftovers = generator.result()
+@pytest.mark.asyncio
+async def test_replayheader_coroutine(mock_connections):
+    conn = mock_connections(None, None)
+    conn.set_mock_read_data(example_replay.data)
+    head, leftovers = await header.ReplayHeader.from_connection(conn)
     assert head.header == EXPECTED_EXAMPLE_HEADER
-    assert head.data + leftovers == processed_chunks
+    assert example_replay.data.startswith(head.data + leftovers)

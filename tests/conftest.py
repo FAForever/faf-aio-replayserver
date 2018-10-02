@@ -16,8 +16,14 @@ class MockConnection():
         self._position = 0
         self._mock_write_data = b""
 
+    def set_mock_read_data(self, data):
+        self._mock_read_data = data
+
+    def get_mock_write_data(self):
+        return self._mock_write_data
+
     def _get_mock_data(self, to):
-        to = min(to, self._position)
+        to = min(to, len(self._mock_read_data))
         data = self._mock_read_data[self._position:to]
         self._position = to
         return data

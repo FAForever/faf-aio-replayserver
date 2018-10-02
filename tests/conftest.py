@@ -1,42 +1,59 @@
 import pytest
 import asynctest
 from asyncio.locks import Event
+from tests import TimeSkipper
+
 from replayserver.stream import ReplayStream
 from replayserver.receive.stream import OutsideSourceReplayStream
-from tests import TimeSkipper
+from replayserver.errors import MalformedDataError
+
+
+class MockConnection():
+    def __init__(self, reader, writer):
+        self._reader = reader
+        self._writer = writer
+        self._mock_read_data = b""
+        self._position = 0
+        self._mock_write_data = b""
+
+    def _get_mock_data(self, to):
+        to = min(to, self._position)
+        data = self._mock_read_data[self._position:to]
+        self._position = to
+        return data
+
+    async def read(self, size):
+        newpos = self._position + min(size, 100)
+        return self._get_mock_data(newpos)
+
+    async def readuntil(self, delim):
+        newpos = self._mock_read_data.find(delim, self._position)
+        if newpos == -1:
+            raise MalformedDataError
+        return self._get_mock_data(newpos)
+
+    async def readexactly(self, amount):
+        newpos = self._position + amount
+        if newpos > len(self._mock_read_data):
+            raise MalformedDataError
+        return self._get_mock_data(newpos)
+
+    async def write(self, data):
+        self._mock_write_data += data
+
+    def close(self):
+        pass
 
 
 def mock_connection(reader, writer):
-    class C:
-        type = None
-        uid = None
-
-        async def read_header():
-            pass
-
-        async def read():
-            pass
-
-        async def write():
-            pass
-
-        def close():
-            pass
-
-    return asynctest.Mock(spec=C, _reader=reader, _writer=writer)
+    conn = MockConnection(reader, writer)
+    return asynctest.Mock(wraps=conn)
 
 
 @pytest.fixture
-def mock_unhandled_connections():
-    def build(reader, writer):
-        return mock_connection(reader, writer)
-    return build
-
-
-@pytest.fixture
-def mock_connections(mock_unhandled_connections):
+def mock_connections():
     def build(type_, uid):
-        conn = mock_unhandled_connections(None, None)
+        conn = mock_connection(None, None)
         conn.type = type_
         conn.uid = uid
         return conn

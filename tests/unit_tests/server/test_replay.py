@@ -46,15 +46,6 @@ def mock_sender(locked_mock_coroutines):
                           wait_for_ended=ended_wait)
 
 
-@pytest.fixture
-def mock_conn_plus_head(mock_connections, mock_connection_headers):
-    def build(type_, game_id):
-        head = mock_connection_headers(type_, game_id)
-        conn = mock_connections()
-        return head, conn
-    return build
-
-
 @pytest.mark.asyncio
 @fast_forward_time(1, 40)
 @timeout(30)

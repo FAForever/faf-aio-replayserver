@@ -51,19 +51,13 @@ class MockConnection():
         pass
 
 
-def mock_connection(reader, writer):
-    conn = MockConnection(reader, writer)
-    return asynctest.Mock(wraps=conn)
-
-
 @pytest.fixture
 def mock_connections():
-    def build(type_, uid):
-        conn = mock_connection(None, None)
-        conn.type = type_
-        conn.uid = uid
-        return conn
-    return build
+    def mock_connection(reader=None, writer=None):
+        conn = MockConnection(reader, writer)
+        return asynctest.Mock(wraps=conn)
+
+    return mock_connection
 
 
 @pytest.fixture

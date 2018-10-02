@@ -46,6 +46,15 @@ def mock_sender(locked_mock_coroutines):
                           wait_for_ended=ended_wait)
 
 
+@pytest.fixture
+def mock_conn_plus_head(mock_connections, mock_connection_headers):
+    def build(type_, game_id):
+        head = mock_connection_headers(type_, game_id)
+        conn = mock_connections()
+        return head, conn
+    return build
+
+
 @pytest.mark.asyncio
 @fast_forward_time(1, 40)
 @timeout(30)
@@ -94,25 +103,25 @@ async def test_replay_close_cancels_timeout(
 @timeout(30)
 async def test_replay_forwarding_connections(event_loop, mock_merger,
                                              mock_sender, mock_bookkeeper,
-                                             mock_connections):
-    reader = mock_connections(ConnectionHeader.Type.READER, 1)
-    writer = mock_connections(ConnectionHeader.Type.WRITER, 1)
-    invalid = mock_connections(17, 1)
+                                             mock_conn_plus_head):
+    reader = mock_conn_plus_head(ConnectionHeader.Type.READER, 1)
+    writer = mock_conn_plus_head(ConnectionHeader.Type.WRITER, 1)
+    invalid = mock_conn_plus_head(17, 1)
     timeout = 15
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
 
-    await replay.handle_connection(reader)
+    await replay.handle_connection(*reader)
     mock_merger.handle_connection.assert_not_awaited()
-    mock_sender.handle_connection.assert_awaited_with(reader)
+    mock_sender.handle_connection.assert_awaited_with(reader[1])
     mock_sender.handle_connection.reset_mock()
 
-    await replay.handle_connection(writer)
+    await replay.handle_connection(*writer)
     mock_sender.handle_connection.assert_not_awaited()
-    mock_merger.handle_connection.assert_awaited_with(writer)
+    mock_merger.handle_connection.assert_awaited_with(writer[1])
     mock_merger.handle_connection.reset_mock()
 
     with pytest.raises(MalformedDataError):
-        await replay.handle_connection(invalid)
+        await replay.handle_connection(*invalid)
     mock_sender.handle_connection.assert_not_awaited()
     mock_merger.handle_connection.assert_not_awaited()
 
@@ -148,17 +157,17 @@ async def test_replay_keeps_proper_event_order(
 @timeout(1)
 async def test_replay_refuses_connections_after_merger_end(
         event_loop, mock_merger, mock_sender, mock_bookkeeper,
-        mock_connections):
-    conn_r = mock_connections(ConnectionHeader.Type.READER, 1)
-    conn_w = mock_connections(ConnectionHeader.Type.WRITER, 1)
+        mock_conn_plus_head):
+    conn_r = mock_conn_plus_head(ConnectionHeader.Type.READER, 1)
+    conn_w = mock_conn_plus_head(ConnectionHeader.Type.WRITER, 1)
     timeout = 0.1
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
     mock_merger._manual_end.set()
     await exhaust_callbacks(event_loop)
     with pytest.raises(CannotAcceptConnectionError):
-        await replay.handle_connection(conn_r)
+        await replay.handle_connection(*conn_r)
     with pytest.raises(CannotAcceptConnectionError):
-        await replay.handle_connection(conn_w)
+        await replay.handle_connection(*conn_w)
 
     mock_sender._manual_end.set()
     await replay.wait_for_ended()
@@ -168,17 +177,17 @@ async def test_replay_refuses_connections_after_merger_end(
 @timeout(1)
 async def test_replay_refuses_connections_after_manual_end(
         event_loop, mock_merger, mock_sender, mock_bookkeeper,
-        mock_connections):
-    conn_r = mock_connections(ConnectionHeader.Type.READER, 1)
-    conn_w = mock_connections(ConnectionHeader.Type.WRITER, 1)
+        mock_conn_plus_head):
+    conn_r = mock_conn_plus_head(ConnectionHeader.Type.READER, 1)
+    conn_w = mock_conn_plus_head(ConnectionHeader.Type.WRITER, 1)
     timeout = 0.1
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
     replay.close()
     await exhaust_callbacks(event_loop)
     with pytest.raises(CannotAcceptConnectionError):
-        await replay.handle_connection(conn_r)
+        await replay.handle_connection(*conn_r)
     with pytest.raises(CannotAcceptConnectionError):
-        await replay.handle_connection(conn_w)
+        await replay.handle_connection(*conn_w)
 
     mock_merger._manual_end.set()
     mock_sender._manual_end.set()

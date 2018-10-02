@@ -1,8 +1,9 @@
 import struct
 from enum import Enum
 
-from replayserver.struct.streamread import GeneratorData, GeneratorWrapper, \
-    read_exactly, read_until
+from replayserver.struct.streamread import GeneratorData, read_exactly, \
+    read_until
+from replayserver.errors import MalformedDataError
 
 
 class LuaType(Enum):
@@ -120,13 +121,24 @@ class ReplayHeader:
         self.header = header
 
     @classmethod
+    async def from_connection(cls, connection):
+        generator = cls._generate(cls.MAXLEN)
+        generator.send(None)
+        while True:
+            data = await connection.read(4096)  # TODO - configure?
+            if not data:
+                raise MalformedDataError("Replay header ended prematurely")
+            try:
+                generator.send(data)
+            except ValueError as e:
+                raise MalformedDataError from e
+            except StopIteration as v:
+                return v.value
+
+    @classmethod
     def _generate(cls, maxlen):
         gen = GeneratorData(maxlen)
         header = yield from read_header(gen)
         data = gen.data[:gen.position]
         leftovers = gen.data[gen.position:]
         return (cls(data, header), leftovers)
-
-    @classmethod
-    def generator(cls):
-        return GeneratorWrapper(cls._generate(cls.MAXLEN))

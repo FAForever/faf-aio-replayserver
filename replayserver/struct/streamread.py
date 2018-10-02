@@ -24,28 +24,6 @@ class GeneratorData:
         return data
 
 
-class GeneratorWrapper:
-    """
-    Tiny wrapper for using generator like an object.
-    """
-    def __init__(self, gen):
-        self._gen = gen
-        self._gen.send(None)
-        self._result = None
-
-    def done(self):
-        return self._result is not None
-
-    def send(self, data):
-        try:
-            self._gen.send(data)
-        except StopIteration as v:
-            self._result = v.value
-
-    def result(self):
-        return self._result
-
-
 def read_exactly(gen, amount):
     new_position = gen.position + amount
     while len(gen.data) < new_position:

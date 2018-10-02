@@ -19,32 +19,19 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
 
     @classmethod
     def build(cls, connection, **kwargs):
-        header_reader = ReplayHeader.generator()
+        header_reader = ReplayHeader.from_connection
         return cls(header_reader, connection)
 
     async def read_header(self):
         try:
-            # We avoid appending leftover data right away - it would force the
-            # caller to make extra checks after reading header, to make sure it
-            # didn't miss data. It's easier to guarantee here that first read()
-            # always starts from 0.
-            self._header, self._leftovers = await self._feed_header_reader()
+            result = await self._header_reader(self._connection)
+            # Don't add leftover data right away, caller doesn't expect that
+            self._header, self._leftovers = result
         except MalformedDataError as e:
             self._end()
             raise
         finally:
             self._signal_header_read_or_ended()
-
-    async def _feed_header_reader(self):
-        while not self._header_reader.done():
-            data = await self._connection.read(4096)
-            if not data:
-                raise MalformedDataError("Replay header ended prematurely")
-            try:
-                self._header_reader.send(data)
-            except ValueError:
-                raise MalformedDataError("Malformed replay header")
-        return self._header_reader.result()
 
     async def read(self):
         if self._leftovers:

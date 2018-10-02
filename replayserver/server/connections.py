@@ -16,8 +16,7 @@ class Connections:
         self._connections.add(connection)
         try:
             header = self._header_read(connection)
-            replay = await self._replays.get_matching_replay(header)
-            await replay._handle_connection(header, connection)
+            await self._replays._handle_connection(header, connection)
         except BadConnectionError:
             pass    # TODO - log
         finally:

@@ -35,24 +35,23 @@ class AsyncDict(MutableMapping):
 
 
 class Replays:
-    def __init__(self, replay_builder, bookkeeper):
+    def __init__(self, replay_builder):
         self._replays = AsyncDict()
         self._replay_builder = replay_builder
-        self._bookkeeper = bookkeeper
         self._closing = False
 
     @classmethod
     def build(cls, bookkeeper, **kwargs):
-        return cls(lambda game_id: Replay.build(game_id, bookkeeper, **kwargs),
-                   bookkeeper)
+        return cls(lambda game_id: Replay.build(game_id, bookkeeper, **kwargs))
 
-    async def start(self):
-        await self._bookkeeper.start()
+    async def handle_connection(self, header, connection):
+        replay = self._get_matching_replay(header)
+        await replay.handle_connection(header, connection)
 
-    async def get_matching_replay(self, header, connection):
+    def _get_matching_replay(self, header):
         if not self._can_add_to_replay(header):
             raise CannotAcceptConnectionError(
-                "Cannot add connection to a replay")    # FIXME - details
+                "Cannot add connection to a replay")
         if header.game_id not in self._replays:
             self._create(header.game_id)
         return self._replays[header.game_id]
@@ -66,8 +65,6 @@ class Replays:
         return True
 
     def _create(self, game_id):
-        if game_id in self._replays:
-            return
         replay = self._replay_builder(game_id)
         self._replays[game_id] = replay
         asyncio.ensure_future(self._remove_replay_when_done(game_id, replay))

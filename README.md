@@ -8,7 +8,7 @@ This is a prototype for the new FAF replay server. It uses asyncio a lot and
 hopefully is better designed than the old replay server.
 
 General requirements
-====================
+--------------------
 
 As players on FAF play games, other players would like to watch them in real
 time, or from the replay vault after they are finished. This is a feature that
@@ -43,7 +43,7 @@ As well as all kinds of special conditions we need to watch out for, e.g.:
 
 
 General architecture
-====================
+--------------------
 
 Two most important entities in the replay server are the Connection and the
 Replay. The Connection represents someone connecting to the server - either to
@@ -57,7 +57,7 @@ streams, saving the replay etc. - are provided or delegated to other classes.
 
 
 Connection lifetime
-===================
+-------------------
 
 General connection lifetime is as follows:
 
@@ -78,7 +78,7 @@ General connection lifetime is as follows:
 
 
 Replay lifetime
-===============
+---------------
 
 In order to decide when to accept connections and when to save replay data, we
 need to describe lifetime of a Replay.
@@ -98,3 +98,22 @@ need to describe lifetime of a Replay.
 6. Once there are no readers remaining, the Replay is complete.
 7. If a Replay has been running for longer than some time (e.g. 5 hours), it
    ensures that its write phase ends quickly and all readers are dropped.
+
+Top-down code overview
+----------------------
+
+### Server
+
+The server as a whole is a blackbox with 3 external dependencies - connection
+producer, database and storage. The server accepts connections from the producer
+and does things with them, saves replay files in storage and reads from / writes
+to the database as required.
+
+Server has start and stop methods. Start method prepares storage and the
+database to run and activates the connection producer. Stop method stops the
+connection producer, closes all connections and finalizes all replays, then
+closes the database and storage.
+
+Actual handling of connections and replays is delegated to Connections and
+Replays classes. Since the latter needs a Bookkeeper for saving replays, we keep
+it in the Server as well.

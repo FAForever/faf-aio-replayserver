@@ -27,7 +27,7 @@ def mock_header_reader(mocker):
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replay_stream_read_header(mock_header_reader, mock_connections):
-    mock_conn = mock_connections(ConnectionHeader.Type.WRITER, 1)
+    mock_conn = mock_connections()
     stream = ConnectionReplayStream(mock_header_reader, mock_conn)
 
     mock_conn.read.side_effect = [b"Lorem ", b"ipsum ", b"dolor"]
@@ -58,7 +58,7 @@ async def test_replay_stream_read_header(mock_header_reader, mock_connections):
 @timeout(1)
 async def test_replay_stream_invalid_header(
         mock_header_reader, mock_connections):
-    mock_conn = mock_connections(ConnectionHeader.Type.WRITER, 1)
+    mock_conn = mock_connections()
     stream = ConnectionReplayStream(mock_header_reader, mock_conn)
 
     mock_conn.read.side_effect = [b"Lorem ", b"ipsum ", b"dolor"]
@@ -82,7 +82,7 @@ async def test_replay_stream_invalid_header(
 @timeout(1)
 async def test_replay_stream_too_short_header(
         mock_header_reader, mock_connections):
-    mock_conn = mock_connections(ConnectionHeader.Type.WRITER, 1)
+    mock_conn = mock_connections()
     stream = ConnectionReplayStream(mock_header_reader, mock_conn)
 
     mock_conn.read.side_effect = [b"Lorem ", b"ip", b""]
@@ -107,7 +107,7 @@ async def test_replay_stream_too_short_header(
 @timeout(1)
 async def test_replay_stream_read(
         mock_header_reader, mock_connections):
-    mock_conn = mock_connections(ConnectionHeader.Type.WRITER, 1)
+    mock_conn = mock_connections()
     stream = ConnectionReplayStream(mock_header_reader, mock_conn)
 
     mock_conn.read.side_effect = [b"Lorem ", b"ipsum", b""]

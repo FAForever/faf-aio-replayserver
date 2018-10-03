@@ -261,9 +261,8 @@ def test_load_example_header():
 
 
 @pytest.mark.asyncio
-async def test_replayheader_coroutine(mock_connections):
-    conn = mock_connections(None, None)
-    conn.set_mock_read_data(example_replay.data)
+async def test_replayheader_coroutine(controlled_connections):
+    conn = controlled_connections(example_replay.data)
     head, leftovers = await header.ReplayHeader.from_connection(conn)
     assert head.header == EXPECTED_EXAMPLE_HEADER
     assert example_replay.data.startswith(head.data + leftovers)

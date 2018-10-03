@@ -1,6 +1,7 @@
 import pytest
 import asynctest
 from asyncio.locks import Event
+from asyncio.streams import StreamReader
 from tests import TimeSkipper
 
 from replayserver.stream import ReplayStream
@@ -8,44 +9,33 @@ from replayserver.receive.stream import OutsideSourceReplayStream
 from replayserver.errors import MalformedDataError
 
 
-class MockConnection():
-    def __init__(self, reader, writer, limit):
-        self._reader = reader
-        self._writer = writer
-        self._mock_read_data = b""
-        self._position = 0
-        self._limit = limit
+class ControlledConnection():
+    def __init__(self, data, limit):
+        self._reader = StreamReader(limit)
+        self._reader.feed_data(data)
+        self._reader.feed_eof()
         self._mock_write_data = b""
-
-    def set_mock_read_data(self, data):
-        self._mock_read_data = data
 
     def get_mock_write_data(self):
         return self._mock_write_data
 
-    def _get_mock_data(self, to):
-        to = min(to, len(self._mock_read_data))
-        if to - self._position > self._limit:
-            raise MalformedDataError
-        data = self._mock_read_data[self._position:to]
-        self._position = to
-        return data
-
     async def read(self, size):
-        newpos = self._position + min(size, 100, self._limit)
-        return self._get_mock_data(newpos)
+        try:
+            return await self._reader.read(min(size, 100))
+        except Exception:
+            raise MalformedDataError
 
     async def readuntil(self, delim):
-        newpos = self._mock_read_data.find(delim, self._position)
-        if newpos == -1:
+        try:
+            return await self._reader.readuntil(delim)
+        except Exception:
             raise MalformedDataError
-        return self._get_mock_data(newpos + 1)
 
     async def readexactly(self, amount):
-        newpos = self._position + amount
-        if newpos > len(self._mock_read_data):
+        try:
+            return await self._reader.readexactly(amount)
+        except Exception:
             raise MalformedDataError
-        return self._get_mock_data(newpos)
 
     async def write(self, data):
         self._mock_write_data += data
@@ -56,11 +46,20 @@ class MockConnection():
 
 @pytest.fixture
 def mock_connections():
-    def mock_connection(reader=None, writer=None, limit=100000000):
-        conn = MockConnection(reader, writer, limit)
-        return asynctest.Mock(wraps=conn)
+    def build():
+        conn = ControlledConnection(b"", 1000000000)
+        return asynctest.Mock(spec=conn)
 
-    return mock_connection
+    return build
+
+
+@pytest.fixture
+def controlled_connections():
+    def build(data, limit=100000000):
+        conn = ControlledConnection(data, limit)
+        return asynctest.Mock(wraps=conn, spec=conn)
+
+    return build
 
 
 @pytest.fixture

@@ -37,7 +37,7 @@ def test_sender_init(outside_source_stream):
 async def test_sender_one_connection(event_loop, outside_source_stream,
                                      mock_connections, data_receive_mixin):
     sender = Sender.build(outside_source_stream, **config)
-    conn = mock_connections(ConnectionHeader.Type.READER, 1)
+    conn = mock_connections()
     data_receive_mixin(conn, 0.1)
 
     f = asyncio.ensure_future(sender.handle_connection(conn))

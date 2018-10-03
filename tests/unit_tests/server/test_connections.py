@@ -44,6 +44,7 @@ async def test_connections_handle_connection(mock_replays, mock_header_read,
     mock_header_read.assert_awaited()
     mock_replays.handle_connection.assert_awaited()
     connection.close.assert_called()
+    await conns.wait_until_empty()
 
 
 @pytest.mark.asyncio
@@ -71,6 +72,7 @@ async def test_connections_close_all(mock_replays, mock_header_read,
     connection.close.assert_called()
     verified.set()
     await f
+    await conns.wait_until_empty()
 
 
 @pytest.mark.asyncio
@@ -87,3 +89,4 @@ async def test_connections_error_closes_connection(
     conns = Connections(mock_header_read, mock_replays)
     await conns.handle_connection(connection)
     connection.close.assert_called()
+    await conns.wait_until_empty()

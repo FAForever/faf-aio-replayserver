@@ -38,101 +38,59 @@ async def test_connection_init(event_loop, mock_stream_writers):
 
 @pytest.mark.asyncio
 @timeout(1)
-async def test_connection_type(rw_pairs_with_data):
-    r, w = rw_pairs_with_data(b"P/1/foo\0")
+async def test_connection_read(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"foo")
     connection = Connection(r, w)
-    await connection.read_header()
-    assert connection.type == ConnectionHeader.Type.WRITER
-
-    r, w = rw_pairs_with_data(b"G/1/foo\0")
-    connection = Connection(r, w)
-    await connection.read_header()
-    assert connection.type == ConnectionHeader.Type.READER
+    data = await connection.read(10)
+    assert data == b"foo"
+    data = await connection.read(10)
+    assert data == b""
 
 
 @pytest.mark.asyncio
 @timeout(1)
-async def test_connection_invalid_type(rw_pairs_with_data):
-    r, w = rw_pairs_with_data(b"garbage/1/foo\0")
+async def test_connection_readuntil(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"some string\0and some other string")
+    connection = Connection(r, w)
+    data = await connection.readuntil(b"\0")
+    assert data == b"some string\0"
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_readuntil_no_delim(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"some unterminated string")
     connection = Connection(r, w)
     with pytest.raises(MalformedDataError):
-        await connection.read_header()
-
+        await connection.readuntil(b"\0")
 
 @pytest.mark.asyncio
 @timeout(1)
-async def test_connection_type_short_data(rw_pairs_with_data):
-    r, w = rw_pairs_with_data(b"g")
+async def test_connection_readuntil_over_limit(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"some terminated string\0", limit=10)
     connection = Connection(r, w)
     with pytest.raises(MalformedDataError):
-        await connection.read_header()
+        await connection.readuntil(b"\0")
 
 
 @pytest.mark.asyncio
 @timeout(1)
-async def test_connection_replay_info(rw_pairs_with_data):
-    r, w = rw_pairs_with_data(b"G/1/foo\0")
+async def test_connection_readexactly(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"something long")
     connection = Connection(r, w)
-    await connection.read_header()
-    assert connection.uid == 1
-    assert connection.name == "foo"
+    data = await connection.readexactly(9)
+    assert data == b"something"
+    data = await connection.readexactly(3)
+    assert data == b" lo"
 
 
 @pytest.mark.asyncio
 @timeout(1)
-async def test_connection_replay_uid_not_int(rw_pairs_with_data):
-    r, w = rw_pairs_with_data(b"G/bar/foo\0")
-    connection = Connection(r, w)
-    with pytest.raises(MalformedDataError):
-        await connection.read_header()
-
-
-@pytest.mark.asyncio
-@timeout(1)
-async def test_connection_replay_info_no_null_end(rw_pairs_with_data):
-    r, w = rw_pairs_with_data(b"G/bar/foo")
+async def test_connection_readexactly_too_big(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"something")
     connection = Connection(r, w)
     with pytest.raises(MalformedDataError):
-        await connection.read_header()
-
-
-@pytest.mark.asyncio
-@timeout(1)
-async def test_connection_replay_info_no_delimiter(rw_pairs_with_data):
-    r, w = rw_pairs_with_data(b"G/1\0")
-    connection = Connection(r, w)
-    with pytest.raises(MalformedDataError):
-        await connection.read_header()
-
-
-@pytest.mark.asyncio
-@timeout(1)
-async def test_connection_replay_info_more_slashes(rw_pairs_with_data):
-    r, w = rw_pairs_with_data(b"G/1/name/with/slash\0")
-    connection = Connection(r, w)
-    await connection.read_header()
-    assert connection.uid == 1
-    assert connection.name == "name/with/slash"
-
-
-@pytest.mark.asyncio
-@timeout(1)
-async def test_connection_replay_info_invalid_unicode(rw_pairs_with_data):
-    # Lonely start character is invalid unicode
-    r, w = rw_pairs_with_data(b"G/1/\xc0 blahblah\0")
-    connection = Connection(r, w)
-    with pytest.raises(MalformedDataError):
-        await connection.read_header()
-
-
-@pytest.mark.asyncio
-@timeout(1)
-async def test_connection_replay_info_limit_overrun(rw_pairs_with_data):
-    # Lonely start character is invalid unicode
-    r, w = rw_pairs_with_data(b"G/1/All Welcome 115k+\0", limit=8)
-    connection = Connection(r, w)
-    with pytest.raises(MalformedDataError):
-        await connection.read_header()
+        await connection.readexactly(32)
 
 
 @pytest.mark.asyncio
@@ -147,12 +105,109 @@ async def test_connection_closes(rw_pairs_with_data):
 @pytest.mark.asyncio
 @timeout(1)
 async def test_connection_rw(rw_pairs_with_data):
-    r, w = rw_pairs_with_data(b"G/1/foo\0some_data")
+    r, w = rw_pairs_with_data(b"some_data")
     connection = Connection(r, w)
-    await connection.read_header()
 
     data = await connection.read(4096)
     assert data == b"some_data"
 
     await connection.write(b"other_data")
     w.write.assert_called_with(b"other_data")
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_header_type(mock_connections):
+    mock_conn = mock_connections()
+    mock_conn.set_mock_read_data(b"P/1/foo\0")
+    ch = await ConnectionHeader.read(mock_conn)
+    assert ch.type == ConnectionHeader.Type.WRITER
+
+    mock_conn = mock_connections()
+    mock_conn.set_mock_read_data(b"G/1/foo\0")
+    ch = await ConnectionHeader.read(mock_conn)
+    assert ch.type == ConnectionHeader.Type.READER
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_header_invalid_type(mock_connections):
+    mock_conn = mock_connections()
+    mock_conn.set_mock_read_data(b"garbage/1/foo\0")
+    with pytest.raises(MalformedDataError):
+        await ConnectionHeader.read(mock_conn)
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_header_type_short_data(mock_connections):
+    mock_conn = mock_connections()
+    mock_conn.set_mock_read_data(b"g")
+    with pytest.raises(MalformedDataError):
+        await ConnectionHeader.read(mock_conn)
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_header_replay_info(mock_connections):
+    mock_conn = mock_connections()
+    mock_conn.set_mock_read_data(b"G/1/foo\0")
+    ch = await ConnectionHeader.read(mock_conn)
+    assert ch.game_id == 1
+    assert ch.game_name == "foo"
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_header_replay_uid_not_int(mock_connections):
+    mock_conn = mock_connections()
+    mock_conn.set_mock_read_data(b"G/bar/foo\0")
+    with pytest.raises(MalformedDataError):
+        await ConnectionHeader.read(mock_conn)
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_header_replay_info_no_null_end(mock_connections):
+    mock_conn = mock_connections()
+    mock_conn.set_mock_read_data(b"G/1/foo")
+    with pytest.raises(MalformedDataError):
+        await ConnectionHeader.read(mock_conn)
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_header_replay_info_no_delimiter(mock_connections):
+    mock_conn = mock_connections()
+    mock_conn.set_mock_read_data(b"G/1\0")
+    with pytest.raises(MalformedDataError):
+        await ConnectionHeader.read(mock_conn)
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_header_replay_info_more_slashes(mock_connections):
+    mock_conn = mock_connections()
+    mock_conn.set_mock_read_data(b"G/1/name/with/slash\0")
+    ch = await ConnectionHeader.read(mock_conn)
+    assert ch.game_id == 1
+    assert ch.game_name == "name/with/slash"
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_replay_info_invalid_unicode(mock_connections):
+    # Lonely start character is invalid unicode
+    mock_conn = mock_connections()
+    mock_conn.set_mock_read_data(b"G/1/\xc0 blahblah\0")
+    with pytest.raises(MalformedDataError):
+        await ConnectionHeader.read(mock_conn)
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_replay_info_limit_overrun(mock_connections):
+    mock_conn = mock_connections(limit=8)
+    mock_conn.set_mock_read_data(b"G/1/All Welcome 115k+\0")
+    with pytest.raises(MalformedDataError):
+        await ConnectionHeader.read(mock_conn)

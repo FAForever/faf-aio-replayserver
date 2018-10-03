@@ -46,8 +46,8 @@ class ConnectionHeader:
 
     @classmethod
     async def read(cls, connection):
-        type_ = cls._read_type(connection)
-        game_id, game_name = cls._read_game_data(connection)
+        type_ = await cls._read_type(connection)
+        game_id, game_name = await cls._read_game_data(connection)
         return cls(type_, game_id, game_name)
 
     @classmethod

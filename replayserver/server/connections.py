@@ -15,8 +15,8 @@ class Connections:
     async def handle_connection(self, connection):
         self._connections.add(connection)
         try:
-            header = self._header_read(connection)
-            await self._replays._handle_connection(header, connection)
+            header = await self._header_read(connection)
+            await self._replays.handle_connection(header, connection)
         except BadConnectionError:
             pass    # TODO - log
         finally:

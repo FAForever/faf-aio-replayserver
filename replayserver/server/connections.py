@@ -28,5 +28,5 @@ class Connections:
         for connection in self._connections:
             connection.close()
 
-    async def wait_for_ended(self):
+    async def wait_until_empty(self):
         await self._connections.wait_until_empty()

@@ -22,14 +22,12 @@ class Server:
               dep_database=Database.build,
               dep_storage=ReplayStorage.build,
               **kwargs):
-        conns = Connections.build(**kwargs)
-
-        producer = dep_connection_producer(conns.handle_connection, **kwargs)
         database = dep_database(**kwargs)
         storage = dep_storage(**kwargs)
-
         bookkeeper = Bookkeeper.build(database, storage)
-        replays = Replays.build(**kwargs)
+        replays = Replays.build(bookkeeper, **kwargs)
+        conns = Connections.build(replays, **kwargs)
+        producer = dep_connection_producer(conns.handle_connection, **kwargs)
         return cls(producer, database, storage,
                    conns, replays, bookkeeper)
 

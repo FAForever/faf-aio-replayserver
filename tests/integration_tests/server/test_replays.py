@@ -11,5 +11,5 @@ config = {
 }
 
 
-def test_replays_init():
-    Replays.build(**config)
+def test_replays_init(mock_bookkeeper):
+    Replays.build(mock_bookkeeper, **config)

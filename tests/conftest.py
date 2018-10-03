@@ -85,6 +85,15 @@ def mock_replay_streams():
 
 
 @pytest.fixture
+def mock_bookkeeper():
+    class C:
+        async def save_replay():
+            pass
+
+    return asynctest.Mock(spec=C)
+
+
+@pytest.fixture
 def time_skipper(event_loop):
     return TimeSkipper(event_loop)
 

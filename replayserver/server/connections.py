@@ -1,3 +1,4 @@
+from replayserver.collections import AsyncSet
 from replayserver.errors import BadConnectionError
 from replayserver.server.connection import ConnectionHeader
 
@@ -6,7 +7,7 @@ class Connections:
     def __init__(self, header_read, replays):
         self._replays = replays
         self._header_read = header_read
-        self._connections = set()
+        self._connections = AsyncSet()
 
     @classmethod
     def build(cls, replays, **kwargs):
@@ -26,3 +27,6 @@ class Connections:
     def close_all(self):
         for connection in self._connections:
             connection.close()
+
+    async def wait_for_ended(self):
+        await self._connections.wait_until_empty()

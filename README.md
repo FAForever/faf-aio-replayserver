@@ -42,6 +42,19 @@ As well as all kinds of special conditions we need to watch out for, e.g.:
   hours).
 
 
+Testing
+-------
+
+`python3 -m pytest`
+
+For most tests, things in requirements-test.txt should be enough. Some tests
+require `asynctest`'s issue #107 to be fixed, these have been disabled for
+travis until the fix is merged.
+
+For tests that require the database, you'll need to setup faf-db. See
+instructions at https://github.com/FAForever/db and .travis.yml for details on
+how to start the container and populate it with test data.
+
 General architecture
 --------------------
 

@@ -6,7 +6,7 @@ from replayserver.errors import BookkeepingError
 
 # TODO - turn this into a fixture, add setting up faf-stack to docker
 docker_db_config = {
-    "config_db_host": os.environ.get("FAF_STACK_DB_IP", "127.19.0.2"),
+    "config_db_host": os.environ.get("FAF_STACK_DB_IP", "172.19.0.2"),
     "config_db_port": 3306,
     "config_db_user": "root",
     "config_db_password": "banana",

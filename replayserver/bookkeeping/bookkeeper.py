@@ -17,6 +17,5 @@ class Bookkeeper:
     async def save_replay(self, game_id, stream):
         try:
             await self._saver.save_replay(game_id, stream)
-            await self._queries.register_replay(game_id)
         except BookkeepingError:
             pass    # TODO - log

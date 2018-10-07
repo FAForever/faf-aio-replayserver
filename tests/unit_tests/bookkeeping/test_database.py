@@ -62,8 +62,8 @@ async def test_queries_get_game_stats(mock_database):
     queries = ReplayDatabaseQueries(mock_database)
     await mock_database.add_mock_game((1, 1, 1),
                                       [(1, 1), (2, 2)])
-    teams = await queries.get_game_stats(1)
-    assert teams == {
+    stats = await queries.get_game_stats(1)
+    assert stats == {
         'featured_mod': 'faf',
         'game_type': '0',
         'recorder': 'user1',
@@ -74,4 +74,22 @@ async def test_queries_get_game_stats(mock_database):
         'mapname': 'scmp_1',
         'map_file_path': 'maps/scmp_1.zip',
         'num_players': 2
+    }
+
+
+@pytest.mark.asyncio
+async def test_queries_get_mod_versions(mock_database):
+    queries = ReplayDatabaseQueries(mock_database)
+    mod = await queries.get_mod_versions("faf")
+    assert mod == {
+        '1': 1,
+        '2': 1,
+        '3': 1,
+        '4': 1,
+        '5': 1,
+        '6': 1,
+        '7': 1,
+        '8': 1,
+        '9': 1,
+        '10': 1,
     }

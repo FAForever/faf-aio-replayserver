@@ -26,9 +26,9 @@ class MockDatabase:
 
     async def execute(self, query, params=[]):
         try:
-            cur = await self._conn.cursor()
-            await cur.execute(query, *params)
-            return await cur.fetchall()
+            async with self._conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute(query, *params)
+                return await cur.fetchall()
         except (DatabaseError, RuntimeError) as e:
             raise BookkeepingError from e
 

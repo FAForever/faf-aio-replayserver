@@ -22,17 +22,20 @@ class Database:
         self._connection_pool = await self._pool_starter
 
     async def execute(self, query, params=[]):
+        if self._connection_pool is None:
+            raise BookkeepingError("Tried to run query while pool is closed!")
         try:
             async with self._connection_pool.acquire() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cur:
                     await cur.execute(query, *params)
                     return await cur.fetchall()
-        except DatabaseError as e:
+        except (DatabaseError, RuntimeError) as e:
             raise BookkeepingError from e
 
     async def close(self):
         self._connection_pool.close()
         await self._connection_pool.wait_closed()
+        self._connection_pool = None
 
 
 class ReplayDatabaseQueries:

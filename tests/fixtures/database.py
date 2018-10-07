@@ -41,7 +41,7 @@ class MockDatabase:
                 (`id`, `starttime`, `endtime`, `gametype`,
                  `gamemod`, `host`, `mapid`, `gamename`, `validity`)
             VALUES
-                ({replay_id}, '2000-01-01 00:00:00', '2000-01-01 00:00:00',
+                ({replay_id}, '2001-01-01 00:00:00', '2001-01-02 00:00:00',
                  '0', 1, {host_id}, {map_id}, "Name of the game", 1)
         """.format(replay_id=replay_id, map_id=map_id, host_id=host_id))
 

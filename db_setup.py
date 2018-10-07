@@ -61,7 +61,7 @@ async def db_mock_login(cursor, nums):
 
 async def db_mock_map(cursor, nums):
     data = [(i, 'scmp_{}'.format(i), '?', '?', None,
-            0, 0, '2000-01-01 00:00:00', '2000-01-01 00:00:00')
+            0, 0, '2000-01-01 00:00:00', '2000-01-02 00:00:00')
             for i in nums]
     await cursor.executemany("""
         INSERT INTO `map`
@@ -71,7 +71,7 @@ async def db_mock_map(cursor, nums):
             (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, data)
     data = [(None, 8, 100, 100, 1, 'maps/scmp_{}.zip'.format(i), 1, 0, i,
-             '2000-01-01 00:00:00', '2000-01-01 00:00:00')
+             '2000-01-03 00:00:00', '2000-01-04 00:00:00')
             for i in nums]
     await cursor.executemany("""
         INSERT INTO `map_version`

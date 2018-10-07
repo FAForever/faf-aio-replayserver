@@ -1,7 +1,7 @@
 import pytest
 from tests import docker_faf_db_config
 
-from replayserver.bookkeeping.database import Database
+from replayserver.bookkeeping.database import Database, ReplayDatabaseQueries
 from replayserver.errors import BookkeepingError
 
 
@@ -45,3 +45,12 @@ async def test_database_query_at_bad_time():
     await db.close()
     with pytest.raises(BookkeepingError):
         await db.execute('SELECT * FROM login')
+
+
+@pytest.mark.asyncio
+async def test_queries_get_teams(mock_database):
+    queries = ReplayDatabaseQueries(mock_database)
+    await mock_database.add_mock_game((1, 1, 1),
+                                      [(1, 1), (2, 2)])
+    teams = await queries.get_teams_in_game(1)
+    assert teams == {1: ["user1"], 2: ["user2"]}

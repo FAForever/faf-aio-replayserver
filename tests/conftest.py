@@ -4,7 +4,8 @@ from asyncio.locks import Event
 from tests import TimeSkipper
 
 
-pytest_plugins = ['tests.fixtures.connection', 'tests.fixtures.stream']
+pytest_plugins = ['tests.fixtures.connection', 'tests.fixtures.stream',
+                  'tests.fixtures.database']
 
 
 @pytest.fixture

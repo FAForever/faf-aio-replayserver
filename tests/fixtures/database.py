@@ -15,10 +15,10 @@ class MockDatabase:
             user=docker_faf_db_config['user'],
             password=docker_faf_db_config['password'],
             db=docker_faf_db_config['db'])
-        self._conn.begin()
+        await self._conn.begin()
 
     async def mock_close(self):
-        self._conn.rollback()
+        await self._conn.rollback()
         self._conn.close()
 
     async def start(self):
@@ -56,11 +56,12 @@ class MockDatabase:
                  1, {team}, 1, 0, 0)
         """.format(replay_id=replay_id, player_id=player_id, team=team))
 
-    async def add_mock_game(self, cursor, game, players):
+    async def add_mock_game(self, game, players):
+        cur = await self._conn.cursor()
         replay_id = game[0]
-        await self._db_mock_game_stats(cursor, *game)
+        await self._db_mock_game_stats(cur, *game)
         for player in players:
-            await self._db_mock_game_player_stats(cursor, replay_id, *player)
+            await self._db_mock_game_player_stats(cur, replay_id, *player)
 
 
 @pytest.fixture

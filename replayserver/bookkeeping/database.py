@@ -59,7 +59,7 @@ class ReplayDatabaseQueries:
             raise BookkeepingError("No game players found")
         teams = {}
         for player in players:
-            teams.setdefault(player['team'], []).append(player['login'])
+            teams.setdefault(player[1], []).append(player[0])
         return teams
 
     async def get_game_stats(self, game_id):

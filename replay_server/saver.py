@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import datetime
 import json
 import struct
 import time
@@ -14,7 +15,7 @@ from replay_server.utils.greatest_common_replay import get_replay
 from replay_server.utils.paths import get_replay_path
 
 
-async def save_replay(uid: int, file_paths: List[str]) -> None:
+async def save_replay(uid: int, file_paths: List[str], start_time: int) -> None:
     """
     Saves completed replay.
     """
@@ -26,17 +27,22 @@ async def save_replay(uid: int, file_paths: List[str]) -> None:
     with open(output_path, "wb") as output_file:
         with open(replay_path, "rb") as replay_file:
             replay_data = replay_file.read()
-            output_file.write(json.dumps(await get_replay_info(uid, replay_data)).encode('raw_unicode_escape'))
+            output_file.write(json.dumps(await get_replay_info(uid, replay_data, start_time)).encode('raw_unicode_escape'))
             output_file.write(b'\n')
             output_file.write(base64.b64encode(zlib.compress(struct.pack("i", len(replay_data)) + replay_data, 9)))
 
 
-async def get_replay_info(game_id: int, replay_data: bytes) -> Dict:
+async def get_replay_info(game_id: int, replay_data: bytes, start_time: int) -> Dict:
     """
     Returns "header" information for replay.
     """
     logger.info("Collecting replay info for uid %s", game_id)
-    result = {'uid': game_id}
+    result = {
+        'uid': game_id,
+        'launched_at': start_time,
+        'game_end': time.mktime(datetime.datetime.now().timetuple()),
+    }
+
     try:
         header = parse(replay_data)['header']
         game_version = header.get("version")
@@ -67,8 +73,6 @@ async def get_replay_info(game_id: int, replay_data: bytes) -> Dict:
                 'game_type': int(game_stats_first_row['game_type']),
                 'recorder': game_stats_first_row['host'],
                 'host': game_stats_first_row['host'],
-                'launched_at': time.mktime(game_stats_first_row['start_time'].timetuple()),
-                'game_end': time.mktime(game_stats_first_row['end_time'].timetuple()),
                 'complete': True,
                 'state': 'PLAYING',
                 'title': game_stats_first_row['game_name'],
@@ -91,10 +95,10 @@ async def get_game_stats(game_id: int):
     """
     game_stats = None
     await asyncio.sleep(DATABASE_WRITE_WAIT_TIME)
-    for _ in range(5):
+    for _ in range(5):  # wait 1 minute to give chance for the server to save data
         game_stats = await _get_game_stats(game_id)
         # check if result is correct
-        if bool(game_stats) and bool(game_stats[0]['start_time']) and bool(game_stats[0]['end_time']):
+        if bool(game_stats):
             return game_stats
         await asyncio.sleep(DATABASE_WRITE_WAIT_TIME)
     return game_stats
@@ -106,8 +110,6 @@ async def _get_game_stats(game_id: int):
     """
     query = """
         SELECT
-            `game_stats`.`startTime` AS start_time,
-            `game_stats`.`endTime` AS end_time,
             `game_stats`.`gameType` AS game_type,
             `login`.`login` AS host,
             `game_stats`.`gameName` AS game_name,

@@ -60,15 +60,7 @@ During saving replay, server communicates with MySQL database.
 
 #### TODO stuff:
 
-    - no slow down after 5 minutes of stream
-    - at the end of replay, we have problem with db reading:
-
-```
-    Traceback (most recent call last):
-      File "/var/faf-aio-replayserver/replay_server/saver.py", line 79, in get_replay_info
-        'game_end': time.mktime(game_stats_first_row['end_time'].timetuple
-    AttributeError: 'NoneType' object has no attribute 'timetuple'
-```
+    - no slow down after 5 minutes of stream (3000 ticks slowdown)
     - security problems
         - like disapprove replay when lobby is not active/created
         - replay is sending data for too much long time/stream is too big

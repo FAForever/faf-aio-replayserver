@@ -40,7 +40,7 @@ class ReplayStorage:
                 os.unlink(temporary_file)
 
             del cls.replay_data[uid]
-        del cls.replay_start_time[uid]
+            del cls.replay_start_time[uid]
 
     @classmethod
     def get_replay_start_time(cls, uid: int):

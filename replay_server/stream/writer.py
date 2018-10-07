@@ -64,7 +64,11 @@ class ReplayWriter(ReplayWorkerBase):
         writers_online = any([isinstance(online_processor, ReplayWriter) for online_processor in online_workers])
         if not writers_online and ReplayStorage.has_replays(self.get_uid()):
             logger.info("There is no writers online, saving replay")
-            await save_replay(self.get_uid(), list(ReplayStorage.get_replays(self.get_uid()).keys()))
+            await save_replay(
+                self.get_uid(),
+                list(ReplayStorage.get_replays(self.get_uid()).keys()),
+                ReplayStorage.get_replay_start_time(self.get_uid()),
+            )
 
         if len(online_workers) == 0:
             ReplayStorage.remove_replay_data(self.get_uid())

@@ -1,17 +1,20 @@
 import pytest
 import asynctest
-import os
 import aiomysql
 from aiomysql import DatabaseError
 
 from replayserver.errors import BookkeepingError
+from tests import docker_faf_db_config
 
 
 class MockDatabase:
     async def mock_start(self):
-        host = os.environ.get("FAF_STACK_DB_IP", "172.19.0.2")
         self._conn = await aiomysql.connect(
-            host=host, port=3306, user='root', password='banana', db='faf')
+            host=docker_faf_db_config['host'],
+            port=docker_faf_db_config['port'],
+            user=docker_faf_db_config['user'],
+            password=docker_faf_db_config['password'],
+            db=docker_faf_db_config['db'])
         self._conn.begin()
 
     async def mock_close(self):

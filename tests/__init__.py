@@ -1,8 +1,9 @@
+import os
 import asyncio
 import decorator
 from tests.timeskipper import TimeSkipper
 
-__all__ = ["timeout", "fast_forward_time", "TimeSkipper"]
+__all__ = ["timeout", "fast_forward_time", "TimeSkipper", "docker_faf_db_config"]
 
 
 def timeout(time):
@@ -27,3 +28,12 @@ def fast_forward_time(step, amount):
             await f
         return decorator.decorator(wrapper_function, coro)
     return deco
+
+
+docker_faf_db_config = {
+    'host': os.environ.get("FAF_STACK_DB_IP", "172.19.0.2"),
+    'port': 3306,
+    'user': 'root',
+    'password': 'banana',
+    'db': 'faf',
+}

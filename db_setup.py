@@ -1,6 +1,6 @@
-import os
 import asyncio
 import aiomysql
+from tests import docker_faf_db_config
 
 
 async def clear_db(cursor):
@@ -145,9 +145,12 @@ async def add_game(cursor, game, players):
 
 
 async def populate():
-    host = os.environ.get("FAF_STACK_DB_IP", "172.19.0.2")
-    conn = await aiomysql.connect(host=host, port=3306,
-                                  user='root', password='banana', db='faf')
+    conn = await aiomysql.connect(
+        host=docker_faf_db_config['host'],
+        port=docker_faf_db_config['port'],
+        user=docker_faf_db_config['user'],
+        password=docker_faf_db_config['password'],
+        db=docker_faf_db_config['db'])
     cur = await conn.cursor()
     await prepare_default_data(cur)
     await add_game(cur, (1, 1, 1),

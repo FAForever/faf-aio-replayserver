@@ -6,7 +6,6 @@ from tests import timeout
 from asynctest.helpers import exhaust_callbacks
 
 from replayserver.receive.merger import Merger
-from replayserver.server.connection import ConnectionHeader
 from replayserver.errors import CannotAcceptConnectionError, \
     BadConnectionError
 
@@ -87,6 +86,7 @@ async def test_merger_rejects_writers_after_ending(outside_source_stream,
     with pytest.raises(CannotAcceptConnectionError):
         await merger.handle_connection(connection)
     mock_stream_builder.assert_not_called()
+
 
 @skip_if_needs_asynctest_107
 @pytest.mark.asyncio

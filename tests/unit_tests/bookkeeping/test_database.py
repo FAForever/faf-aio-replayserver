@@ -1,5 +1,6 @@
 import pytest
 from tests import docker_faf_db_config
+import datetime
 
 from replayserver.bookkeeping.database import Database, ReplayDatabaseQueries
 from replayserver.errors import BookkeepingError
@@ -54,3 +55,23 @@ async def test_queries_get_teams(mock_database):
                                       [(1, 1), (2, 2)])
     teams = await queries.get_teams_in_game(1)
     assert teams == {1: ["user1"], 2: ["user2"]}
+
+
+@pytest.mark.asyncio
+async def test_queries_get_game_stats(mock_database):
+    queries = ReplayDatabaseQueries(mock_database)
+    await mock_database.add_mock_game((1, 1, 1),
+                                      [(1, 1), (2, 2)])
+    teams = await queries.get_game_stats(1)
+    assert teams == {
+        'featured_mod': 'faf',
+        'game_type': '0',
+        'recorder': 'user1',
+        'host': 'user1',
+        'launched_at': datetime.datetime(2000, 1, 1, 0, 0),
+        'game_end': datetime.datetime(2000, 1, 1, 0, 0),
+        'title': 'Name of the game',
+        'mapname': 'scmp_1',
+        'map_file_path': 'maps/scmp_1.zip',
+        'num_players': 2
+    }

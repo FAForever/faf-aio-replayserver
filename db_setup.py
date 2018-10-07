@@ -1,3 +1,4 @@
+import os
 import asyncio
 import aiomysql
 
@@ -144,7 +145,8 @@ async def add_game(cursor, game, players):
 
 
 async def populate():
-    conn = await aiomysql.connect(host='172.19.0.2', port=3306,
+    host = os.environ.get("FAF_STACK_DB_IP", "172.19.0.2")
+    conn = await aiomysql.connect(host=host, port=3306,
                                   user='root', password='banana', db='faf')
     cur = await conn.cursor()
     await prepare_default_data(cur)
@@ -153,8 +155,11 @@ async def populate():
     await add_game(cur, (2, 2, 1),
                    [(1, 1), (2, 1), (3, 2), (4, 2)])
     await cur.close()
+    await conn.commit()
     conn.close()
 
 
 f = asyncio.ensure_future(populate())
 asyncio.get_event_loop().run_until_complete(f)
+if f.exception() is not None:
+    raise f.exception()

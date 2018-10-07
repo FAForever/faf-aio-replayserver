@@ -35,6 +35,33 @@ class MockDatabase:
     async def close(self):
         pass
 
+    async def _db_mock_game_stats(self, cursor, replay_id, map_id, host_id):
+        await cursor.execute("""
+            INSERT INTO `game_stats`
+                (`id`, `starttime`, `endtime`, `gametype`,
+                 `gamemod`, `host`, `mapid`, `gamename`, `validity`)
+            VALUES
+                ({replay_id}, '2000-01-01 00:00:00', '2000-01-01 00:00:00',
+                 '0', 1, {host_id}, {map_id}, "Name of the game", 1)
+        """.format(replay_id=replay_id, map_id=map_id, host_id=host_id))
+
+    async def _db_mock_game_player_stats(self, cursor,
+                                         replay_id, player_id, team):
+        await cursor.execute("""
+            INSERT INTO `game_player_stats`
+                (`id`, `gameid`, `playerid`, `ai`, `faction`,
+                 `color`, `team`, `place`, `mean`, `deviation`)
+            VALUES
+                (NULL, {replay_id}, {player_id}, 0, 1,
+                 1, {team}, 1, 0, 0)
+        """.format(replay_id=replay_id, player_id=player_id, team=team))
+
+    async def add_mock_game(self, cursor, game, players):
+        replay_id = game[0]
+        await self._db_mock_game_stats(cursor, *game)
+        for player in players:
+            await self._db_mock_game_player_stats(cursor, replay_id, *player)
+
 
 @pytest.fixture
 async def mock_database():

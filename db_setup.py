@@ -102,28 +102,6 @@ async def db_mock_updates_faf(cursor, nums):
     """, data)
 
 
-async def db_mock_game_stats(cursor, replay_id, map_id, host_id):
-    await cursor.execute("""
-        INSERT INTO `game_stats`
-            (`id`, `starttime`, `endtime`, `gametype`,
-             `gamemod`, `host`, `mapid`, `gamename`, `validity`)
-        VALUES
-            ({replay_id}, '2000-01-01 00:00:00', '2000-01-01 00:00:00', '0',
-             1, {host_id}, {map_id}, "Name of the game", 1)
-    """.format(replay_id=replay_id, map_id=map_id, host_id=host_id))
-
-
-async def db_mock_game_player_stats(cursor, replay_id, player_id, team):
-    await cursor.execute("""
-        INSERT INTO `game_player_stats`
-            (`id`, `gameid`, `playerid`, `ai`, `faction`,
-             `color`, `team`, `place`, `mean`, `deviation`)
-        VALUES
-            (NULL, {replay_id}, {player_id}, 0, 1,
-             1, {team}, 1, 0, 0)
-    """.format(replay_id=replay_id, player_id=player_id, team=team))
-
-
 async def prepare_default_data(cursor):
     """
     Stuff like required related tables, a handful of mock users and maps.
@@ -137,13 +115,6 @@ async def prepare_default_data(cursor):
     await db_mock_updates_faf(cursor, range(1, 11))
 
 
-async def add_game(cursor, game, players):
-    replay_id = game[0]
-    await db_mock_game_stats(cursor, *game)
-    for player in players:
-        await db_mock_game_player_stats(cursor, replay_id, *player)
-
-
 async def populate():
     conn = await aiomysql.connect(
         host=docker_faf_db_config['host'],
@@ -153,10 +124,6 @@ async def populate():
         db=docker_faf_db_config['db'])
     cur = await conn.cursor()
     await prepare_default_data(cur)
-    await add_game(cur, (1, 1, 1),
-                   [(1, 1), (2, 2), (3, 3)])
-    await add_game(cur, (2, 2, 1),
-                   [(1, 1), (2, 1), (3, 2), (4, 2)])
     await cur.close()
     await conn.commit()
     conn.close()

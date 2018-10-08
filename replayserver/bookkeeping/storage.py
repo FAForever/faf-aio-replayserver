@@ -7,7 +7,7 @@ import zlib
 from replayserver.errors import BookkeepingError
 
 
-class ReplayStorage:
+class ReplayFilePaths:
     def __init__(self, replay_store_path):
         self._replay_path = replay_store_path
 
@@ -15,12 +15,10 @@ class ReplayStorage:
     def build(cls, *, config_replay_store_path, **kwargs):
         return cls(config_replay_store_path)
 
-    def get_replay_file(self, game_id):
-        assert game_id >= 0
+    def get(self, game_id):
         rpath = self._replay_path(game_id)
         os.makedirs(rpath, exist_ok=True)
-        rfile = os.path.join(rpath, f"{str(game_id)}.fafreplay")
-        return open(rfile, "wb")
+        return os.path.join(rpath, f"{str(game_id)}.fafreplay")
 
     def _replay_path(self, game_id):
         id_str = str(game_id).zfill(10)
@@ -29,19 +27,22 @@ class ReplayStorage:
 
 
 class ReplaySaver:
-    def __init__(self, storage, database):
-        self._storage = storage
+    def __init__(self, paths, database):
+        self._paths = paths
         self._database = database
+
+    @classmethod
+    def build(cls, database, **kwargs):
+        paths = ReplayFilePaths.build(**kwargs)
+        return cls(paths, database)
 
     async def save_replay(self, game_id, stream):
         if stream.header is None:
             raise BookkeepingError("Saved replay has no header!")
         info = await self._get_replay_info(game_id, stream.header.header)
-        rfile = self._storage.get_replay_file(game_id)
-        try:
-            self._write_replay(rfile, info, stream.data.bytes())
-        finally:
-            rfile.close()
+        rfile = self._.paths.get(game_id)
+        with open(rfile, "wb") as f:
+            self._write_replay(f, info, stream.data.bytes())
 
     async def _get_replay_info(self, game_id, header):
         result = {}

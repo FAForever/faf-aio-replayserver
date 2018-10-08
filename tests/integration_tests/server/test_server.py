@@ -22,17 +22,13 @@ def mock_database():
 
 
 @pytest.fixture
-def mock_storage():
-    return lambda *args, **kwargs: asynctest.Mock()     # TODO
-
-
-@pytest.fixture
 def mock_connection_producer():
     return lambda *args, **kwargs: asynctest.Mock()     # TODO
 
 
-def test_server_init(mock_connection_producer, mock_database, mock_storage):
+def test_server_init(mock_connection_producer, mock_database, tmpdir):
+    conf = dict(config)
+    conf["config_replay_store_path"] = str(tmpdir)
     Server.build(dep_connection_producer=mock_connection_producer,
                  dep_database=mock_database,
-                 dep_storage=mock_storage,
-                 **config)
+                 **conf)

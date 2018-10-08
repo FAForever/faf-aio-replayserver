@@ -9,9 +9,9 @@ class Bookkeeper:
         self._saver = saver
 
     @classmethod
-    def build(cls, database, storage, **config):
+    def build(cls, database, **config):
         queries = ReplayDatabaseQueries(database)
-        saver = ReplaySaver(storage, queries)
+        saver = ReplaySaver.build(queries, **config)
         return cls(queries, saver)
 
     async def save_replay(self, game_id, stream):

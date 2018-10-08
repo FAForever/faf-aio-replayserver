@@ -58,6 +58,13 @@ async def test_queries_get_teams(mock_database):
 
 
 @pytest.mark.asyncio
+async def test_queries_missing_teams(mock_database):
+    queries = ReplayDatabaseQueries(mock_database)
+    with pytest.raises(BookkeepingError):
+        await queries.get_teams_in_game(1)
+
+
+@pytest.mark.asyncio
 async def test_queries_get_game_stats(mock_database):
     queries = ReplayDatabaseQueries(mock_database)
     await mock_database.add_mock_game((1, 1, 1),
@@ -75,6 +82,13 @@ async def test_queries_get_game_stats(mock_database):
         'map_file_path': 'maps/scmp_1.zip',
         'num_players': 2
     }
+
+
+@pytest.mark.asyncio
+async def test_queries_missing_game_stats(mock_database):
+    queries = ReplayDatabaseQueries(mock_database)
+    with pytest.raises(BookkeepingError):
+        await queries.get_game_stats(1)
 
 
 @pytest.mark.asyncio

@@ -204,3 +204,11 @@ async def test_connection_replay_info_limit_overrun(controlled_connections):
     mock_conn = controlled_connections(b"G/1/All Welcome 115k+\0", 8)
     with pytest.raises(MalformedDataError):
         await ConnectionHeader.read(mock_conn)
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_replay_info_negative_id(controlled_connections):
+    mock_conn = controlled_connections(b"G/-1/foo\0")
+    with pytest.raises(MalformedDataError):
+        await ConnectionHeader.read(mock_conn)

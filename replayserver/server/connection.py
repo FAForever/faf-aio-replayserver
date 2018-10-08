@@ -67,6 +67,9 @@ class ConnectionHeader:
             line = await connection.readuntil(b'\0')
             line = line[:-1].decode()
             game_id, game_name = line.split("/", 1)
-            return int(game_id), game_name
+            i, n = int(game_id), game_name
+            if i < 0:
+                raise MalformedDataError("Negative game ID!")
+            return i, n
         except (ValueError, UnicodeDecodeError):
             raise MalformedDataError("Malformed connection header")

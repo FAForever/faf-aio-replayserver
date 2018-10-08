@@ -117,15 +117,17 @@ Top-down code overview
 
 ### Server
 
-The server as a whole is a blackbox with 3 external dependencies - connection
-producer, database and storage. The server accepts connections from the producer
-and does things with them, saves replay files in storage and reads from / writes
-to the database as required.
+The server as a whole is a blackbox with 2 external dependencies - connection
+producer and database. The server accepts connections from the producer and
+does things with them, saves replay files on the disk and reads from / writes
+to the database as required. Note that in theory the disk we save replays on is
+also a dependency - however we can configure the base directory for replays,
+and that serves as abstraction enough.
 
-Server has start and stop methods. Start method prepares storage and the
-database to run and activates the connection producer. Stop method stops the
-connection producer, closes all connections and finalizes all replays, then
-closes the database and storage.
+Server has start and stop methods. Start method prepares the database to run
+and activates the connection producer. Stop method stops the connection
+producer, closes all connections and finalizes all replays, then closes the
+database.
 
 Actual handling of connections and replays is delegated to Connections and
 Replays classes. Since the latter needs a Bookkeeper for saving replays, we keep
@@ -150,4 +152,4 @@ Replays allow to close all active replays and wait for all replays to finish.
 ### Bookkeeper
 
 There's a single Bookkeeper created by the Server. When provided with a game id
-and a replay stream, it uses the Database and Storage to save the Replay.
+and a replay stream, it uses the Database to save the Replay on the disk.

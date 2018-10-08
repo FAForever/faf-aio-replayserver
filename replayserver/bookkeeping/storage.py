@@ -9,7 +9,7 @@ from replayserver.errors import BookkeepingError
 
 class ReplayFilePaths:
     def __init__(self, replay_store_path):
-        self._replay_path = replay_store_path
+        self._replay_base_path = replay_store_path
 
     @classmethod
     def build(cls, *, config_replay_store_path, **kwargs):
@@ -18,12 +18,20 @@ class ReplayFilePaths:
     def get(self, game_id):
         rpath = self._replay_path(game_id)
         os.makedirs(rpath, exist_ok=True)
-        return os.path.join(rpath, f"{str(game_id)}.fafreplay")
+        rfile = os.path.join(rpath, f"{str(game_id)}.fafreplay")
+        open(rfile, 'a').close()    # Touch file
+        return rfile
 
     def _replay_path(self, game_id):
-        id_str = str(game_id).zfill(10)
-        id_path = os.path.join(*[id_str[i:1+1] for i in range(0, 10, 2)])
-        return os.path.join(self._replay_path, id_path)
+        # Legacy folder structure:
+        # digits 3-10 from the right,
+        digits = str(game_id).zfill(10)[-10:-2]
+        # in 4 groups by 2 starting by most significant,
+        groups = [digits[i:i+2] for i in range(0, len(digits), 2)]
+        # NOT left-padded, so 0x -> x
+        dirs = [str(int(g)) for g in groups]
+        id_path = os.path.join(*dirs)
+        return os.path.join(self._replay_base_path, id_path)
 
 
 class ReplaySaver:

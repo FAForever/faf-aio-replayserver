@@ -43,7 +43,7 @@ async def test_sender_one_connection(event_loop, outside_source_stream,
     f = asyncio.ensure_future(sender.handle_connection(conn))
 
     outside_source_stream.set_header(ReplayHeader(b"data", {}))
-    replay_data = example_replay.data[example_replay.header_size:]
+    replay_data = example_replay.main_data
     pos = 0
     while pos < len(replay_data):
         outside_source_stream.feed_data(replay_data[pos:pos + 100])

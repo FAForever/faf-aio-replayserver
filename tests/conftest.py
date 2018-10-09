@@ -38,7 +38,7 @@ def mock_replay_headers(mocker):
         if raw_replay is not None:
             m.configure_mock(
                 struct=raw_replay.header,
-                data=raw_replay.data[:raw_replay.header_size],
+                data=raw_replay.header_data,
                 )
         return m
 

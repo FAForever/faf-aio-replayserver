@@ -15,6 +15,14 @@ class RawReplay:
         self.header = header
         self.header_size = header_size
 
+    @property
+    def header_data(self):
+        return self.data[:self.header_size]
+
+    @property
+    def main_data(self):
+        return self.data[self.header_size:]
+
     def copy(self):
         return RawReplay(copy.copy(self.data), self.header,
                          self.header_size)

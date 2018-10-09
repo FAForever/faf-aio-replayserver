@@ -106,4 +106,4 @@ async def test_replay_saver_save_replay(mock_replay_paths,
 
     head, rep = unpack_replay(open(rfile, "rb").read())
     assert type(head) is dict   # TODO - test contents
-    assert rep == example_replay.data[:example_replay.header_size] + b"bar"
+    assert rep == example_replay.header_data + b"bar"

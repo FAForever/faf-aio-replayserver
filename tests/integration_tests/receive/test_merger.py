@@ -5,7 +5,6 @@ from tests import fast_forward_time, timeout
 
 from replayserver.receive.mergestrategy import MergeStrategies
 from replayserver.receive.merger import Merger
-from replayserver.server.connection import ConnectionHeader
 from replayserver.errors import MalformedDataError, CannotAcceptConnectionError
 
 
@@ -67,7 +66,7 @@ async def test_merger_successful_connection(event_loop, mock_connections,
 async def test_merger_incomplete_header(event_loop, mock_connections,
                                         data_send_mixin):
     conn = mock_connections()
-    replay_data = example_replay.data[:example_replay.header_size - 100]
+    replay_data = example_replay.header_data[:-100]
     data_send_mixin(conn, replay_data, 0.25, 200)
 
     merger = Merger.build(**config)
@@ -84,7 +83,7 @@ async def test_merger_incomplete_header_then_data(event_loop,
                                                   data_send_mixin):
     conn_1 = mock_connections()
     conn_2 = mock_connections()
-    replay_data = example_replay.data[:example_replay.header_size - 100]
+    replay_data = example_replay.header_data[:-100]
     data_send_mixin(conn_1, replay_data, 0.25, 200)
     data_send_mixin(conn_2, example_replay.data, 0.25, 200)
 

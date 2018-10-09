@@ -50,7 +50,8 @@ class ReplaySaver:
         info = await self._get_replay_info(game_id, stream.header.struct)
         rfile = self._paths.get(game_id)
         with open(rfile, "wb") as f:
-            self._write_replay(f, info, stream.data.bytes())
+            self._write_replay(f, info,
+                               stream.header.data + stream.data.bytes())
 
     async def _get_replay_info(self, game_id, header):
         result = {}
@@ -79,7 +80,7 @@ class ReplaySaver:
         try:
             rfile.write(json.dumps(info).encode('UTF-8'))
             rfile.write(b"\n")
-            data = zlib.compress(struct.pack("i", len(data)) + data)
+            data = struct.pack("i", len(data)) + zlib.compress(data)
             data = base64.b64encode(data)
             rfile.write(data)
         except (UnicodeEncodeError, OSError):

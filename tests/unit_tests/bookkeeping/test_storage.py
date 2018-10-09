@@ -1,6 +1,9 @@
 import pytest
 import asynctest
 import datetime
+import json
+import base64
+import zlib
 
 from replayserver.bookkeeping.storage import ReplayFilePaths, ReplaySaver
 from tests.replays import example_replay
@@ -67,6 +70,14 @@ def mock_database_queries():
     return asynctest.Mock(spec=Q)
 
 
+def unpack_replay(replay):
+    head, b64_part = replay.split(b'\n', 1)
+    head = json.loads(head)
+    zipped_part = base64.b64decode(b64_part)[4:]  # First 4 bytes are data size
+    raw_replay_data = zlib.decompress(zipped_part)
+    return head, raw_replay_data
+
+
 @pytest.mark.asyncio
 async def test_replay_saver_save_replay(mock_replay_paths,
                                         mock_database_queries,
@@ -103,5 +114,7 @@ async def test_replay_saver_save_replay(mock_replay_paths,
 
     saver = ReplaySaver(mock_replay_paths, mock_database_queries)
     await saver.save_replay(1111, outside_source_stream)
-    print(open(rfile, "r").read())
-    assert False
+
+    head, rep = unpack_replay(open(rfile, "rb").read())
+    assert type(head) is dict   # TODO - test contents
+    assert rep == example_replay.data[:example_replay.header_size] + b"bar"

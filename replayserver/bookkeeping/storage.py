@@ -57,10 +57,11 @@ class ReplaySaver:
         result['uid'] = game_id
         result['complete'] = True
         result['state'] = 'PLAYING'
-
         try:
-            result['sim_mods'] = {mod['uid']: mod['version']
-                                  for mod in header.get('mods', {}).values()}
+            result['sim_mods'] = {
+                mod['uid']: mod['version']
+                for mod in header.header.get('mods', {}).values()
+            }
         except KeyError:    # TODO - validate elsewhere?
             raise BookkeepingError("Replay header has invalid sim_mods")
 

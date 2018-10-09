@@ -1,4 +1,9 @@
-from replayserver.bookkeeping.storage import ReplayFilePaths
+import pytest
+import asynctest
+import datetime
+
+from replayserver.bookkeeping.storage import ReplayFilePaths, ReplaySaver
+from tests.replays import example_replay
 
 
 def test_replay_paths(tmpdir):
@@ -40,3 +45,63 @@ def test_replay_paths_same_folder(tmpdir):
     paths.get(11111112)
     assert tmpdir.join("0", "11", "11", "11", "11111111.fafreplay").exists()
     assert tmpdir.join("0", "11", "11", "11", "11111112.fafreplay").exists()
+
+
+@pytest.fixture
+def mock_replay_paths():
+    return asynctest.Mock(spec=['get'])
+
+
+@pytest.fixture
+def mock_database_queries():
+    class Q:
+        async def get_teams_in_game():
+            pass
+
+        async def get_game_stats():
+            pass
+
+        async def get_mod_versions():
+            pass
+
+    return asynctest.Mock(spec=Q)
+
+
+@pytest.mark.asyncio
+async def test_replay_saver_save_replay(mock_replay_paths,
+                                        mock_database_queries,
+                                        mock_replay_headers,
+                                        outside_source_stream, tmpdir):
+    mock_header = mock_replay_headers(example_replay)
+    outside_source_stream.set_header(mock_header)
+    outside_source_stream.feed_data(b"bar")
+    outside_source_stream.finish()
+
+    rfile = str(tmpdir.join("replay"))
+    open(rfile, "a").close()
+    mock_replay_paths.get.return_value = rfile
+
+    mock_database_queries.get_teams_in_game.return_value = {
+        1: ["user1"],
+        2: ["user2"],
+    }
+    mock_database_queries.get_game_stats.return_value = {
+        'featured_mod': 'faf',
+        'game_type': '0',
+        'recorder': 'user1',
+        'host': 'user1',
+        'launched_at': datetime.datetime(2001, 1, 1, 0, 0),
+        'game_end': datetime.datetime(2001, 1, 2, 0, 0),
+        'title': 'Name of the game',
+        'mapname': 'scmp_1',
+        'map_file_path': 'maps/scmp_1.zip',
+        'num_players': 2
+    }
+    mock_database_queries.get_mod_versions.return_value = {
+        '1': 1,
+    }
+
+    saver = ReplaySaver(mock_replay_paths, mock_database_queries)
+    await saver.save_replay(1111, outside_source_stream)
+    print(open(rfile, "r").read())
+    assert False

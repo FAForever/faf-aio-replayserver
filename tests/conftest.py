@@ -32,5 +32,23 @@ def mock_bookkeeper():
 
 
 @pytest.fixture
+def mock_replay_headers(mocker):
+    def build(raw_replay=None):
+        m = mocker.Mock(spec=["header", "data"])
+        if raw_replay is None:
+            m.header = None
+            m.data = b""
+        else:
+            m.header.configure_mock(
+                header=raw_replay.header,
+                data=raw_replay.data[:raw_replay.header_size],
+                )
+            m.data = raw_replay.data[raw_replay.header_size:]
+        return m
+
+    return build
+
+
+@pytest.fixture
 def time_skipper(event_loop):
     return TimeSkipper(event_loop)

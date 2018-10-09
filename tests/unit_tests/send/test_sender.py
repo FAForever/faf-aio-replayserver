@@ -10,16 +10,12 @@ from replayserver.errors import CannotAcceptConnectionError, \
 from replayserver.server.connection import ConnectionHeader
 
 
-@pytest.fixture
-def mock_header(mocker):
-    return mocker.Mock(spec=["header", "data"])
-
-
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_sender_doesnt_end_while_connection_runs(
         mock_connections, outside_source_stream, locked_mock_coroutines,
-        mock_header, event_loop):
+        mock_replay_headers, event_loop):
+    mock_header = mock_replay_headers()
     connection = mock_connections()
     outside_source_stream.feed_data(b"aaaaa")
     outside_source_stream.set_header(mock_header)
@@ -66,7 +62,8 @@ async def test_sender_no_header(mock_connections, outside_source_stream,
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_sender_connection_calls(mock_connections, outside_source_stream,
-                                       mock_header, event_loop):
+                                       mock_replay_headers, event_loop):
+    mock_header = mock_replay_headers()
     connection = mock_connections()
     mock_header.data = b"Header"
     sender = Sender(outside_source_stream)

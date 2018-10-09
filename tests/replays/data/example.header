@@ -1,0 +1,127 @@
+{
+    "version": "Supreme Commander v1.50.3696",
+    "replay_version": "Replay v1.9",
+    "map_name": "/maps/SCMP_016/SCMP_016.scmap",
+    "mods": {},
+    "scenario": {
+        "description": "<LOC SCMP_016_Description>Canis River is known for two things. The first is the river, which is home to mineral deposits, especially gold. The second is that it's ideal for a one-on-one fight.",
+        "norushoffsetX_ARMY_1": 5.0,
+        "norushoffsetY_ARMY_2": 0.0,
+        "save": "/maps/SCMP_016/SCMP_016_save.lua",
+        "norushoffsetY_ARMY_1": -20.0,
+        "preview": "",
+        "size": {
+            "1.0": 256.0,
+            "2.0": 256.0
+        },
+        "map": "/maps/SCMP_016/SCMP_016.scmap",
+        "type": "skirmish",
+        "script": "/maps/SCMP_016/SCMP_016_script.lua",
+        "norushoffsetX_ARMY_2": -25.0,
+        "starts": false,
+        "Options": {
+            "Share": "ShareUntilDeath",
+            "CheatsEnabled": "false",
+            "Score": "no",
+            "RevealCivilians": "Yes",
+            "AllowObservers": false,
+            "Victory": "demoralization",
+            "CivilianAlliance": "enemy",
+            "Timeouts": "3",
+            "TeamSpawn": "fixed",
+            "NavalExpansionsAllowed": "4",
+            "GameSpeed": "normal",
+            "FogOfWar": "explored",
+            "ClanTags": {
+                "MazorNoob": "SNF",
+                "dragonite": ""
+            },
+            "Ratings": {
+                "MazorNoob": 1500.0,
+                "dragonite": 800.0
+            },
+            "Quality": 35.875,
+            "BuildMult": "2.0",
+            "TeamLock": "locked",
+            "OmniCheat": "on",
+            "RandomMap": "Off",
+            "LandExpansionsAllowed": "5",
+            "TMLRandom": "0",
+            "CheatMult": "2.0",
+            "NoRushOption": "Off",
+            "AutoTeams": "tvsb",
+            "ScenarioFile": "/maps/scmp_016/scmp_016_scenario.lua",
+            "UnitCap": "1000",
+            "PrebuiltUnits": "Off",
+            "ShareUnitCap": "none"
+        },
+        "norushradius": 75.0,
+        "Configurations": {
+            "standard": {
+                "customprops": {},
+                "teams": {
+                    "1.0": {
+                        "name": "FFA",
+                        "armies": {
+                            "1.0": "ARMY_1",
+                            "2.0": "ARMY_2"
+                        }
+                    }
+                }
+            }
+        },
+        "name": "Canis River"
+    },
+    "remaining_timeouts": {
+        "MazorNoob": 3,
+        "dragonite": 3
+    },
+    "cheats_enabled": 0,
+    "armies": {
+        "0": {
+            "MEAN": 1817.47998046875,
+            "StartSpot": 1.0,
+            "ArmyColor": 2.0,
+            "PlayerClan": "SNF",
+            "NG": 1633.0,
+            "Team": 2.0,
+            "Ready": false,
+            "BadMap": true,
+            "Civilian": true,
+            "PlayerName": "MazorNoob",
+            "AIPersonality": "",
+            "ObserverListIndex": -1.0,
+            "PlayerColor": 2.0,
+            "Human": false,
+            "DEV": 97.84439849853516,
+            "OwnerID": "6579",
+            "ArmyName": "ARMY_1",
+            "PL": 1500.0,
+            "Faction": 3.0,
+            "Country": "pl"
+        },
+        "1": {
+            "MEAN": 1282.280029296875,
+            "StartSpot": 2.0,
+            "ArmyColor": 1.0,
+            "PlayerClan": "",
+            "NG": 45.0,
+            "Team": 3.0,
+            "Ready": false,
+            "PlayerColor": 1.0,
+            "Civilian": true,
+            "PlayerName": "dragonite",
+            "AIPersonality": "",
+            "ObserverListIndex": -1.0,
+            "Human": false,
+            "DEV": 153.16900634765625,
+            "BadMap": true,
+            "Faction": 3.0,
+            "ArmyName": "ARMY_2",
+            "PL": 800.0,
+            "Country": "cz",
+            "OwnerID": "191414"
+        }
+    },
+    "random_seed": 65637294
+}

@@ -266,3 +266,6 @@ async def test_replayheader_coroutine(controlled_connections):
     head, leftovers = await header.ReplayHeader.from_connection(conn)
     assert head.header == EXPECTED_EXAMPLE_HEADER
     assert example_replay.data.startswith(head.data + leftovers)
+    print(len(head.data))
+    import json
+    print(json.dumps(head.header, indent=4))

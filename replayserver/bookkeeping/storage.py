@@ -47,7 +47,7 @@ class ReplaySaver:
     async def save_replay(self, game_id, stream):
         if stream.header is None:
             raise BookkeepingError("Saved replay has no header!")
-        info = await self._get_replay_info(game_id, stream.header.header)
+        info = await self._get_replay_info(game_id, stream.header.struct)
         rfile = self._paths.get(game_id)
         with open(rfile, "wb") as f:
             self._write_replay(f, info, stream.data.bytes())
@@ -60,7 +60,7 @@ class ReplaySaver:
         try:
             result['sim_mods'] = {
                 mod['uid']: mod['version']
-                for mod in header.header.get('mods', {}).values()
+                for mod in header.get('mods', {}).values()
             }
         except KeyError:    # TODO - validate elsewhere?
             raise BookkeepingError("Replay header has invalid sim_mods")

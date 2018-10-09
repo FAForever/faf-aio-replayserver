@@ -41,7 +41,7 @@ def mock_replay_headers(mocker):
         else:
             m.header.mock_add_spec(["header", "data"])
             m.header.configure_mock(
-                header=raw_replay.header,
+                struct=raw_replay.header,
                 data=raw_replay.data[:raw_replay.header_size],
                 )
             m.data = raw_replay.data[raw_replay.header_size:]

@@ -116,9 +116,9 @@ class ReplayHeader:
     # Headers are pretty large, but 1MB should absolutely be enough
     MAXLEN = 1024 * 1024
 
-    def __init__(self, data, header):
+    def __init__(self, data, struct):
         self.data = data
-        self.header = header
+        self.struct = struct
 
     @classmethod
     async def from_connection(cls, connection):

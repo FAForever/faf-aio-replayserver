@@ -76,12 +76,8 @@ class ReplayDatabaseQueries:
                 `game_stats`.`gameName` AS game_name,
                 `game_featuredMods`.`gamemod` AS game_mod,
                 `map`.`display_name` as map_name,
-                `map_version`.`filename` AS file_name,
-                `game_player_stats`.`playerId` AS player_id,
-                `game_player_stats`.`AI` AS ai
+                `map_version`.`filename` AS file_name
             FROM `game_stats`
-            INNER JOIN `game_player_stats`
-              ON `game_player_stats`.`gameId` = `game_stats`.`id`
             INNER JOIN `map`
               ON `game_stats`.`mapId` = `map`.`id`
             INNER JOIN `map_version`
@@ -92,8 +88,13 @@ class ReplayDatabaseQueries:
               ON `game_stats`.`gameMod` = `game_featuredMods`.`id`
             WHERE `game_stats`.`id` = %s
         """
+        player_query = """
+           SELECT COUNT(*) FROM `game_player_stats`
+           WHERE `game_player_stats`.`gameId` = %s
+        """
         game_stats = await self._db.execute(query, (game_id,))
-        if not game_stats:
+        player_count = await self._db.execute(player_query, (game_id,))
+        if not game_stats or not player_count:
             raise BookkeepingError("No game stats found")
         start_time = game_stats[0]['start_time'].timestamp()
 
@@ -113,7 +114,7 @@ class ReplayDatabaseQueries:
             'title': game_stats[0]['game_name'],
             'mapname': game_stats[0]['map_name'],
             'map_file_path': game_stats[0]['file_name'],
-            'num_players': len(game_stats)
+            'num_players': player_count[0]['COUNT(*)']
         }
 
     async def get_mod_versions(self, mod):

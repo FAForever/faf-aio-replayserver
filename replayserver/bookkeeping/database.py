@@ -1,6 +1,7 @@
 import aiomysql
 from aiomysql import create_pool, DatabaseError
 from replayserver.errors import BookkeepingError
+import time
 
 
 class Database:
@@ -94,13 +95,21 @@ class ReplayDatabaseQueries:
         game_stats = await self._db.execute(query, (game_id,))
         if not game_stats:
             raise BookkeepingError("No game stats found")
+        start_time = game_stats[0]['start_time'].timestamp()
+
+        # We might end a replay before end_time is set in the db!
+        end_time = game_stats[0]['end_time']
+        if end_time is None:
+            end_time = time.time()
+        else:
+            end_time = end_time.timestamp()
         return {
             'featured_mod': game_stats[0]['game_mod'],
             'game_type': game_stats[0]['game_type'],
             'recorder': game_stats[0]['host'],
             'host': game_stats[0]['host'],
-            'launched_at': game_stats[0]['start_time'],
-            'game_end': game_stats[0]['end_time'],
+            'launched_at': start_time,
+            'game_end': end_time,
             'title': game_stats[0]['game_name'],
             'mapname': game_stats[0]['map_name'],
             'map_file_path': game_stats[0]['file_name'],

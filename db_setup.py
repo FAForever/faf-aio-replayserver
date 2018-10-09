@@ -102,6 +102,18 @@ async def db_mock_updates_faf(cursor, nums):
     """, data)
 
 
+async def db_mock_special_games(cursor):
+    # Game without end time
+    await cursor.execute("""
+        INSERT INTO `game_stats`
+            (`id`, `starttime`, `endtime`, `gametype`,
+             `gamemod`, `host`, `mapid`, `gamename`, `validity`)
+        VALUES
+            (101, '2001-01-01 00:00:00', NULL,
+             '0', 1, 1, 1, "Name of the game", 1)
+    """)
+
+
 async def prepare_default_data(cursor):
     """
     Stuff like required related tables, a handful of mock users and maps.
@@ -113,6 +125,7 @@ async def prepare_default_data(cursor):
     await db_mock_login(cursor, range(1, 11))
     await db_mock_map(cursor, range(1, 11))
     await db_mock_updates_faf(cursor, range(1, 11))
+    await db_mock_special_games(cursor)
 
 
 async def populate():

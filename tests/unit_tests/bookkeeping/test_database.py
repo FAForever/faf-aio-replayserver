@@ -75,8 +75,8 @@ async def test_queries_get_game_stats(mock_database):
         'game_type': '0',
         'recorder': 'user1',
         'host': 'user1',
-        'launched_at': datetime.datetime(2001, 1, 1, 0, 0),
-        'game_end': datetime.datetime(2001, 1, 2, 0, 0),
+        'launched_at': datetime.datetime(2001, 1, 1, 0, 0).timestamp(),
+        'game_end': datetime.datetime(2001, 1, 2, 0, 0).timestamp(),
         'title': 'Name of the game',
         'mapname': 'scmp_1',
         'map_file_path': 'maps/scmp_1.zip',
@@ -89,6 +89,13 @@ async def test_queries_missing_game_stats(mock_database):
     queries = ReplayDatabaseQueries(mock_database)
     with pytest.raises(BookkeepingError):
         await queries.get_game_stats(1)
+
+
+@pytest.mark.asyncio
+async def test_queries_null_game_end(mock_database):
+    queries = ReplayDatabaseQueries(mock_database)
+    stats = await queries.get_game_stats(101)   # Game with no end time
+    assert type(stats['game_end']) is float
 
 
 @pytest.mark.asyncio

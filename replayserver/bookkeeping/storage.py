@@ -78,7 +78,7 @@ class ReplaySaver:
     def _write_replay(self, rfile, info, data):
         try:
             rfile.write(json.dumps(info).encode('UTF-8'))
-            rfile.write("\n")
+            rfile.write(b"\n")
             data = zlib.compress(struct.pack("i", len(data)) + data)
             data = base64.b64encode(data)
             rfile.write(data)

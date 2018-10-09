@@ -1,5 +1,7 @@
 from os import path
 import json
+import base64
+import zlib
 import copy
 
 
@@ -23,6 +25,14 @@ def load_replay(name, header_size):
     header = json.loads(
         open(path.join(replay_directory, f"{name}.header"), "rb").read())
     return RawReplay(data, header, header_size)
+
+
+def unpack_replay(replay):
+    head, b64_part = replay.split(b'\n', 1)
+    head = json.loads(head)
+    zipped_part = base64.b64decode(b64_part)[4:]  # First 4 bytes are data size
+    raw_replay_data = zlib.decompress(zipped_part)
+    return head, raw_replay_data
 
 
 example_replay = load_replay("example", 1966)

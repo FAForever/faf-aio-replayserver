@@ -1,12 +1,9 @@
 import pytest
 import asynctest
 import datetime
-import json
-import base64
-import zlib
 
 from replayserver.bookkeeping.storage import ReplayFilePaths, ReplaySaver
-from tests.replays import example_replay
+from tests.replays import example_replay, unpack_replay
 
 
 def test_replay_paths(tmpdir):
@@ -68,14 +65,6 @@ def mock_database_queries():
             pass
 
     return asynctest.Mock(spec=Q)
-
-
-def unpack_replay(replay):
-    head, b64_part = replay.split(b'\n', 1)
-    head = json.loads(head)
-    zipped_part = base64.b64decode(b64_part)[4:]  # First 4 bytes are data size
-    raw_replay_data = zlib.decompress(zipped_part)
-    return head, raw_replay_data
 
 
 @pytest.mark.asyncio

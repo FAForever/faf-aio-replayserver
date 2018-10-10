@@ -49,9 +49,12 @@ class ReplaySaver:
             raise BookkeepingError("Saved replay has no header!")
         info = await self._get_replay_info(game_id, stream.header.struct)
         rfile = self._paths.get(game_id)
-        with open(rfile, "wb") as f:
-            self._write_replay(f, info,
-                               stream.header.data + stream.data.bytes())
+        try:
+            with open(rfile, "wb") as f:
+                self._write_replay(f, info,
+                                   stream.header.data + stream.data.bytes())
+        except IOError as e:
+            raise BookkeepingError("Could not write to replay file") from e
 
     async def _get_replay_info(self, game_id, header):
         result = {}
@@ -87,5 +90,5 @@ class ReplaySaver:
             data = struct.pack("i", len(data)) + zlib.compress(data)
             data = base64.b64encode(data)
             rfile.write(data)
-        except (UnicodeEncodeError, OSError):
-            raise BookkeepingError("Failed to write out replay info")
+        except UnicodeEncodeError:
+            raise BookkeepingError("Failed to write replay: unicode error")

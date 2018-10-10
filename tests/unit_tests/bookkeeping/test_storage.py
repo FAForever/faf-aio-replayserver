@@ -1,9 +1,12 @@
 import pytest
 import asynctest
 import datetime
+import os
+import stat
 
-from replayserver.bookkeeping.storage import ReplayFilePaths, ReplaySaver
 from tests.replays import example_replay, unpack_replay
+from replayserver.bookkeeping.storage import ReplayFilePaths, ReplaySaver
+from replayserver.errors import BookkeepingError
 
 
 def test_replay_paths(tmpdir):
@@ -83,9 +86,19 @@ def_game_stats = {
 def_mod_versions = {'1': 1}
 
 
+@pytest.fixture
+def standard_saver_args(mock_replay_paths, mock_database_queries, tmpdir):
+    rfile = str(tmpdir.join("replay"))
+    open(rfile, "a").close()
+    mock_replay_paths.get.return_value = rfile
+    mock_database_queries.get_teams_in_game.return_value = def_teams_in_game
+    mock_database_queries.get_game_stats.return_value = def_game_stats
+    mock_database_queries.get_mod_versions.return_value = def_mod_versions
+    return mock_replay_paths, mock_database_queries
+
+
 @pytest.mark.asyncio
-async def test_replay_saver_save_replay(mock_replay_paths,
-                                        mock_database_queries,
+async def test_replay_saver_save_replay(standard_saver_args,
                                         mock_replay_headers,
                                         outside_source_stream, tmpdir):
     mock_header = mock_replay_headers(example_replay)
@@ -93,17 +106,10 @@ async def test_replay_saver_save_replay(mock_replay_paths,
     outside_source_stream.feed_data(b"bar")
     outside_source_stream.finish()
 
-    rfile = str(tmpdir.join("replay"))
-    open(rfile, "a").close()
-    mock_replay_paths.get.return_value = rfile
-
-    mock_database_queries.get_teams_in_game.return_value = def_teams_in_game
-    mock_database_queries.get_game_stats.return_value = def_game_stats
-    mock_database_queries.get_mod_versions.return_value = def_mod_versions
-
-    saver = ReplaySaver(mock_replay_paths, mock_database_queries)
+    saver = ReplaySaver(*standard_saver_args)
     await saver.save_replay(1111, outside_source_stream)
 
+    rfile = str(tmpdir.join("replay"))
     head, rep = unpack_replay(open(rfile, "rb").read())
     assert type(head) is dict
     assert head['uid'] == 1111
@@ -112,3 +118,29 @@ async def test_replay_saver_save_replay(mock_replay_paths,
     for item in def_game_stats:
         assert head[item] == def_game_stats[item]
     assert rep == example_replay.header_data + b"bar"
+
+
+@pytest.mark.asyncio
+async def test_replay_saver_no_header(standard_saver_args,
+                                      outside_source_stream, tmpdir):
+    outside_source_stream.finish()
+    saver = ReplaySaver(*standard_saver_args)
+    with pytest.raises(BookkeepingError):
+        await saver.save_replay(1111, outside_source_stream)
+
+
+@pytest.mark.asyncio
+async def test_replay_saver_readonly_file(standard_saver_args,
+                                          mock_replay_headers,
+                                          outside_source_stream, tmpdir):
+    mock_header = mock_replay_headers(example_replay)
+    outside_source_stream.set_header(mock_header)
+    outside_source_stream.feed_data(b"bar")
+    outside_source_stream.finish()
+
+    rfile = str(tmpdir.join("replay"))
+    os.chmod(rfile, stat.S_IRUSR)
+
+    saver = ReplaySaver(*standard_saver_args)
+    with pytest.raises(BookkeepingError):
+        await saver.save_replay(1111, outside_source_stream)

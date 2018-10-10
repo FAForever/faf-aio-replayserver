@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from tests import timeout, slow_test
+from tests import timeout, slow_test, docker_faf_db_config
 from tests.replays import example_replay
 
 from replayserver import Server
@@ -14,11 +14,11 @@ config = {
     "sent_replay_position_update_interval": 0.1,
     "replay_forced_end_time": 60,
     "server_port": 15000,
-    "db_host": "117.0.0.1",
-    "db_port": 3306,
-    "db_user":     "root",
-    "db_password": "banana",
-    "db_name":     "faf",
+    "db_host": docker_faf_db_config["host"],
+    "db_port": docker_faf_db_config["port"],
+    "db_user": docker_faf_db_config["user"],
+    "db_password": docker_faf_db_config["password"],
+    "db_name":     docker_faf_db_config["db"],
     "replay_store_path": "/tmp/replaceme"
 }
 config = {"config_" + k: v for k, v in config.items()}

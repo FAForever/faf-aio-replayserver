@@ -1,9 +1,12 @@
 import os
 import asyncio
 import decorator
+import unittest
 from tests.timeskipper import TimeSkipper
 
-__all__ = ["timeout", "fast_forward_time", "TimeSkipper", "docker_faf_db_config"]
+__all__ = ["timeout", "fast_forward_time", "TimeSkipper",
+           "skip_if_needs_asynctest_107", "slow_test",
+           "docker_faf_db_config"]
 
 
 def timeout(time):
@@ -28,6 +31,18 @@ def fast_forward_time(step, amount):
             await f
         return decorator.decorator(wrapper_function, coro)
     return deco
+
+
+def skip_if_needs_asynctest_107(fn):
+    return unittest.skipIf(
+        "TRAVIS" in os.environ and os.environ["TRAVIS"] == "true",
+        "Needs asynctest issue #107 resolved to work")(fn)
+
+
+def slow_test(fn):
+    return unittest.skipIf(
+        "SKIP_SLOW_TESTS" in os.environ,
+        "Test is slow")(fn)
 
 
 docker_faf_db_config = {

@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from tests import timeout
+from tests import timeout, slow_test
 from tests.replays import example_replay
 
 from replayserver import Server
@@ -28,6 +28,7 @@ def test_server_init():
     Server.build(**config)
 
 
+@slow_test
 @pytest.mark.asyncio
 @timeout(10)
 async def test_server_single_connection(event_loop, mock_database, tmpdir):

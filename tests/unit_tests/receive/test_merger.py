@@ -1,19 +1,11 @@
 import pytest
 import asyncio
-import unittest
-import os
-from tests import timeout
+from tests import timeout, skip_if_needs_asynctest_107
 from asynctest.helpers import exhaust_callbacks
 
 from replayserver.receive.merger import Merger
 from replayserver.errors import CannotAcceptConnectionError, \
     BadConnectionError
-
-
-def skip_if_needs_asynctest_107(fn):
-    unittest.skipIf(
-        "TRAVIS" in os.environ and os.environ["TRAVIS"] == "true",
-        "Needs asynctest issue #107 resolved to work")(fn)
 
 
 @pytest.fixture

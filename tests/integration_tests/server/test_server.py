@@ -12,6 +12,12 @@ config = {
     "sent_replay_position_update_interval": 1,
     "replay_forced_end_time": 5 * 60 * 60,
     "server_port": 15000,
+    "db_host": "192.168.255.255",
+    "db_port": 66,
+    "db_user":     "Who cares,",
+    "db_password": "Init shouldn't start up",
+    "db_name":     "database anyway",
+    "replay_store_path": "/as/above"
 }
 config = {"config_" + k: v for k, v in config.items()}
 
@@ -26,9 +32,5 @@ def mock_connection_producer():
     return lambda *args, **kwargs: asynctest.Mock()     # TODO
 
 
-def test_server_init(mock_connection_producer, mock_database, tmpdir):
-    conf = dict(config)
-    conf["config_replay_store_path"] = str(tmpdir)
-    Server.build(dep_connection_producer=mock_connection_producer,
-                 dep_database=mock_database,
-                 **conf)
+def test_server_init():
+    Server.build(**config)

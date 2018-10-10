@@ -12,15 +12,18 @@ class Database:
     @classmethod
     def build(cls, *, config_db_host, config_db_port, config_db_user,
               config_db_password, config_db_name, **kwargs):
-        pool = create_pool(host=config_db_host,
-                           port=config_db_port,
-                           user=config_db_user,
-                           password=config_db_password,
-                           db=config_db_name)
-        return cls(pool)
+
+        async def _start_pool():
+            return await create_pool(host=config_db_host,
+                                     port=config_db_port,
+                                     user=config_db_user,
+                                     password=config_db_password,
+                                     db=config_db_name)
+
+        return cls(_start_pool)
 
     async def start(self):
-        self._connection_pool = await self._pool_starter
+        self._connection_pool = await self._pool_starter()
 
     async def execute(self, query, params=[]):
         if self._connection_pool is None:

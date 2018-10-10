@@ -28,8 +28,7 @@ class Server:
 
     async def start(self):
         await self._database.start()
-        await self._connection_producer.start(
-            self.connections.handle_connection)
+        await self._connection_producer.start()
 
     async def stop(self):
         await self._connection_producer.stop()

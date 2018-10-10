@@ -55,3 +55,9 @@ class Replays:
     # Tiny bit of introspection for easier testing
     def __contains__(self, game_id):
         return game_id in self._replays
+
+    def __getitem__(self, game_id):
+        return self._replays[game_id]
+
+    async def wait_for_replay(self, game_id):
+        return await self._replays.wait_for_key(game_id)

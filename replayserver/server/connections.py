@@ -11,14 +11,14 @@ class Connections:
 
     @classmethod
     def build(cls, replays, **kwargs):
-        return cls(replays, ConnectionHeader.read)
+        return cls(ConnectionHeader.read, replays)
 
     async def handle_connection(self, connection):
         self._connections.add(connection)
         try:
             header = await self._header_read(connection)
             await self._replays.handle_connection(header, connection)
-        except BadConnectionError:
+        except BadConnectionError as e:
             pass    # TODO - log
         finally:
             self._connections.remove(connection)

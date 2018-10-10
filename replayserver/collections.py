@@ -22,6 +22,7 @@ class AsyncDict(MutableMapping, EmptyWaitMixin):
     def __init__(self):
         EmptyWaitMixin.__init__(self)
         self._dict = {}
+        self._added = Event()
 
     def __getitem__(self, key):
         return self._dict[key]
@@ -29,6 +30,8 @@ class AsyncDict(MutableMapping, EmptyWaitMixin):
     def __setitem__(self, key, value):
         self._dict[key] = value
         self._is_not_empty()
+        self._added.set()
+        self._added.clear()
 
     def __delitem__(self, key):
         del self._dict[key]
@@ -40,6 +43,12 @@ class AsyncDict(MutableMapping, EmptyWaitMixin):
 
     def __len__(self):
         return len(self._dict)
+
+    async def wait_for_key(self, key):
+        while True:
+            if key in self:
+                return self[key]
+            await self._added.wait()
 
 
 class AsyncSet(MutableSet, EmptyWaitMixin):

@@ -67,6 +67,22 @@ def mock_database_queries():
     return asynctest.Mock(spec=Q)
 
 
+def_teams_in_game = {1: ["user1"], 2: ["user2"]}
+def_game_stats = {
+        'featured_mod': 'faf',
+        'game_type': '0',
+        'recorder': 'user1',
+        'host': 'user1',
+        'launched_at': datetime.datetime(2001, 1, 1, 0, 0).timestamp(),
+        'game_end': datetime.datetime(2001, 1, 2, 0, 0).timestamp(),
+        'title': 'Name of the game',
+        'mapname': 'scmp_1',
+        'map_file_path': 'maps/scmp_1.zip',
+        'num_players': 2
+    }
+def_mod_versions = {'1': 1}
+
+
 @pytest.mark.asyncio
 async def test_replay_saver_save_replay(mock_replay_paths,
                                         mock_database_queries,
@@ -81,29 +97,18 @@ async def test_replay_saver_save_replay(mock_replay_paths,
     open(rfile, "a").close()
     mock_replay_paths.get.return_value = rfile
 
-    mock_database_queries.get_teams_in_game.return_value = {
-        1: ["user1"],
-        2: ["user2"],
-    }
-    mock_database_queries.get_game_stats.return_value = {
-        'featured_mod': 'faf',
-        'game_type': '0',
-        'recorder': 'user1',
-        'host': 'user1',
-        'launched_at': datetime.datetime(2001, 1, 1, 0, 0).timestamp(),
-        'game_end': datetime.datetime(2001, 1, 2, 0, 0).timestamp(),
-        'title': 'Name of the game',
-        'mapname': 'scmp_1',
-        'map_file_path': 'maps/scmp_1.zip',
-        'num_players': 2
-    }
-    mock_database_queries.get_mod_versions.return_value = {
-        '1': 1,
-    }
+    mock_database_queries.get_teams_in_game.return_value = def_teams_in_game
+    mock_database_queries.get_game_stats.return_value = def_game_stats
+    mock_database_queries.get_mod_versions.return_value = def_mod_versions
 
     saver = ReplaySaver(mock_replay_paths, mock_database_queries)
     await saver.save_replay(1111, outside_source_stream)
 
     head, rep = unpack_replay(open(rfile, "rb").read())
-    assert type(head) is dict   # TODO - test contents
+    assert type(head) is dict
+    assert head['uid'] == 1111
+    assert head['teams'] == {"1": ["user1"], "2": ["user2"]}
+    assert head['featured_mod_versions'] == def_mod_versions
+    for item in def_game_stats:
+        assert head[item] == def_game_stats[item]
     assert rep == example_replay.header_data + b"bar"

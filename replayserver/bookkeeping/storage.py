@@ -69,12 +69,16 @@ class ReplaySaver:
         game_stats = await self._database.get_game_stats(game_id)
         teams = await self._database.get_teams_in_game(game_id)
         result.update(game_stats)
-        result['teams'] = teams
+        result['teams'] = self._fixup_team_dict(teams)
 
         game_mod = game_stats["featured_mod"]
         featured_mods = await self._database.get_mod_versions(game_mod)
         result['featured_mod_versions'] = featured_mods
         return result
+
+    def _fixup_team_dict(self, d):
+        # Replay format uses strings for teams for some reason
+        return {str(t) if t is not None else "null": p for t, p in d.items()}
 
     def _write_replay(self, rfile, info, data):
         try:

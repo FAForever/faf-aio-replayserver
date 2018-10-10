@@ -4,6 +4,7 @@ import struct
 from tests.replays import example_replay
 from replayserver.struct.streamread import GeneratorData
 from replayserver.struct import header
+from replayserver.errors import MalformedDataError
 
 
 # We assume GeneratorData works, for sake of easier testing.
@@ -266,3 +267,10 @@ async def test_replayheader_coroutine(controlled_connections):
     head, leftovers = await header.ReplayHeader.from_connection(conn)
     assert head.struct == EXPECTED_EXAMPLE_HEADER
     assert example_replay.data.startswith(head.data + leftovers)
+
+
+@pytest.mark.asyncio
+async def test_replayheader_coroutine_invalid_header(controlled_connections):
+    conn = controlled_connections(b"\0" * 100)
+    with pytest.raises(MalformedDataError):
+        await header.ReplayHeader.from_connection(conn)

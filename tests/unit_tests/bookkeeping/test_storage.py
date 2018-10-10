@@ -97,14 +97,18 @@ def standard_saver_args(mock_replay_paths, mock_database_queries, tmpdir):
     return mock_replay_paths, mock_database_queries
 
 
-@pytest.mark.asyncio
-async def test_replay_saver_save_replay(standard_saver_args,
-                                        mock_replay_headers,
-                                        outside_source_stream, tmpdir):
+def set_example_stream_data(outside_source_stream, mock_replay_headers):
     mock_header = mock_replay_headers(example_replay)
     outside_source_stream.set_header(mock_header)
     outside_source_stream.feed_data(b"bar")
     outside_source_stream.finish()
+
+
+@pytest.mark.asyncio
+async def test_replay_saver_save_replay(standard_saver_args,
+                                        mock_replay_headers,
+                                        outside_source_stream, tmpdir):
+    set_example_stream_data(outside_source_stream, mock_replay_headers)
 
     saver = ReplaySaver(*standard_saver_args)
     await saver.save_replay(1111, outside_source_stream)
@@ -133,10 +137,7 @@ async def test_replay_saver_no_header(standard_saver_args,
 async def test_replay_saver_readonly_file(standard_saver_args,
                                           mock_replay_headers,
                                           outside_source_stream, tmpdir):
-    mock_header = mock_replay_headers(example_replay)
-    outside_source_stream.set_header(mock_header)
-    outside_source_stream.feed_data(b"bar")
-    outside_source_stream.finish()
+    set_example_stream_data(outside_source_stream, mock_replay_headers)
 
     rfile = str(tmpdir.join("replay"))
     os.chmod(rfile, stat.S_IRUSR)
@@ -144,3 +145,20 @@ async def test_replay_saver_readonly_file(standard_saver_args,
     saver = ReplaySaver(*standard_saver_args)
     with pytest.raises(BookkeepingError):
         await saver.save_replay(1111, outside_source_stream)
+
+
+@pytest.mark.asyncio
+async def test_replay_saver_null_team(standard_saver_args,
+                                      mock_replay_headers,
+                                      outside_source_stream, tmpdir):
+    set_example_stream_data(outside_source_stream, mock_replay_headers)
+    mock_queries = standard_saver_args[1]
+    mock_queries.get_teams_in_game.return_value = {
+        1: ["user1"], 2: ["user2"], None: ["SomeGuy"]
+    }
+
+    saver = ReplaySaver(*standard_saver_args)
+    await saver.save_replay(1111, outside_source_stream)
+    rfile = str(tmpdir.join("replay"))
+    head, rep = unpack_replay(open(rfile, "rb").read())
+    assert head["teams"]["null"] == ["SomeGuy"]

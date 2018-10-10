@@ -36,25 +36,25 @@ class MockDatabase:
         pass
 
     async def _db_mock_game_stats(self, cursor, replay_id, map_id, host_id):
-        await cursor.execute("""
+        await cursor.execute(f"""
             INSERT INTO `game_stats`
                 (`id`, `starttime`, `endtime`, `gametype`,
                  `gamemod`, `host`, `mapid`, `gamename`, `validity`)
             VALUES
                 ({replay_id}, '2001-01-01 00:00:00', '2001-01-02 00:00:00',
                  '0', 1, {host_id}, {map_id}, "Name of the game", 1)
-        """.format(replay_id=replay_id, map_id=map_id, host_id=host_id))
+        """)
 
     async def _db_mock_game_player_stats(self, cursor,
-                                         replay_id, player_id, team):
-        await cursor.execute("""
+                                         replay_id, player_id, team, ai=False):
+        await cursor.execute(f"""
             INSERT INTO `game_player_stats`
                 (`id`, `gameid`, `playerid`, `ai`, `faction`,
                  `color`, `team`, `place`, `mean`, `deviation`)
             VALUES
-                (NULL, {replay_id}, {player_id}, 0, 1,
+                (NULL, {replay_id}, {player_id}, {ai}, 1,
                  1, {team}, 1, 0, 0)
-        """.format(replay_id=replay_id, player_id=player_id, team=team))
+        """)
 
     async def add_mock_game(self, game, players):
         cur = await self._conn.cursor()

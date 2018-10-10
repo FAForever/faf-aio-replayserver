@@ -56,7 +56,7 @@ class ReplayDatabaseQueries:
               ON `game_player_stats`.`gameId` = `game_stats`.`id`
             INNER JOIN `login`
               ON `login`.id = `game_player_stats`.`playerId`
-            WHERE `game_stats`.`id` = %s
+            WHERE `game_stats`.`id` = %s AND `game_player_stats`.`AI` = 0
         """
         players = await self._db.execute(query, (game_id,))
         if not players:

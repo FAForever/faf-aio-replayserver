@@ -65,6 +65,15 @@ async def test_queries_missing_teams(mock_database):
 
 
 @pytest.mark.asyncio
+async def test_queries_ignore_ai_players(mock_database):
+    queries = ReplayDatabaseQueries(mock_database)
+    await mock_database.add_mock_game((1, 1, 1),
+                                      [(1, 1), (2, 2), (3, 3, 1)])
+    teams = await queries.get_teams_in_game(1)
+    assert teams == {1: ["user1"], 2: ["user2"]}
+
+
+@pytest.mark.asyncio
 async def test_queries_get_game_stats(mock_database):
     queries = ReplayDatabaseQueries(mock_database)
     await mock_database.add_mock_game((1, 1, 1),

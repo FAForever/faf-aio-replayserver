@@ -115,3 +115,25 @@ def test_strategy_follow_stream_later_has_more_data(strategy,
     strat.stream_removed(stream1)
     strat.finalize()
     assert outside_source_stream.data.bytes() == b"Data and stuff"
+
+
+@pytest.mark.parametrize("strategy", [MergeStrategies.FOLLOW_STREAM])
+def test_strategy_follow_stream_new_tracked_stream_diverges(
+        strategy, outside_source_stream):
+    strat = strategy.build(outside_source_stream)
+    stream1 = MockStream()
+    stream2 = MockStream()
+    stream2._header = "Header"
+
+    strat.stream_added(stream1)
+    strat.stream_added(stream2)
+    strat.new_header(stream2)
+
+    stream1._data += b"Data and stuff"
+    strat.new_data(stream1)
+    strat.stream_removed(stream1)
+    stream2._data += b"Data and smeg and blahblah"
+    strat.new_data(stream2)
+    strat.stream_removed(stream2)
+    strat.finalize()
+    assert outside_source_stream.data.bytes() == b"Data and stuff"

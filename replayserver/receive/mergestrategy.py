@@ -149,8 +149,10 @@ class FollowStreamMergeStrategy(MergeStrategy):
             self._feed_tracked_data()
 
     def stream_removed(self, stream):
-        self._matching_streams.pop(stream, None)
+        # Don't remove a not-tracked stream - it might have more data that
+        # matches currently tracked stream, in case it ends short!
         if stream is self._tracked_stream:
+            self._matching_streams.pop(stream, None)
             self._find_new_stream()
 
     def new_data(self, stream):
@@ -158,6 +160,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
             self._feed_tracked_data()
 
     def finalize(self):
+        # Check any ended streams we saved for later
         while self._matching_streams:
             self._feed_tracked_data()
             self.stream_removed(self._tracked_stream)

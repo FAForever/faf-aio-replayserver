@@ -1,6 +1,6 @@
 import pytest
 
-from replayserver.receive.mergestrategy import GreedyMergeStrategy
+from replayserver.receive.mergestrategy import MergeStrategies
 from replayserver.stream import ReplayStream, ConcreteDataMixin
 
 
@@ -16,12 +16,12 @@ class MockStream(ConcreteDataMixin, ReplayStream):
         return self._ended
 
 
-general_test_strats = [GreedyMergeStrategy]
+general_test_strats = [MergeStrategies.GREEDY, MergeStrategies.FOLLOW_STREAM]
 
 
 @pytest.mark.parametrize("strategy", general_test_strats)
 def test_strategy_ends_stream_when_finalized(strategy, outside_source_stream):
-    strat = strategy(outside_source_stream)
+    strat = strategy.build(outside_source_stream)
     stream1 = MockStream()
     strat.stream_added(stream1)
     strat.stream_removed(stream1)
@@ -31,7 +31,7 @@ def test_strategy_ends_stream_when_finalized(strategy, outside_source_stream):
 
 @pytest.mark.parametrize("strategy", general_test_strats)
 def test_strategy_picks_at_least_one_header(strategy, outside_source_stream):
-    strat = strategy(outside_source_stream)
+    strat = strategy.build(outside_source_stream)
     stream1 = MockStream()
     stream2 = MockStream()
     stream2._header = "Header"
@@ -47,7 +47,7 @@ def test_strategy_picks_at_least_one_header(strategy, outside_source_stream):
 
 @pytest.mark.parametrize("strategy", general_test_strats)
 def test_strategy_gets_all_data_of_one(strategy, outside_source_stream):
-    strat = strategy(outside_source_stream)
+    strat = strategy.build(outside_source_stream)
     stream1 = MockStream()
     stream1._header = "Header"
 
@@ -68,7 +68,7 @@ def test_strategy_gets_all_data_of_one(strategy, outside_source_stream):
 
 @pytest.mark.parametrize("strategy", general_test_strats)
 def test_strategy_gets_common_prefix_of_all(strategy, outside_source_stream):
-    strat = strategy(outside_source_stream)
+    strat = strategy.build(outside_source_stream)
     stream1 = MockStream()
     stream2 = MockStream()
     stream2._header = "Header"

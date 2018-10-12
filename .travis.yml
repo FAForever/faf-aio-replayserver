@@ -5,6 +5,7 @@ sudo: required
 services: docker
 
 install:
+  - pip3 install coverage>=4.4
   - pip3 install -r requirements.txt -r requirements-test.txt
 
 before_script:

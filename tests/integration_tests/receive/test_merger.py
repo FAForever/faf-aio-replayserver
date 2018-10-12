@@ -10,7 +10,7 @@ from replayserver.errors import MalformedDataError, CannotAcceptConnectionError
 
 config = {
     "config_merger_grace_period_time": 30,
-    "config_replay_merge_strategy": MergeStrategies.GREEDY,
+    "config_replay_merge_strategy": MergeStrategies.FOLLOW_STREAM,
 }
 
 

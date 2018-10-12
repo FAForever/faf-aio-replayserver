@@ -5,7 +5,7 @@ from replayserver.receive.mergestrategy import MergeStrategies
 
 config = {
     "merger_grace_period_time": 30,
-    "replay_merge_strategy": MergeStrategies.GREEDY,
+    "replay_merge_strategy": MergeStrategies.FOLLOW_STREAM,
     "sent_replay_delay": 5 * 60,
     "sent_replay_position_update_interval": 1,
     "replay_forced_end_time": 5 * 60 * 60,

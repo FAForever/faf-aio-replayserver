@@ -125,3 +125,55 @@ async def test_server_force_close_server(mock_database, tmpdir):
     await assert_connection_closed(r, w)
     rfile = list(tmpdir.visit('1.fafreplay'))
     assert len(rfile) == 1
+
+
+@slow_test
+@pytest.mark.asyncio
+@timeout(5)
+async def test_server_reader_is_delayed(mock_database, tmpdir):
+    conf = dict(config)
+    conf["sent_replay_delay"] = 1,
+    conf["config_server_port"] = 15004
+    conf["config_replay_store_path"] = str(tmpdir)
+
+    await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
+    server = Server.build(dep_database=lambda **kwargs: mock_database,
+                          **conf)
+    await server.start()
+    r, w = await asyncio.open_connection('127.0.0.1', 15004)
+    r2, w2 = await asyncio.open_connection('127.0.0.1', 15004)
+    read_data = bytearray()
+    written_data = bytearray()
+    # Use large chunk so buffering doesn't affect read data length
+    CHUNK = 4096
+
+    async def write_forever():
+        nonlocal written_data
+        w.write(b"P/1/foo\0")
+        w.write(example_replay.header_data)
+        written_data += example_replay.header_data
+        while True:
+            w.write(b"f" * CHUNK)
+            written_data += b"f"
+            await asyncio.sleep(0.1)
+
+    async def read_forever():
+        nonlocal read_data
+        w2.write(b"G/1/foo\0")
+        while True:
+            b = r2.read(CHUNK)
+            if not b:
+                break
+            read_data += b
+
+    reading = asyncio.ensure_future(write_forever())
+    writing = asyncio.ensure_future(read_forever())
+
+    for i in range(20):
+        await asyncio.sleep(0.1)
+        assert len(read_data) <= max(len(written_data) - 5 * CHUNK, 0)
+        assert len(read_data) >= len(written_data) - 15 * CHUNK
+
+    reading.cancel()
+    writing.cancel()
+    await server.stop()

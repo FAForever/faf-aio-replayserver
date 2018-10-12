@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="faf_replay_server",
-    version='0.0.1',
+    version='0.1.0',
     description="FAF replay server using asyncio",
     long_description="TODO",
     classifiers=[

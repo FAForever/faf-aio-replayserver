@@ -1,6 +1,7 @@
 import pytest
 from tests import docker_faf_db_config
 import datetime
+import random
 
 from replayserver.bookkeeping.database import Database, ReplayDatabaseQueries
 from replayserver.errors import BookkeepingError
@@ -46,6 +47,25 @@ async def test_database_query_at_bad_time():
     await db.stop()
     with pytest.raises(BookkeepingError):
         await db.execute('SELECT * FROM login')
+
+
+# FIXME - this test pollutes our default db setup. As long as we insert
+# out-of-way data and prepare tests for existing data, we should be fine.
+@pytest.mark.asyncio
+async def test_database_commits_results():
+    db = Database.build(**docker_db_config)
+    await db.start()
+    random.seed()
+    randnum = random.randint(1, 100000)
+    await db.execute(f"""
+        INSERT INTO login (id, login, password, email) VALUES
+        (1200, 'commit_test_{randnum}', 'commit_test', 'commit_test')
+        ON DUPLICATE KEY UPDATE `login` = 'commit_test_{randnum}'
+    """)
+    data = await db.execute("SELECT * FROM login WHERE id = 1200")
+    assert data
+    assert data[0]['login'] == f"commit_test_{randnum}"
+    await db.stop()
 
 
 @pytest.mark.asyncio

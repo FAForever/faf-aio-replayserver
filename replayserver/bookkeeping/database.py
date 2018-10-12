@@ -32,7 +32,9 @@ class Database:
             async with self._connection_pool.acquire() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cur:
                     await cur.execute(query, *params)
-                    return await cur.fetchall()
+                    data = await cur.fetchall()
+                await conn.commit()
+            return data
         except (DatabaseError, RuntimeError) as e:
             raise BookkeepingError from e
 

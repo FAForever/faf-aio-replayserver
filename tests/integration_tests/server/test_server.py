@@ -28,6 +28,13 @@ def test_server_init():
     Server.build(**config)
 
 
+async def assert_connection_closed(r, w):
+    while True:
+        d = await r.read(4096)
+        if not d:
+            break
+
+
 @slow_test
 @pytest.mark.asyncio
 @timeout(3)
@@ -49,6 +56,7 @@ async def test_server_single_connection(mock_database, tmpdir):
     rep = await server._replays.wait_for_replay(1)
     await rep.wait_for_ended()
 
+    await assert_connection_closed(r, w)
     rfile = list(tmpdir.visit('1.fafreplay'))
     assert len(rfile) == 1
 
@@ -81,6 +89,7 @@ async def test_server_replay_force_end(mock_database, tmpdir):
     await rep.wait_for_ended()
     writing.cancel()
 
+    await assert_connection_closed(r, w)
     rfile = list(tmpdir.visit('1.fafreplay'))
     assert len(rfile) == 1
 
@@ -113,5 +122,6 @@ async def test_server_force_close_server(mock_database, tmpdir):
     with pytest.raises(ConnectionRefusedError):
         await asyncio.open_connection('127.0.0.1', 15003)
 
+    await assert_connection_closed(r, w)
     rfile = list(tmpdir.visit('1.fafreplay'))
     assert len(rfile) == 1

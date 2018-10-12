@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
 
+install_reqs = open('requirements.txt').read().splitlines()
+
 setup(
     name="faf_replay_server",
     version='0.1.0',
@@ -20,7 +22,5 @@ setup(
             "faf_replay_server = replayserver.main:main",
         ],
     },
-    install_requires=[
-        "aiomysql",
-    ],
+    install_requires=install_reqs,
 )

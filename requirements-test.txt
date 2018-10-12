@@ -1,4 +1,4 @@
-aiomysql
+python-coveralls
 decorator
 pytest-asyncio
 pytest-cov

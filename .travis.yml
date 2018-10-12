@@ -5,7 +5,7 @@ sudo: required
 services: docker
 
 install:
-  - pip3 install -r requirements-test.txt -r requirements-travis.txt
+  - pip3 install -r requirements.txt -r requirements-test.txt
 
 before_script:
   - sudo service mysql stop     # For some reason conflicts with faf-db

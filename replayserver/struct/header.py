@@ -131,7 +131,7 @@ class ReplayHeader:
             try:
                 generator.send(data)
             except ValueError as e:
-                raise MalformedDataError from e
+                raise MalformedDataError("Invalid replay header") from e
             except StopIteration as v:
                 return v.value
 

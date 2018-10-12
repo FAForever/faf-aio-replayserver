@@ -1,6 +1,7 @@
 from replayserver.collections import AsyncSet
 from replayserver.errors import BadConnectionError
 from replayserver.server.connection import ConnectionHeader
+from replayserver.logging import logger
 
 
 class Connections:
@@ -19,7 +20,7 @@ class Connections:
             header = await self._header_read(connection)
             await self._replays.handle_connection(header, connection)
         except BadConnectionError as e:
-            pass    # TODO - log
+            logger.info(f"Bad connection was dropped; {e.__class__}: {str(e)}")
         finally:
             self._connections.remove(connection)
             connection.close()

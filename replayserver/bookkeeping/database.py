@@ -36,7 +36,7 @@ class Database:
                 await conn.commit()
             return data
         except (DatabaseError, RuntimeError) as e:
-            raise BookkeepingError from e
+            raise BookkeepingError("Failed to run database query") from e
 
     async def stop(self):
         self._connection_pool.close()

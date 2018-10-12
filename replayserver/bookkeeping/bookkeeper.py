@@ -1,6 +1,7 @@
 from replayserver.errors import BookkeepingError
 from replayserver.bookkeeping.storage import ReplaySaver
 from replayserver.bookkeeping.database import ReplayDatabaseQueries
+from replayserver.logging import logger
 
 
 class Bookkeeper:
@@ -17,5 +18,5 @@ class Bookkeeper:
     async def save_replay(self, game_id, stream):
         try:
             await self._saver.save_replay(game_id, stream)
-        except BookkeepingError:
-            pass    # TODO - log
+        except BookkeepingError as e:
+            logger.error(f"Failed to save replay for game {game_id}: {str(e)}")

@@ -48,7 +48,7 @@ class ReplaySaver:
 
     async def save_replay(self, game_id, stream):
         if stream.header is None:
-            raise BookkeepingError("Saved replay has no header!")
+            raise BookkeepingError("Saved replay has no header")
         info = await self._get_replay_info(game_id, stream.header.struct)
         rfile = self._paths.get(game_id)
         try:
@@ -93,4 +93,4 @@ class ReplaySaver:
             data = base64.b64encode(data)
             rfile.write(data)
         except UnicodeEncodeError:
-            raise BookkeepingError("Failed to write replay: unicode error")
+            raise BookkeepingError("Unicode encoding error")

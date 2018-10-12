@@ -30,8 +30,8 @@ def test_server_init():
 
 @slow_test
 @pytest.mark.asyncio
-@timeout(10)
-async def test_server_single_connection(event_loop, mock_database, tmpdir):
+@timeout(3)
+async def test_server_single_connection(mock_database, tmpdir):
     conf = dict(config)
     conf["config_server_port"] = 15001
     conf["config_replay_store_path"] = str(tmpdir)
@@ -48,6 +48,70 @@ async def test_server_single_connection(event_loop, mock_database, tmpdir):
     w.close()
     rep = await server._replays.wait_for_replay(1)
     await rep.wait_for_ended()
+
+    rfile = list(tmpdir.visit('1.fafreplay'))
+    assert len(rfile) == 1
+
+
+@slow_test
+@pytest.mark.asyncio
+@timeout(5)
+async def test_server_replay_force_end(mock_database, tmpdir):
+    conf = dict(config)
+    conf["config_server_port"] = 15002
+    conf["config_replay_store_path"] = str(tmpdir)
+    conf["config_replay_forced_end_time"] = 3
+    conf["config_replay_delay"] = 1
+
+    await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
+    server = Server.build(dep_database=lambda **kwargs: mock_database,
+                          **conf)
+    await server.start()
+    r, w = await asyncio.open_connection('127.0.0.1', 15002)
+
+    async def write_forever():
+        w.write(b"P/1/foo\0")
+        w.write(example_replay.header_data)
+        while True:
+            w.write(b"foo")
+            await asyncio.sleep(0.1)
+
+    writing = asyncio.ensure_future(write_forever())
+    rep = await server._replays.wait_for_replay(1)
+    await rep.wait_for_ended()
+    writing.cancel()
+
+    rfile = list(tmpdir.visit('1.fafreplay'))
+    assert len(rfile) == 1
+
+
+@slow_test
+@pytest.mark.asyncio
+@timeout(3)
+async def test_server_force_close_server(mock_database, tmpdir):
+    conf = dict(config)
+    conf["config_server_port"] = 15003
+    conf["config_replay_store_path"] = str(tmpdir)
+
+    await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
+    server = Server.build(dep_database=lambda **kwargs: mock_database,
+                          **conf)
+    await server.start()
+    r, w = await asyncio.open_connection('127.0.0.1', 15003)
+
+    async def write_forever():
+        w.write(b"P/1/foo\0")
+        w.write(example_replay.header_data)
+        while True:
+            w.write(b"foo")
+            await asyncio.sleep(0.1)
+
+    writing = asyncio.ensure_future(write_forever())
+    await asyncio.sleep(1)
+    await server.stop()
+    writing.cancel()
+    with pytest.raises(ConnectionRefusedError):
+        await asyncio.open_connection('127.0.0.1', 15003)
 
     rfile = list(tmpdir.visit('1.fafreplay'))
     assert len(rfile) == 1

@@ -23,7 +23,7 @@ async def test_database_ok_query():
     await db.start()
     result = await db.execute('SELECT * FROM login')
     assert 1 in [r['id'] for r in result]
-    await db.close()
+    await db.stop()
 
 
 @pytest.mark.asyncio
@@ -33,7 +33,7 @@ async def test_database_bad_query():
     await db.start()
     with pytest.raises(BookkeepingError):
         await db.execute('SELECT * glablagradargh')
-    await db.close()
+    await db.stop()
 
 
 @pytest.mark.asyncio
@@ -43,7 +43,7 @@ async def test_database_query_at_bad_time():
     with pytest.raises(BookkeepingError):
         await db.execute('SELECT * FROM login')
     await db.start()
-    await db.close()
+    await db.stop()
     with pytest.raises(BookkeepingError):
         await db.execute('SELECT * FROM login')
 

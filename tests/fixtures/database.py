@@ -32,7 +32,7 @@ class MockDatabase:
         except (DatabaseError, RuntimeError) as e:
             raise BookkeepingError from e
 
-    async def close(self):
+    async def stop(self):
         pass
 
     async def _db_mock_game_stats(self, cursor, replay_id, map_id, host_id):

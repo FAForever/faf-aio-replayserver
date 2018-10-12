@@ -36,7 +36,7 @@ class Database:
         except (DatabaseError, RuntimeError) as e:
             raise BookkeepingError from e
 
-    async def close(self):
+    async def stop(self):
         self._connection_pool.close()
         await self._connection_pool.wait_closed()
         self._connection_pool = None

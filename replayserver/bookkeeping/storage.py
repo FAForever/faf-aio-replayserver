@@ -19,6 +19,8 @@ class ReplayFilePaths:
         rpath = self._replay_path(game_id)
         os.makedirs(rpath, exist_ok=True)
         rfile = os.path.join(rpath, f"{str(game_id)}.fafreplay")
+        if os.path.exists(rfile):
+            raise BookkeepingError(f"Replay file {rfile} already exists")
         open(rfile, 'a').close()    # Touch file
         return rfile
 

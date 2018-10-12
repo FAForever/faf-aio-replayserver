@@ -50,6 +50,15 @@ def test_replay_paths_same_folder(tmpdir):
     assert tmpdir.join("0", "11", "11", "11", "11111112.fafreplay").exists()
 
 
+def test_replay_paths_second_access_not_allowed(tmpdir):
+    # We should not allow getting the same path twice to avoid overwriting or
+    # corrupting the existing replay
+    paths = ReplayFilePaths(str(tmpdir))
+    paths.get(1123456789)
+    with pytest.raises(BookkeepingError):
+        paths.get(1123456789)
+
+
 @pytest.fixture
 def mock_replay_paths():
     return asynctest.Mock(spec=['get'])

@@ -1,12 +1,16 @@
 import asyncio
 import logging
-from os.environ import get as eget
+import os
 
 from replayserver import Server
 from replayserver.receive.mergestrategy import MergeStrategies
 from replayserver.logging import logger
 
 __all__ = ["main"]
+
+
+def eget(*args, **kwargs):
+    return os.environ.get(*args, **kwargs)
 
 
 def main():
@@ -28,7 +32,7 @@ def main():
         "sent_replay_position_update_interval": 1,
     }
 
-    config.update({k: eget(**v) for k, v in env_config.items()})
+    config.update({k: eget(*v) for k, v in env_config.items()})
     config = {"config_" + k: v for k, v in config.items()}
 
     logger.setLevel(eget("LOG_LEVEL", logging.INFO))

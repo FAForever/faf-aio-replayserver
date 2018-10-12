@@ -2,8 +2,8 @@ from enum import Enum
 
 
 class MergeStrategies(Enum):
-    GREEDY = 0
-    FOLLOW_STREAM = 1
+    GREEDY = "GREEDY"
+    FOLLOW_STREAM = "FOLLOW_STREAM"
 
     def build(self, *args, **kwargs):
         if self == MergeStrategies.GREEDY:

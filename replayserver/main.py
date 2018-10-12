@@ -7,7 +7,7 @@ __all__ = ["main"]
 
 config = {
     "merger_grace_period_time": eget("REPLAY_GRACE_PERIOD", 30),
-    "replay_merge_strategy": MergeStrategies.FOLLOW_STREAM,
+    "replay_merge_strategy": eget("REPLAY_MERGE_STRATEGY", "FOLLOW_STREAM"),
     "sent_replay_delay": eget("REPLAY_DELAY", 5 * 60),
     "sent_replay_position_update_interval": 1,
     "replay_forced_end_time": eget("REPLAY_FORCE_END_TIME", 5 * 60 * 60),
@@ -26,6 +26,12 @@ def main():
     for key in config:
         if config[key] is None:
             return 1
+
+    try:
+        strat = MergeStrategies(config["config_replay_merge_strategy"])
+        config["config_replay_merge_strategy"] = strat
+    except ValueError:
+        return 1
 
     server = Server.build(**config)
     loop = asyncio.get_event_loop()

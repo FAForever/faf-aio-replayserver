@@ -3,6 +3,7 @@ import asyncio
 import decorator
 import unittest
 from tests.timeskipper import TimeSkipper
+from tests.docker_db_config import docker_faf_db_config
 
 __all__ = ["timeout", "fast_forward_time", "TimeSkipper",
            "skip_if_needs_asynctest_107", "slow_test",
@@ -43,12 +44,3 @@ def slow_test(fn):
     return unittest.skipIf(
         "SKIP_SLOW_TESTS" in os.environ,
         "Test is slow")(fn)
-
-
-docker_faf_db_config = {
-    'host': os.environ.get("FAF_STACK_DB_IP", "172.19.0.2"),
-    'port': 3306,
-    'user': 'root',
-    'password': 'banana',
-    'db': 'faf',
-}

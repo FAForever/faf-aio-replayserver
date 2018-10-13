@@ -1,6 +1,6 @@
 import asyncio
 import aiomysql
-from tests import docker_faf_db_config
+from docker_db_config import docker_faf_db_config
 
 
 async def clear_db(cursor):

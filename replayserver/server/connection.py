@@ -27,7 +27,6 @@ class Connection:
 
     async def write(self, data):
         self.writer.write(data)
-        await self.writer.drain()   # TODO - might hurt performance?
 
     def close(self):
         self.writer.transport.abort()   # Drop connection immediately

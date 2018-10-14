@@ -1,6 +1,7 @@
 import aiomysql
 from aiomysql import create_pool, DatabaseError
 from replayserver.errors import BookkeepingError
+from replayserver.logging import logger
 import time
 
 
@@ -24,6 +25,7 @@ class Database:
 
     async def start(self):
         self._connection_pool = await self._pool_starter()
+        logger.info("Initialized database connection pool")
 
     async def execute(self, query, params=[]):
         if self._connection_pool is None:
@@ -42,6 +44,7 @@ class Database:
         self._connection_pool.close()
         await self._connection_pool.wait_closed()
         self._connection_pool = None
+        logger.info("Closed database connection pool")
 
 
 class ReplayDatabaseQueries:

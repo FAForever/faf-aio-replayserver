@@ -1,6 +1,7 @@
 import asyncio
 
 from replayserver.server.connection import Connection
+from replayserver.logging import logger
 
 
 class ConnectionProducer:
@@ -21,6 +22,7 @@ class ConnectionProducer:
     async def start(self):
         self._server = await asyncio.streams.start_server(
             self._make_connection, port=self._server_port)
+        logger.info(f"Started listening on {self._server_port}")
 
     async def _make_connection(self, reader, writer):
         connection = Connection(reader, writer)
@@ -29,3 +31,4 @@ class ConnectionProducer:
     async def stop(self):
         self._server.close()
         await self._server.wait_closed()
+        logger.info(f"Stopped listening on {self._server_port}")

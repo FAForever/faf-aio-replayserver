@@ -17,6 +17,8 @@ class Bookkeeper:
 
     async def save_replay(self, game_id, stream):
         try:
+            logger.debug(f"Saving replay {game_id}")
             await self._saver.save_replay(game_id, stream)
+            logger.debug(f"Saved replay {game_id}")
         except BookkeepingError as e:
             logger.error(f"Failed to save replay for game {game_id}: {str(e)}")

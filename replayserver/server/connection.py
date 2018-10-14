@@ -35,8 +35,8 @@ class Connection:
 
 class ConnectionHeader:
     class Type(Enum):
-        READER = 0
-        WRITER = 1
+        READER = "reader"
+        WRITER = "writer"
 
     def __init__(self, type_, game_id, game_name):
         self.type = type_

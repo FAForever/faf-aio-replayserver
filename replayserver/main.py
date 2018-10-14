@@ -14,7 +14,8 @@ def eget(*args, **kwargs):
 
 
 def main():
-    logger.setLevel(eget("LOG_LEVEL", logging.INFO))
+    # FIXME - report errors regarding this as well
+    logger.setLevel(int(eget("LOG_LEVEL", logging.INFO)))
 
     env_config = {
         "merger_grace_period_time": ("REPLAY_GRACE_PERIOD", 30, int),

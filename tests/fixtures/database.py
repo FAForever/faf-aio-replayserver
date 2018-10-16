@@ -2,6 +2,7 @@ import pytest
 import asynctest
 import aiomysql
 from aiomysql import DatabaseError
+from asyncio.locks import Lock
 
 from replayserver.errors import BookkeepingError
 from tests import docker_faf_db_config
@@ -16,6 +17,9 @@ class MockDatabase:
             password=docker_faf_db_config['password'],
             db=docker_faf_db_config['db'])
         await self._conn.begin()
+        # aiomysql has threadsafety 1, but we still want to use a single
+        # connection for rolling back everything
+        self._lock = Lock()
 
     async def mock_close(self):
         await self._conn.rollback()
@@ -26,9 +30,10 @@ class MockDatabase:
 
     async def execute(self, query, params=[]):
         try:
-            async with self._conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(query, *params)
-                return await cur.fetchall()
+            async with self._lock:
+                async with self._conn.cursor(aiomysql.DictCursor) as cur:
+                    await cur.execute(query, *params)
+                    return await cur.fetchall()
         except (DatabaseError, RuntimeError) as e:
             raise BookkeepingError from e
 

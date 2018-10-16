@@ -47,7 +47,7 @@ class Replay:
     def build(cls, game_id, bookkeeper, *, config_replay_forced_end_time,
               **kwargs):
         merger = Merger.build(**kwargs)
-        sender = Sender(merger.canonical_stream)
+        sender = Sender.build(merger.canonical_stream, **kwargs)
         return cls(merger, sender, bookkeeper, config_replay_forced_end_time,
                    game_id)
 

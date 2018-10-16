@@ -132,7 +132,7 @@ async def test_server_force_close_server(mock_database, tmpdir):
 @timeout(5)
 async def test_server_reader_is_delayed(mock_database, tmpdir):
     conf = dict(config)
-    conf["sent_replay_delay"] = 1,
+    conf["config_sent_replay_delay"] = 1
     conf["config_server_port"] = 15004
     conf["config_replay_store_path"] = str(tmpdir)
 
@@ -154,14 +154,14 @@ async def test_server_reader_is_delayed(mock_database, tmpdir):
         written_data += example_replay.header_data
         while True:
             w.write(b"f" * CHUNK)
-            written_data += b"f"
+            written_data += b"f" * CHUNK
             await asyncio.sleep(0.1)
 
     async def read_forever():
         nonlocal read_data
         w2.write(b"G/1/foo\0")
         while True:
-            b = r2.read(CHUNK)
+            b = await r2.read(CHUNK)
             if not b:
                 break
             read_data += b

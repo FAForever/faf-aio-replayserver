@@ -35,9 +35,17 @@ def fast_forward_time(step, amount):
 
 
 def skip_if_needs_asynctest_107(fn):
+    return skip_for_travis(fn, "Needs asynctest issue #107 resolved to work")
+
+
+def skip_stress_test(fn):
+    return skip_for_travis(fn, "Manual stress test")
+
+
+def skip_for_travis(fn, reason):
     return unittest.skipIf(
         "TRAVIS" in os.environ and os.environ["TRAVIS"] == "true",
-        "Needs asynctest issue #107 resolved to work")(fn)
+        reason)(fn)
 
 
 def slow_test(fn):

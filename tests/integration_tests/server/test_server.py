@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from tests import timeout, slow_test, docker_faf_db_config
+from tests import timeout, slow_test, docker_faf_db_config, skip_stress_test
 from tests.replays import example_replay
 
 from replayserver import Server
@@ -178,3 +178,46 @@ async def test_server_reader_is_delayed(mock_database, tmpdir):
     reading.cancel()
     writing.cancel()
     await server.stop()
+
+
+@skip_stress_test
+@pytest.mark.asyncio
+@timeout(10)
+async def test_server_stress_test(mock_database, tmpdir):
+    conf = dict(config)
+    conf["config_server_port"] = 15005
+    conf["config_replay_store_path"] = str(tmpdir)
+    conf["config_sent_replay_delay"] = 1
+
+    for i in range(1, 50):
+        await mock_database.add_mock_game((i, 1, 1), [(1, 1), (2, 2)])
+
+    server = Server.build(dep_database=lambda **kwargs: mock_database,
+                          **conf)
+    await server.start()
+
+    async def do_write(r, w, i):
+        w.write(f"P/{i}/foo\0".encode())
+        for pos in range(0, len(example_replay.data), 4000):
+            w.write(example_replay.data[pos:pos+4000])
+            await w.drain()
+            await asyncio.sleep(0.1)
+        w.close()
+
+    async def do_read(r, w, i):
+        w.write(f"G/{i}/foo\0".encode())
+        while True:
+            b = await r.read(4000)
+            if not b:
+                break
+
+    for i in range(1, 50):
+        for j in range(5):
+            r, w = await asyncio.open_connection('127.0.0.1', 15005)
+            asyncio.ensure_future(do_write(r, w, i))
+        for j in range(5):
+            r, w = await asyncio.open_connection('127.0.0.1', 15005)
+            asyncio.ensure_future(do_read(r, w, i))
+
+    await asyncio.sleep(1)
+    await server._connections.wait_until_empty()

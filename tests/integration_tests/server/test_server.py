@@ -171,7 +171,8 @@ async def test_server_reader_is_delayed(mock_database, tmpdir):
 
     for i in range(20):
         await asyncio.sleep(0.1)
-        assert len(read_data) <= max(len(written_data) - 5 * CHUNK, 0)
+        assert len(read_data) <= max(len(written_data) - 5 * CHUNK,
+                                     len(example_replay.header_data))
         assert len(read_data) >= len(written_data) - 15 * CHUNK
 
     reading.cancel()

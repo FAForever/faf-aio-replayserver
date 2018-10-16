@@ -84,8 +84,10 @@ def read_header(gen):
     yield from read_value(gen, "I", 4)  # Mod (data?) size
     result["mods"] = yield from read_lua_value(gen)
 
-    yield from read_value(gen, "I", 4)  # Scenario (data?) size
-    result["scenario"] = yield from read_lua_value(gen)
+    # We don't need to parse scenario info
+    ssize = yield from read_value(gen, "I", 4)  # Scenario (data?) size
+    yield from read_exactly(gen, ssize)
+    # result["scenario"] = yield from read_lua_value(gen)
 
     player_count = yield from read_value(gen, "b", 1)
     timeouts = {}
@@ -98,15 +100,17 @@ def read_header(gen):
     result["cheats_enabled"] = yield from read_value(gen, "B", 1)
 
     army_count = yield from read_value(gen, "B", 1)
-    armies = {}
+    # armies = {}
     for i in range(army_count):
-        yield from read_value(gen, "I", 4)  # Army (data?) size
-        army = yield from read_lua_value(gen)
+        # We don't need to parse armies
+        ssize = yield from read_value(gen, "I", 4)  # Army (data?) size
+        yield from read_exactly(gen, ssize)
+        # army = yield from read_lua_value(gen)
         player_id = yield from read_value(gen, "B", 1)
-        armies[player_id] = army
+        # armies[player_id] = army
         if player_id != 255:
             yield from read_exactly(gen, 1)     # Unknown skip
-    result["armies"] = armies
+    # result["armies"] = armies
 
     result["random_seed"] = yield from read_value(gen, "I", 4)
     return result

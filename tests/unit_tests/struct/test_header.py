@@ -122,7 +122,7 @@ def test_lua_dict_odd_item_number():
 
 # FIXME - this header has been generated *BY* the function being tested.
 # Make sure to replace this with independently generated data!
-EXPECTED_EXAMPLE_HEADER = {
+EXAMPLE_HEADER = {
     'armies': {
         0: {
             'AIPersonality': '',
@@ -253,19 +253,24 @@ EXPECTED_EXAMPLE_HEADER = {
     'version': 'Supreme Commander v1.50.3696'
 }
 
+# We skip some fields we don't need to parse
+PARSED_HEADER = dict(EXAMPLE_HEADER)
+del PARSED_HEADER["scenario"]
+del PARSED_HEADER["armies"]
+
 
 def test_load_example_header():
     replay_data = example_replay.data
     with pytest.raises(StopIteration) as v:
         run_cor(header.read_header, replay_data)
-    assert v.value.value == EXPECTED_EXAMPLE_HEADER
+    assert v.value.value == PARSED_HEADER
 
 
 @pytest.mark.asyncio
 async def test_replayheader_coroutine(controlled_connections):
     conn = controlled_connections(example_replay.data)
     head, leftovers = await header.ReplayHeader.from_connection(conn)
-    assert head.struct == EXPECTED_EXAMPLE_HEADER
+    assert head.struct == PARSED_HEADER
     assert example_replay.data.startswith(head.data + leftovers)
 
 

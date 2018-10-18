@@ -43,6 +43,9 @@ class ConnectionHeader:
         self.game_id = game_id
         self.game_name = game_name
 
+    def __str__(self):
+        return f"{self.type.value} for {self.game_id} ({self.game_name})"
+
     @classmethod
     async def read(cls, connection):
         type_ = await cls._read_type(connection)

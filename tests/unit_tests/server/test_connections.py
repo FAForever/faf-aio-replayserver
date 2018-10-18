@@ -4,7 +4,6 @@ import asynctest
 from tests import timeout
 
 from replayserver.server.connections import Connections
-from replayserver.server.connection import ConnectionHeader
 from replayserver.errors import BadConnectionError
 
 
@@ -38,7 +37,7 @@ async def test_connections_handle_connection(mock_replays, mock_header_read,
                                              mock_connections):
     connection = mock_connections()
     conns = Connections(mock_header_read, mock_replays)
-    mock_header = ConnectionHeader(ConnectionHeader.Type.READER, 1, "foo")
+    mock_header = asynctest.Mock()
     mock_header_read.return_value = mock_header
 
     await conns.handle_connection(connection)
@@ -60,7 +59,7 @@ async def test_connections_close_all(mock_replays, mock_header_read,
     async def at_header_read(conn):
         read_header_called.set()
         await verified.wait()
-        return ConnectionHeader(ConnectionHeader.Type.READER, 1, "foo")
+        return asynctest.Mock()
 
     mock_header_read.side_effect = at_header_read
 

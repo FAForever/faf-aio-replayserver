@@ -18,17 +18,13 @@ class Connections:
         self._connections.add(connection)
         try:
             header = await self._header_read(connection)
-            self._debug_new_connection(header)
+            logger.debug(f"Accepted new connection: {header}")
             await self._replays.handle_connection(header, connection)
         except BadConnectionError as e:
             logger.info(f"Bad connection was dropped; {e.__class__}: {str(e)}")
         finally:
             self._connections.remove(connection)
             connection.close()
-
-    def _debug_new_connection(self, header):
-        logger.debug((f"Accepted new connection: {header.type.value}, "
-                      f"id {header.game_id}, name {header.game_name}"))
 
     def close_all(self):
         logger.info("Closing all connections")

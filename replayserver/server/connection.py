@@ -7,6 +7,7 @@ class Connection:
     def __init__(self, reader, writer):
         self.reader = reader
         self.writer = writer
+        self._closed = False
 
     async def read(self, size):
         data = await self.reader.read(size)
@@ -26,11 +27,15 @@ class Connection:
                 f"Stream ended while reading exactly {amount}")
 
     async def write(self, data):
+        if self._closed:
+            return False
         self.writer.write(data)
         await self.writer.drain()
+        return True
 
     def close(self):
         self.writer.transport.abort()   # Drop connection immediately
+        self._closed = True
         # We don't need to close reader (according to docs?)
 
 

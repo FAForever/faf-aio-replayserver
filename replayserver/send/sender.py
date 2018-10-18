@@ -53,7 +53,9 @@ class Sender:
             if not data:
                 break
             position += len(data)
-            await connection.write(data)
+            conn_open = await connection.write(data)
+            if not conn_open:
+                break
 
     def close(self):
         pass

@@ -1,3 +1,5 @@
+from asyncio.locks import Event
+
 from replayserver.server.connectionproducer import ConnectionProducer
 from replayserver.bookkeeping.database import Database
 from replayserver.server.connections import Connections
@@ -13,6 +15,8 @@ class Server:
         self._connections = connections
         self._replays = replays
         self._bookkeper = bookkeeper
+        self._stopped = Event()
+        self._stopped.set()
 
     @classmethod
     def build(cls, *,
@@ -29,6 +33,7 @@ class Server:
     async def start(self):
         await self._database.start()
         await self._connection_producer.start()
+        self._stopped.clear()
 
     async def stop(self):
         await self._connection_producer.stop()
@@ -36,3 +41,8 @@ class Server:
         await self._replays.stop_all()
         await self._connections.wait_until_empty()
         await self._database.stop()
+        self._stopped.set()
+
+    async def run(self):
+        await self.start()
+        await self._stopped.wait()

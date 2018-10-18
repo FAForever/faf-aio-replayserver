@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import signal
 
 from replayserver import Server
 from replayserver.receive.mergestrategy import MergeStrategies
@@ -44,6 +45,19 @@ def get_config_from_env():
     return config
 
 
+def setup_signal_handler(server, loop):
+    shutting_down = False
+
+    def shutdown_gracefully():
+        nonlocal shutting_down
+        if not shutting_down:
+            shutting_down = True
+            asyncio.ensure_future(server.stop(), loop=loop)
+
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        loop.add_signal_handler(sig, shutdown_gracefully)
+
+
 def main():
     # FIXME - report errors regarding this as well
     logger.setLevel(int(eget("LOG_LEVEL", logging.INFO)))
@@ -55,6 +69,7 @@ def main():
 
     server = Server.build(**config)
     loop = asyncio.get_event_loop()
+    setup_signal_handler(server, loop)
     try:
         loop.run_until_complete(server.run())
         return 0

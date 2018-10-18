@@ -13,10 +13,7 @@ def eget(*args, **kwargs):
     return os.environ.get(*args, **kwargs)
 
 
-def main():
-    # FIXME - report errors regarding this as well
-    logger.setLevel(int(eget("LOG_LEVEL", logging.INFO)))
-
+def get_config_from_env():
     env_config = {
         "merger_grace_period_time": ("REPLAY_GRACE_PERIOD", 30, int),
         "replay_merge_strategy": ("REPLAY_MERGE_STRATEGY", "FOLLOW_STREAM", MergeStrategies),
@@ -37,16 +34,24 @@ def main():
         env_name, env_default, env_type = v
         config[k] = eget(env_name, env_default)
         if config[k] is None:
-            logger.critical((f"Missing config key: {k}. "
-                             f"Set it using env var {env_name}."))
-            return 1
+            raise ValueError((f"Missing config key: {k}. "
+                              f"Set it using env var {env_name}."))
         try:
             config[k] = v[2](config[k])
         except ValueError as e:
-            logger.critical(f"Invalid value for {k} ({env_name}) - {str(e)}")
-            return 1
-
+            raise ValueError(f"Invalid value for {k} ({env_name}) - {str(e)}")
     config = {"config_" + k: v for k, v in config.items()}
+    return config
+
+
+def main():
+    # FIXME - report errors regarding this as well
+    logger.setLevel(int(eget("LOG_LEVEL", logging.INFO)))
+    try:
+        config = get_config_from_env()
+    except ValueError as e:
+        logger.critical(e)
+        return 1
 
     server = Server.build(**config)
     loop = asyncio.get_event_loop()

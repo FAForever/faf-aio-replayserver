@@ -55,13 +55,10 @@ def main():
 
     server = Server.build(**config)
     loop = asyncio.get_event_loop()
-    asyncio.ensure_future(server.start())
     try:
-        loop.run_forever()
+        loop.run_until_complete(server.run())
         return 0
     except Exception as e:
         logger.critical(f"Critical server error! {e.__class__}: {str(e)}")
-        loop.run_until_complete(server.stop())
+        logger.exception(e)
         return 1
-    finally:
-        loop.close()

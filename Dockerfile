@@ -13,4 +13,4 @@ COPY . /var/faf-aio-replayserver
 RUN cd /var/faf-aio-replayserver && \
     pip3 install -r requirements.txt && \
     python3 setup.py install
-CMD faf_replay_server
+CMD ["faf_replay_server"]

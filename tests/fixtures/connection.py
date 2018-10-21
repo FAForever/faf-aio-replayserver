@@ -7,7 +7,7 @@ from replayserver.errors import MalformedDataError
 __all__ = ["mock_connections", "controlled_connections"]
 
 
-class ControlledConnection():
+class ControlledConnection:
     def __init__(self, data, limit):
         self._reader = StreamReader(limit)
         self._reader.feed_data(data)

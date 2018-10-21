@@ -16,7 +16,7 @@ class Connection:
     async def readuntil(self, delim):
         try:
             return await self.reader.readuntil(delim)
-        except (IncompleteReadError, LimitOverrunError) as e:
+        except (IncompleteReadError, LimitOverrunError):
             raise MalformedDataError(f"Failed to find {delim} in read data")
 
     async def readexactly(self, amount):

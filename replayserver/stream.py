@@ -138,7 +138,6 @@ class EndedEventMixin:
 class ConcreteDataMixin:
     """ Useful when the class holds the data instead of proxying it. """
     def __init__(self):
-        ReplayStream.__init__(self)
         self._header = None
         self._data = bytearray()
 

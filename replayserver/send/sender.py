@@ -22,7 +22,7 @@ class Sender:
         return cls(delayed_stream)
 
     @contextmanager
-    def _connection_count(self, connection):
+    def _connection_count(self):
         self._conn_count += 1
         try:
             yield
@@ -36,7 +36,7 @@ class Sender:
             self._ended.set()
 
     async def handle_connection(self, connection):
-        with self._connection_count(connection):
+        with self._connection_count():
             await self._write_header(connection)
             await self._write_replay(connection)
 

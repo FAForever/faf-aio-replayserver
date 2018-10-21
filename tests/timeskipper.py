@@ -17,7 +17,7 @@ import functools
 
 
 # Pulled out from asynctest's ClockedTestCase
-class TimeSkipper():
+class TimeSkipper:
     def __init__(self, loop):
         self.loop = loop
         self.loop.time = functools.wraps(self.loop.time)(lambda: self._time)

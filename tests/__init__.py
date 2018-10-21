@@ -12,8 +12,8 @@ __all__ = ["timeout", "fast_forward_time", "TimeSkipper",
 
 def timeout(time):
     def deco(coro):
-        async def wrapper_function(coro, *args, **kwargs):
-            return (await asyncio.wait_for(coro(*args, **kwargs), time))
+        async def wrapper_function(fn, *args, **kwargs):
+            return await asyncio.wait_for(fn(*args, **kwargs), time)
         # Needed for fixtures to work
         return decorator.decorator(wrapper_function, coro)
     return deco
@@ -21,11 +21,11 @@ def timeout(time):
 
 def fast_forward_time(step, amount):
     def deco(coro):
-        async def wrapper_function(coro, *args, **kwargs):
+        async def wrapper_function(fn, *args, **kwargs):
             # HACK - passing in fixtures to wrappers is hard, so we require
             # wrapped functions to have event_loop as first argument
             event_loop = args[0]
-            f = asyncio.ensure_future(coro(*args, **kwargs))
+            f = asyncio.ensure_future(fn(*args, **kwargs))
             skipper = TimeSkipper(event_loop)
             while event_loop.time() < (step * 10 + amount) and not f.done():
                 await skipper.advance(step)

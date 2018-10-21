@@ -5,7 +5,6 @@ from tests import fast_forward_time, timeout
 
 from replayserver.send.sender import Sender
 from replayserver.struct.header import ReplayHeader
-from replayserver.server.connection import ConnectionHeader
 
 
 config = {

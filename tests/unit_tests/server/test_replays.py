@@ -9,28 +9,26 @@ from replayserver.server.replays import Replays
 from replayserver.errors import CannotAcceptConnectionError
 
 
-def mock_replay(locked_mock_coroutines):
-    class R:
-        async def handle_connection():
-            pass
-
-        def close():
-            pass
-
-        def do_not_wait_for_more_connections():
-            pass
-
-        async def wait_for_ended():
-            pass
-
-    replay_end, ended_wait = locked_mock_coroutines()
-    return asynctest.Mock(spec=R, _manual_end=replay_end,
-                          wait_for_ended=ended_wait)
-
-
 @pytest.fixture
 def mock_replays(locked_mock_coroutines):
-    return lambda: mock_replay(locked_mock_coroutines)
+    def build():
+        class R:
+            async def handle_connection():
+                pass
+
+            def close():
+                pass
+
+            def do_not_wait_for_more_connections():
+                pass
+
+            async def wait_for_ended():
+                pass
+
+        replay_end, ended_wait = locked_mock_coroutines()
+        return asynctest.Mock(spec=R, _manual_end=replay_end,
+                              wait_for_ended=ended_wait)
+    return build
 
 
 @pytest.fixture

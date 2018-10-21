@@ -5,9 +5,7 @@ from asynctest.helpers import exhaust_callbacks
 from tests import timeout
 
 from replayserver.send.sender import Sender
-from replayserver.errors import CannotAcceptConnectionError, \
-   MalformedDataError
-from replayserver.server.connection import ConnectionHeader
+from replayserver.errors import MalformedDataError
 
 
 @pytest.mark.asyncio

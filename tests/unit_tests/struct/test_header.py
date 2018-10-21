@@ -81,7 +81,7 @@ def test_lua_string_value():
 
     # Check invalid unicode just in case
     data = b"\1aaaa\xc0 \0"
-    with pytest.raises(ValueError) as v:
+    with pytest.raises(ValueError):
         run_cor(header.read_lua_value, data)
 
 

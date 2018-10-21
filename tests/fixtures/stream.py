@@ -23,6 +23,7 @@ def mock_replay_streams():
 # when that happens.
 @pytest.fixture
 def outside_source_stream(event_loop):
+    # We use event_loop fixture so that stream uses the same loop as all tests
     s = OutsideSourceReplayStream()
     m = asynctest.MagicMock(wraps=s)
     # Wrapping does not include magic methods

@@ -17,7 +17,8 @@ def eget(*args, **kwargs):
 def get_config_from_env():
     env_config = {
         "merger_grace_period_time": ("REPLAY_GRACE_PERIOD", 30, int),
-        "replay_merge_strategy": ("REPLAY_MERGE_STRATEGY", "FOLLOW_STREAM", MergeStrategies),
+        "replay_merge_strategy":
+            ("REPLAY_MERGE_STRATEGY", "FOLLOW_STREAM", MergeStrategies),
         "sent_replay_delay": ("REPLAY_DELAY", 5 * 60, int),
         "replay_forced_end_time": ("REPLAY_FORCE_END_TIME", 5 * 60 * 60, int),
         "server_port": ("PORT", 15000, int),
@@ -27,7 +28,8 @@ def get_config_from_env():
         "db_password": ("MYSQL_PASSWORD", None, str),
         "db_name": ("MYSQL_DB", None, str),
         "replay_store_path": ("REPLAY_DIR", None, str),
-        "sent_replay_position_update_interval": ("SENT_REPLAY_UPDATE_INTERVAL", 1, int),
+        "sent_replay_position_update_interval":
+            ("SENT_REPLAY_UPDATE_INTERVAL", 1, int),
     }
 
     config = {}

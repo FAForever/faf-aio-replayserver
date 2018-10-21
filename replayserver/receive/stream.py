@@ -27,7 +27,7 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
             result = await self._header_reader(self._connection)
             # Don't add leftover data right away, caller doesn't expect that
             self._header, self._leftovers = result
-        except MalformedDataError as e:
+        except MalformedDataError:
             self._end()
             raise
         finally:

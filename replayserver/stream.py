@@ -58,7 +58,7 @@ class ReplayStream:
     def _data_slice(self, s):
         raise NotImplementedError
 
-    def _data_bytes(self, s):
+    def _data_bytes(self):
         raise NotImplementedError
 
     async def wait_for_data(self, position=None):

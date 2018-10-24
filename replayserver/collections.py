@@ -5,15 +5,21 @@ from asyncio.locks import Event
 class EmptyWaitMixin:
     def __init__(self):
         self._empty = Event()
+        self._not_empty = Event()
         self._is_empty()
 
     async def wait_until_empty(self):
         await self._empty.wait()
 
+    async def wait_until_not_empty(self):
+        await self._not_empty.wait()
+
     def _is_empty(self):
         self._empty.set()
+        self._not_empty.clear()
 
     def _is_not_empty(self):
+        self._not_empty.set()
         self._empty.clear()
 
 

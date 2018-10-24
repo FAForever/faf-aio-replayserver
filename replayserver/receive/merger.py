@@ -3,6 +3,7 @@ from asyncio.locks import Event
 from contextlib import contextmanager
 
 from replayserver.errors import CannotAcceptConnectionError
+from replayserver.collections import AsyncSet
 from replayserver.receive.stream import ConnectionReplayStream, \
     OutsideSourceReplayStream
 
@@ -48,7 +49,7 @@ class Merger:
         self._end_grace_period = GracePeriod(grace_period_time)
         self._merge_strategy = merge_strategy
         self.canonical_stream = canonical_stream
-        self._stream_count = 0
+        self._streams = AsyncSet()
         self._ended = Event()
         asyncio.ensure_future(self._finalize_after_ending())
         # In case no connections arrive at all, we still want to end
@@ -69,14 +70,14 @@ class Merger:
     def _stream_lifetime(self, connection):
         stream = self._stream_builder(connection)
         self._merge_strategy.stream_added(stream)
-        self._stream_count += 1
+        self._streams.add(connection)
         self._end_grace_period.stop()
         try:
             yield stream
         finally:
             self._merge_strategy.stream_removed(stream)
-            self._stream_count -= 1
-            if self._stream_count == 0:
+            self._streams.discard(connection)
+            if not self._streams:
                 self._end_grace_period.start()
 
     async def handle_connection(self, connection):

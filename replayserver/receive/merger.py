@@ -8,53 +8,50 @@ from replayserver.receive.stream import ConnectionReplayStream, \
     OutsideSourceReplayStream
 
 
-class GracePeriod:
-    def __init__(self, grace_period_time):
-        self._grace_period_time = grace_period_time
-        self._ended = Event()
-        self._grace_period = None
+class MergerLifetime:
+    def __init__(self, connections, grace_period):
+        self._connections = connections
+        self._grace_period = grace_period
+        self._force_end = Event()
 
-    def is_over(self):
-        return self._ended.is_set()
+    async def wait(self):
+        await self._wait_for_any(self._no_connections_for_a_while(),
+                                 self._force_end.wait())
 
-    def disable(self):
-        self._grace_period_time = 0
-        if self._grace_period is not None:
-            self.stop()
-            self.start()
+    async def _no_connections_for_a_while(self):
+        while True:
+            await self._connections.wait_until_empty()
+            if (await self._grace_period_without_connections()):
+                return
 
-    def start(self):
-        if self._grace_period is not None:
-            return
-        self._grace_period = asyncio.ensure_future(self._grace_period_wait())
+    async def _grace_period_without_connections(self):
+        try:
+            await asyncio.wait_for(self._connections.wait_until_not_empty(),
+                                   timeout=self._grace_period)
+            return False
+        except TimeoutError:
+            return True
 
-    def stop(self):
-        if self._grace_period is None:
-            return
-        self._grace_period.cancel()
-        self._grace_period = None
+    async def _wait_for_any(self, *coros):
+        _, p = await asyncio.wait(coros, return_when=asyncio.FIRST_COMPLETED)
+        for task in p:
+            task.cancel()
 
-    async def elapsed(self):
-        await self._ended.wait()
-
-    async def _grace_period_wait(self):
-        await asyncio.sleep(self._grace_period_time)
-        self._ended.set()
+    def force_end(self):
+        self._force_end.set()
 
 
 class Merger:
     def __init__(self, stream_builder, grace_period_time, merge_strategy,
                  canonical_stream):
         self._stream_builder = stream_builder
-        self._end_grace_period = GracePeriod(grace_period_time)
+        self._connections = AsyncSet()
+        self._lifetime = MergerLifetime(self._connections, grace_period_time)
         self._merge_strategy = merge_strategy
         self.canonical_stream = canonical_stream
-        self._streams = AsyncSet()
+        self._closing = False
         self._ended = Event()
         asyncio.ensure_future(self._finalize_after_ending())
-        # In case no connections arrive at all, we still want to end
-        # (e.g. exception between replay creation and reaching the merger
-        self._end_grace_period.start()
 
     @classmethod
     def build(cls, *, config_merger_grace_period_time,
@@ -70,18 +67,15 @@ class Merger:
     def _stream_lifetime(self, connection):
         stream = self._stream_builder(connection)
         self._merge_strategy.stream_added(stream)
-        self._streams.add(connection)
-        self._end_grace_period.stop()
+        self._connections.add(connection)
         try:
             yield stream
         finally:
             self._merge_strategy.stream_removed(stream)
-            self._streams.discard(connection)
-            if not self._streams:
-                self._end_grace_period.start()
+            self._connections.discard(connection)
 
     async def handle_connection(self, connection):
-        if self._end_grace_period.is_over():
+        if self._closing:
             raise CannotAcceptConnectionError(
                 "Writer connection arrived after replay writing finished")
         with self._stream_lifetime(connection) as stream:
@@ -92,10 +86,13 @@ class Merger:
                 self._merge_strategy.new_data(stream)
 
     def close(self):
-        self._end_grace_period.disable()
+        self._lifetime.force_end()
 
     async def _finalize_after_ending(self):
-        await self._end_grace_period.elapsed()
+        await self._lifetime.wait()
+        self._closing = True
+        await self._connections.wait_until_empty()
+
         self._merge_strategy.finalize()
         self.canonical_stream.finish()
         self._ended.set()

@@ -9,26 +9,6 @@ from replayserver.errors import MalformedDataError
 from replayserver.logging import logger
 
 
-class ReplayTimeout:
-    def __init__(self):
-        self._timeout = None
-
-    def set(self, timeout, cb):
-        if self._timeout is not None:
-            self.cancel()
-        self._timeout = asyncio.ensure_future(self._wait(timeout))
-        self._timeout.add_done_callback(
-            lambda f: cb() if not f.cancelled() else None)
-
-    async def _wait(self, timeout):
-        await asyncio.sleep(timeout)
-
-    def cancel(self):
-        if self._timeout is not None:
-            self._timeout.cancel()
-            self._timeout = None
-
-
 class Replay:
     def __init__(self, merger, sender, bookkeeper, timeout, game_id):
         self.merger = merger
@@ -36,10 +16,10 @@ class Replay:
         self.bookkeeper = bookkeeper
         self._game_id = game_id
         self._connections = set()
-        self._timeout = ReplayTimeout()
-        self._timeout.set(timeout, self.force_close)
+        self._timeout = timeout
         self._ended = Event()
         asyncio.ensure_future(self._replay_lifetime())
+        asyncio.ensure_future(self._force_close_if_timed_out())
 
     @classmethod
     def build(cls, game_id, bookkeeper, *, config_replay_forced_end_time,
@@ -71,7 +51,6 @@ class Replay:
                 raise MalformedDataError("Invalid connection type")
 
     def close(self):
-        self._timeout.cancel()
         self.merger.close()
         self.sender.close()
         for connection in self._connections:
@@ -81,13 +60,19 @@ class Replay:
         logger.info(f"Timeout - force-ending {self}")
         self.close()
 
+    async def _force_close_if_timed_out(self):
+        try:
+            await asyncio.wait_for(self.wait_for_ended(),
+                                   timeout=self._timeout)
+        except asyncio.TimeoutError:
+            self.force_close()
+
     async def _replay_lifetime(self):
         await self.merger.wait_for_ended()
         logger.debug(f"{self} write phase ended")
         await self.bookkeeper.save_replay(self._game_id,
                                           self.merger.canonical_stream)
         await self.sender.wait_for_ended()
-        self._timeout.cancel()
         self._ended.set()
         logger.debug(f"Lifetime of {self} ended")
 

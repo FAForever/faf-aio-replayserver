@@ -6,8 +6,7 @@ from asynctest.helpers import exhaust_callbacks
 from tests import timeout, fast_forward_time
 from replayserver.server.replay import Replay
 from replayserver.server.connection import ConnectionHeader
-from replayserver.errors import MalformedDataError, \
-    CannotAcceptConnectionError
+from replayserver.errors import MalformedDataError
 
 
 @pytest.fixture
@@ -78,6 +77,10 @@ async def test_replay_close_cancels_timeout(
     mock_sender.close.assert_called()
     mock_merger.close.reset_mock()
     mock_sender.close.reset_mock()
+
+    # Replay expects these to end after calling close
+    mock_merger._manual_end.set()
+    mock_sender._manual_end.set()
 
     await asyncio.sleep(20)
     exhaust_callbacks(event_loop)

@@ -29,7 +29,7 @@ class MergerLifetime:
             await asyncio.wait_for(self._count.wait_until_not_empty(),
                                    timeout=self._grace_period)
             return False
-        except TimeoutError:
+        except asyncio.TimeoutError:
             return True
 
     async def _wait_for_any(self, *coros):

@@ -5,8 +5,7 @@ from contextlib import contextmanager
 from replayserver.server.connection import ConnectionHeader
 from replayserver.send.sender import Sender
 from replayserver.receive.merger import Merger
-from replayserver.errors import MalformedDataError, \
-    CannotAcceptConnectionError
+from replayserver.errors import MalformedDataError
 from replayserver.logging import logger
 
 
@@ -37,7 +36,6 @@ class Replay:
         self.bookkeeper = bookkeeper
         self._game_id = game_id
         self._connections = set()
-        self._accepts_connections = True
         self._timeout = ReplayTimeout()
         self._timeout.set(timeout, self.force_close)
         self._ended = Event()
@@ -60,9 +58,6 @@ class Replay:
             self._connections.remove(connection)
 
     async def handle_connection(self, header, connection):
-        if not self._accepts_connections:
-            raise CannotAcceptConnectionError(
-                "Replay does not accept connections anymore")
         with self._track_connection(connection):
             if header.type == ConnectionHeader.Type.WRITER:
                 logger.debug(f"{self} - new writer connection")
@@ -76,7 +71,6 @@ class Replay:
                 raise MalformedDataError("Invalid connection type")
 
     def close(self):
-        self._accepts_connections = False
         self._timeout.cancel()
         self.merger.close()
         self.sender.close()
@@ -90,7 +84,6 @@ class Replay:
     async def _replay_lifetime(self):
         await self.merger.wait_for_ended()
         logger.debug(f"{self} write phase ended")
-        self._accepts_connections = False
         await self.bookkeeper.save_replay(self._game_id,
                                           self.merger.canonical_stream)
         await self.sender.wait_for_ended()

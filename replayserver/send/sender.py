@@ -3,7 +3,8 @@ from asyncio.locks import Event
 from contextlib import contextmanager
 
 from replayserver.send.stream import DelayedReplayStream
-from replayserver.errors import MalformedDataError
+from replayserver.errors import MalformedDataError, \
+    CannotAcceptConnectionError
 from replayserver.collections import AsyncCounter
 
 
@@ -28,6 +29,9 @@ class Sender:
             self._conn_count.dec()
 
     async def handle_connection(self, connection):
+        if self._stream.ended():
+            raise CannotAcceptConnectionError(
+                "Reader connection arrived after replay ended")
         with self._connection_count():
             await self._write_header(connection)
             await self._write_replay(connection)

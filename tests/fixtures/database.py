@@ -22,8 +22,9 @@ class MockDatabase:
         self._lock = Lock()
 
     async def mock_close(self):
-        await self._conn.rollback()
-        self._conn.close()
+        async with self._lock:
+            await self._conn.rollback()
+            self._conn.close()
 
     async def start(self):
         pass

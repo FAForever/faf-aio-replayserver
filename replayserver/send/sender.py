@@ -4,17 +4,15 @@ from contextlib import contextmanager
 
 from replayserver.send.stream import DelayedReplayStream
 from replayserver.errors import MalformedDataError
+from replayserver.collections import AsyncCounter
 
 
 class Sender:
     def __init__(self, delayed_stream):
         self._stream = delayed_stream
-        self._conn_count = 0
+        self._conn_count = AsyncCounter()
         self._ended = Event()
-        self._stream_end_check = asyncio.ensure_future(
-            self._stream.wait_for_ended())
-        self._stream_end_check.add_done_callback(
-            lambda f: None if f.cancelled() else self._check_ended())
+        asyncio.ensure_future(self._lifetime())
 
     @classmethod
     def build(cls, stream, **kwargs):
@@ -23,17 +21,11 @@ class Sender:
 
     @contextmanager
     def _connection_count(self):
-        self._conn_count += 1
+        self._conn_count.inc()
         try:
             yield
         finally:
-            self._conn_count -= 1
-            self._check_ended()
-
-    def _check_ended(self):
-        if self._conn_count == 0 and self._stream.ended():
-            self._stream_end_check.cancel()
-            self._ended.set()
+            self._conn_count.dec()
 
     async def handle_connection(self, connection):
         with self._connection_count():
@@ -59,6 +51,11 @@ class Sender:
 
     def close(self):
         pass
+
+    async def _lifetime(self):
+        await self._stream.wait_for_ended()
+        await self._conn_count.wait_until_empty()
+        self._ended.set()
 
     async def wait_for_ended(self):
         await self._ended.wait()

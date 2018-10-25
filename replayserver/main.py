@@ -76,6 +76,6 @@ def main():
         loop.run_until_complete(server.run())
         return 0
     except Exception as e:
-        logger.critical(f"Critical server error! {e.__class__}: {str(e)}")
+        logger.critical(f"Critical server error!")
         logger.exception(e)
         return 1

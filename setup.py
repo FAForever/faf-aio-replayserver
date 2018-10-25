@@ -16,7 +16,7 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.6",
     ],
-    author="Igor Kotrasiński",
+    author="Igor Kotrasiński, Konstantin Kalinovsky",
     author_email="i.kotrasinsk@gmail.com",
     url="https://github.com/FAForever/faf-aio-replayserver",
     keywords="FAForever replay server",

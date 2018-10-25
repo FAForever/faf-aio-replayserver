@@ -80,3 +80,21 @@ class AsyncSet(MutableSet, EmptyWaitMixin):
 
     def __len__(self):
         return len(self._set)
+
+
+class AsyncCounter(EmptyWaitMixin):
+    def __init__(self):
+        EmptyWaitMixin.__init__(self)
+        self._count = 0
+
+    def __bool__(self):
+        return bool(self._count)
+
+    def inc(self):
+        self._count += 1
+        self._is_not_empty()
+
+    def dec(self):
+        self._count -= 1
+        if not self:
+            self._is_empty()

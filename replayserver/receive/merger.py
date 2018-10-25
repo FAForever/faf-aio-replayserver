@@ -3,14 +3,14 @@ from asyncio.locks import Event
 from contextlib import contextmanager
 
 from replayserver.errors import CannotAcceptConnectionError
-from replayserver.collections import AsyncSet
+from replayserver.collections import AsyncCounter
 from replayserver.receive.stream import ConnectionReplayStream, \
     OutsideSourceReplayStream
 
 
 class MergerLifetime:
-    def __init__(self, connections, grace_period):
-        self._connections = connections
+    def __init__(self, count, grace_period):
+        self._count = count
         self._grace_period = grace_period
         self._force_end = Event()
 
@@ -20,13 +20,13 @@ class MergerLifetime:
 
     async def _no_connections_for_a_while(self):
         while True:
-            await self._connections.wait_until_empty()
+            await self._count.wait_until_empty()
             if (await self._grace_period_without_connections()):
                 return
 
     async def _grace_period_without_connections(self):
         try:
-            await asyncio.wait_for(self._connections.wait_until_not_empty(),
+            await asyncio.wait_for(self._count.wait_until_not_empty(),
                                    timeout=self._grace_period)
             return False
         except TimeoutError:
@@ -45,8 +45,8 @@ class Merger:
     def __init__(self, stream_builder, grace_period_time, merge_strategy,
                  canonical_stream):
         self._stream_builder = stream_builder
-        self._connections = AsyncSet()
-        self._lifetime = MergerLifetime(self._connections, grace_period_time)
+        self._stream_count = AsyncCounter()
+        self._lifetime = MergerLifetime(self._stream_count, grace_period_time)
         self._merge_strategy = merge_strategy
         self.canonical_stream = canonical_stream
         self._closing = False
@@ -67,12 +67,12 @@ class Merger:
     def _stream_lifetime(self, connection):
         stream = self._stream_builder(connection)
         self._merge_strategy.stream_added(stream)
-        self._connections.add(connection)
+        self._stream_count.inc()
         try:
             yield stream
         finally:
             self._merge_strategy.stream_removed(stream)
-            self._connections.discard(connection)
+            self._stream_count.dec()
 
     async def handle_connection(self, connection):
         if self._closing:
@@ -91,7 +91,7 @@ class Merger:
     async def _finalize_after_ending(self):
         await self._lifetime.wait()
         self._closing = True
-        await self._connections.wait_until_empty()
+        await self._stream_count.wait_until_empty()
 
         self._merge_strategy.finalize()
         self.canonical_stream.finish()

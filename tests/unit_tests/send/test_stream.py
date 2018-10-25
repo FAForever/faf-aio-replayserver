@@ -47,6 +47,7 @@ async def test_delayed_stream_header(outside_source_stream, mock_timestamp,
     assert not f.done()
 
     outside_source_stream.set_header("Header")
+    assert stream.header == "Header"
     await exhaust_callbacks(event_loop)
     assert f.done()
     h = await f
@@ -54,6 +55,16 @@ async def test_delayed_stream_header(outside_source_stream, mock_timestamp,
 
     mock_timestamp._end_stamps()
     await exhaust_callbacks(event_loop)
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_stream_ends_before_header(outside_source_stream, mock_timestamp,
+                                         event_loop):
+    stream = DelayedReplayStream(outside_source_stream, mock_timestamp)
+    outside_source_stream.finish()
+    mock_timestamp._end_stamps()
+    assert (await stream.wait_for_header()) is None
 
 
 @pytest.mark.asyncio
@@ -132,6 +143,8 @@ async def test_delayed_stream_data_methods(outside_source_stream,
 
     assert len(stream.data) == 3
     assert stream.data[1:] == b"bc"
+    assert stream.data[1:4] == b"bc"
+    assert stream.data[1:2] == b"b"
     assert stream.data.bytes() == b"abc"
 
     mock_timestamp._end_stamps()

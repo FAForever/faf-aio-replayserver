@@ -8,13 +8,13 @@ from replayserver.receive.stream import ConnectionReplayStream, \
     OutsideSourceReplayStream
 
 
-class MergerLifetime:
+class MergerEndCondition:
     def __init__(self, count, grace_period):
         self._count = count
         self._grace_period = grace_period
         self._force_end = Event()
 
-    async def wait(self):
+    async def wait_for_end(self):
         await self._wait_for_any(self._no_connections_for_a_while(),
                                  self._force_end.wait())
 
@@ -46,12 +46,13 @@ class Merger:
                  canonical_stream):
         self._stream_builder = stream_builder
         self._stream_count = AsyncCounter()
-        self._lifetime = MergerLifetime(self._stream_count, grace_period_time)
         self._merge_strategy = merge_strategy
         self.canonical_stream = canonical_stream
         self._closing = False
         self._ended = Event()
-        asyncio.ensure_future(self._finalize_after_ending())
+        self._end_condition = MergerEndCondition(self._stream_count,
+                                                 grace_period_time)
+        asyncio.ensure_future(self._lifetime())
 
     @classmethod
     def build(cls, *, config_merger_grace_period_time,
@@ -64,7 +65,7 @@ class Merger:
                    merge_strategy, canonical_replay)
 
     @contextmanager
-    def _stream_lifetime(self, connection):
+    def _stream_tracking(self, connection):
         stream = self._stream_builder(connection)
         self._merge_strategy.stream_added(stream)
         self._stream_count.inc()
@@ -78,7 +79,7 @@ class Merger:
         if self._closing:
             raise CannotAcceptConnectionError(
                 "Writer connection arrived after replay writing finished")
-        with self._stream_lifetime(connection) as stream:
+        with self._stream_tracking(connection) as stream:
             await stream.read_header()
             self._merge_strategy.new_header(stream)
             while not stream.ended():
@@ -86,13 +87,12 @@ class Merger:
                 self._merge_strategy.new_data(stream)
 
     def close(self):
-        self._lifetime.force_end()
+        self._end_condition.force_end()
 
-    async def _finalize_after_ending(self):
-        await self._lifetime.wait()
+    async def _lifetime(self):
+        await self._end_condition.wait_for_end()
         self._closing = True
         await self._stream_count.wait_until_empty()
-
         self._merge_strategy.finalize()
         self.canonical_stream.finish()
         self._ended.set()

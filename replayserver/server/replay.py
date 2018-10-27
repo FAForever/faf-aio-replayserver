@@ -39,16 +39,14 @@ class Replay:
 
     async def handle_connection(self, header, connection):
         with self._track_connection(connection):
+            logger.debug(f"{self} - new connection, {header}")
             if header.type == ConnectionHeader.Type.WRITER:
-                logger.debug(f"{self} - new writer connection")
                 await self.merger.handle_connection(connection)
-                logger.debug(f"{self} - writer connection done")
             elif header.type == ConnectionHeader.Type.READER:
-                logger.debug(f"{self} - new reader connection")
                 await self.sender.handle_connection(connection)
-                logger.debug(f"{self} - reader connection done")
             else:
                 raise MalformedDataError("Invalid connection type")
+            logger.debug(f"{self} - connection over, {header}")
 
     def close(self):
         self.merger.close()

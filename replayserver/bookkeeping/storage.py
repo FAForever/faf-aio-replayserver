@@ -3,6 +3,7 @@ import json
 import base64
 import struct
 import zlib
+import asyncio
 
 from replayserver.errors import BookkeepingError
 
@@ -53,8 +54,8 @@ class ReplaySaver:
         rfile = self._paths.get(game_id)
         try:
             with open(rfile, "wb") as f:
-                self._write_replay(f, info,
-                                   stream.header.data + stream.data.bytes())
+                await self._write_replay_in_thread(
+                    f, info, stream.header.data + stream.data.bytes())
         except IOError as e:
             raise BookkeepingError("Could not write to replay file") from e
 
@@ -84,6 +85,11 @@ class ReplaySaver:
     def _fixup_team_dict(self, d):
         # Replay format uses strings for teams for some reason
         return {str(t) if t is not None else "null": p for t, p in d.items()}
+
+    async def _write_replay_in_thread(self, rfile, info, data):
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            lambda: self._write_replay(rfile, info, data))
 
     def _write_replay(self, rfile, info, data):
         try:

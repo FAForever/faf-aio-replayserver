@@ -116,8 +116,7 @@ class DataEventMixin:
             await self._new_data_or_ended.wait()
         if position < len(self.data):
             return self.data[position:]
-        if self.ended():
-            return b""
+        return b""
 
 
 class EndedEventMixin:

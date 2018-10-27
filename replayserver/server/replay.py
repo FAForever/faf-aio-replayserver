@@ -18,7 +18,7 @@ class Replay:
         self._connections = set()
         self._timeout = timeout
         self._ended = Event()
-        asyncio.ensure_future(self._replay_lifetime())
+        asyncio.ensure_future(self._lifetime())
         self._force_close = asyncio.ensure_future(self._timeout_force_close())
 
     @classmethod
@@ -56,18 +56,15 @@ class Replay:
         for connection in self._connections:
             connection.close()
 
-    def force_close(self):
-        logger.info(f"Timeout - force-ending {self}")
-        self.close()
-
     async def _timeout_force_close(self):
         try:
             await asyncio.wait_for(self.wait_for_ended(),
                                    timeout=self._timeout)
         except asyncio.TimeoutError:
-            self.force_close()
+            logger.info(f"Timeout - force-ending {self}")
+            self.close()
 
-    async def _replay_lifetime(self):
+    async def _lifetime(self):
         await self.merger.wait_for_ended()
         logger.debug(f"{self} write phase ended")
         await self.bookkeeper.save_replay(self._game_id,

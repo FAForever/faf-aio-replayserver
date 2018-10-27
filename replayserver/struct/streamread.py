@@ -10,7 +10,7 @@ class GeneratorData:
 
     def more(self):
         if self._maxlen is not None and self._maxlen <= len(self.data):
-            raise ValueError
+            raise ValueError(f"Exceeded maximum read length {self._maxlen}")
         more_data = yield
         self.data += more_data
         return len(more_data)
@@ -18,7 +18,7 @@ class GeneratorData:
     def take(self, amount):
         next_pos = self.position + amount
         if self._maxlen is not None and next_pos > self._maxlen:
-            raise ValueError
+            raise ValueError(f"Exceeded maximum read length {self._maxlen}")
         data = self.data[self.position:next_pos]
         self.position += amount
         return data

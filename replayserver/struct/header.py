@@ -21,16 +21,16 @@ def read_value(gen, fmt, size):
     data = yield from read_exactly(gen, size)
     try:
         return struct.unpack(fmt, data)[0]
-    except struct.error:
-        raise ValueError
+    except struct.error as e:
+        raise ValueError from e
 
 
 def read_string(gen):
     data = yield from read_until(gen, b'\0')
     try:
         return data[:-1].decode()
-    except UnicodeDecodeError:
-        raise ValueError
+    except UnicodeDecodeError as e:
+        raise ValueError from e
 
 
 def read_lua_type(gen):
@@ -54,11 +54,11 @@ def read_lua_value(gen, lua_dict_depth=0, can_be_lua_end=False):
         if can_be_lua_end:
             return LuaType.LUA_END
         else:
-            raise ValueError
+            raise ValueError("Unexpected lua table end")
     elif type_ == LuaType.LUA:
         # Simple protection from malicious data making us recurse too much
         if lua_dict_depth > 30:
-            raise ValueError
+            raise ValueError("Exceeded maximum lua table nesting")
         result = {}
         while True:
             key = yield from read_lua_value(gen, lua_dict_depth + 1, True)
@@ -68,7 +68,7 @@ def read_lua_value(gen, lua_dict_depth=0, can_be_lua_end=False):
             if isinstance(key, dict):
                 # We could use some 'hashable dict' subclass here, but we
                 # never expect such oddities - let's just bail out safely
-                raise ValueError
+                raise ValueError("Lua tables as table keys are not supported")
             result[key] = value
 
 

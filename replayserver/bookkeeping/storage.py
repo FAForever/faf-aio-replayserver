@@ -89,7 +89,7 @@ class ReplaySaver:
     async def _write_replay_in_thread(self, rfile, info, data):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            lambda: self._write_replay(rfile, info, data))
+            None, lambda: self._write_replay(rfile, info, data))
 
     def _write_replay(self, rfile, info, data):
         try:

@@ -38,7 +38,11 @@ def read_lua_type(gen):
     return LuaType(type_)     # can raise ValueError
 
 
-def read_lua_value(gen, can_be_lua_end=False):
+def read_lua_value(gen, lua_dict_depth=0, can_be_lua_end=False):
+    # Simple protection from malicious data making us recurse too much
+    if lua_dict_depth > 30:
+        raise ValueError
+
     type_ = yield from read_lua_type(gen)
 
     if type_ == LuaType.NUMBER:
@@ -58,10 +62,10 @@ def read_lua_value(gen, can_be_lua_end=False):
     elif type_ == LuaType.LUA:
         result = {}
         while True:
-            key = yield from read_lua_value(gen, True)
+            key = yield from read_lua_value(gen, lua_dict_depth + 1, True)
             if key == LuaType.LUA_END:
                 return result
-            value = yield from read_lua_value(gen)
+            value = yield from read_lua_value(gen, lua_dict_depth + 1)
             if isinstance(key, dict):
                 # We could use some 'hashable dict' subclass here, but we
                 # never expect such oddities - let's just bail out safely

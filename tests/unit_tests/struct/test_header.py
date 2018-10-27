@@ -120,6 +120,17 @@ def test_lua_dict_odd_item_number():
         run_cor(header.read_lua_value, data)
 
 
+def test_lua_dict_prevent_huge_recursion():
+    # { nil: { nil: { ... nil: nil } ... }
+    data = (b"\4\2" * 2000) + b"\2" + (b"\5" * 2000)
+
+    # We can fail or parse successfully, just don't give us RecursionError
+    try:
+        run_cor(header.read_lua_value, data)
+    except ValueError:
+        pass
+
+
 # FIXME - this header has been generated *BY* the function being tested.
 # Make sure to replace this with independently generated data!
 EXAMPLE_HEADER = {

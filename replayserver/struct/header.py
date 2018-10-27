@@ -39,10 +39,6 @@ def read_lua_type(gen):
 
 
 def read_lua_value(gen, lua_dict_depth=0, can_be_lua_end=False):
-    # Simple protection from malicious data making us recurse too much
-    if lua_dict_depth > 30:
-        raise ValueError
-
     type_ = yield from read_lua_type(gen)
 
     if type_ == LuaType.NUMBER:
@@ -60,6 +56,9 @@ def read_lua_value(gen, lua_dict_depth=0, can_be_lua_end=False):
         else:
             raise ValueError
     elif type_ == LuaType.LUA:
+        # Simple protection from malicious data making us recurse too much
+        if lua_dict_depth > 30:
+            raise ValueError
         result = {}
         while True:
             key = yield from read_lua_value(gen, lua_dict_depth + 1, True)

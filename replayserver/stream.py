@@ -120,7 +120,6 @@ class DataEventMixin:
 
 
 class EndedEventMixin:
-    """ Useful when the class adds header via a coroutine. """
     def __init__(self):
         self._ended = Event()
 

@@ -11,6 +11,8 @@ async def clear_db(cursor):
         " AND table_schema = 'faf';")
     r = await cursor.fetchall()
     q = "\n".join([i[0] for i in r if "schema_version" not in i[0]])
+    if not q:
+        return
     await cursor.execute("SET FOREIGN_KEY_CHECKS=0;")
     await cursor.execute(q)
     await cursor.execute("SET FOREIGN_KEY_CHECKS=1;")

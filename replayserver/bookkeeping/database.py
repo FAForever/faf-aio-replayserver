@@ -86,13 +86,13 @@ class ReplayDatabaseQueries:
                 `map`.`display_name` as map_name,
                 `map_version`.`filename` AS file_name
             FROM `game_stats`
-            INNER JOIN `map`
+            LEFT JOIN `map`
               ON `game_stats`.`mapId` = `map`.`id`
-            INNER JOIN `map_version`
+            LEFT JOIN `map_version`
               ON `map_version`.`map_id` = `map`.`id`
-            INNER JOIN `login`
+            LEFT JOIN `login`
               ON `login`.id = `game_stats`.`host`
-            INNER JOIN  `game_featuredMods`
+            LEFT JOIN  `game_featuredMods`
               ON `game_stats`.`gameMod` = `game_featuredMods`.`id`
             WHERE `game_stats`.`id` = %s
         """
@@ -133,7 +133,7 @@ class ReplayDatabaseQueries:
                 `updates_{mod}_files`.`fileId` AS file_id,
                 MAX(`updates_{mod}_files`.`version`) AS version
             FROM `updates_{mod}`
-            LEFT JOIN `updates_{mod}_files` ON `fileId` = `updates_{mod}`.`id`
+            INNER JOIN `updates_{mod}_files` ON `fileId` = `updates_{mod}`.`id`
             GROUP BY `updates_{mod}_files`.`fileId`
         """.format(mod=mod)
         featured_mods = await self._db.execute(query)

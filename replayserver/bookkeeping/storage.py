@@ -78,7 +78,10 @@ class ReplaySaver:
         result['teams'] = self._fixup_team_dict(teams)
 
         game_mod = game_stats["featured_mod"]
-        featured_mods = await self._database.get_mod_versions(game_mod)
+        if game_mod is None:
+            featured_mods = {}
+        else:
+            featured_mods = await self._database.get_mod_versions(game_mod)
         result['featured_mod_versions'] = featured_mods
         return result
 

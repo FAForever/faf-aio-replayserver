@@ -102,8 +102,10 @@ class ReplayDatabaseQueries:
         """
         game_stats = await self._db.execute(query, (game_id,))
         player_count = await self._db.execute(player_query, (game_id,))
-        if not game_stats or not player_count:
-            raise BookkeepingError("No game stats found")
+        if not game_stats:
+            raise BookkeepingError(f"No stats found for game {game_id}")
+        if not player_count:
+            raise BookkeepingError(f"No players found for game {game_id}")
         start_time = game_stats[0]['start_time'].timestamp()
 
         # We might end a replay before end_time is set in the db!

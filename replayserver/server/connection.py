@@ -10,14 +10,19 @@ class Connection:
         self._closed = False
 
     async def read(self, size):
-        data = await self.reader.read(size)
-        return data
+        try:
+            data = await self.reader.read(size)
+            return data
+        except ConnectionError as e:
+            raise MalformedDataError("Connection error") from e
 
     async def readuntil(self, delim):
         try:
             return await self.reader.readuntil(delim)
         except (IncompleteReadError, LimitOverrunError):
             raise MalformedDataError(f"Failed to find {delim} in read data")
+        except ConnectionError as e:
+            raise MalformedDataError("Connection error") from e
 
     async def readexactly(self, amount):
         try:
@@ -25,12 +30,17 @@ class Connection:
         except IncompleteReadError:
             raise MalformedDataError(
                 f"Stream ended while reading exactly {amount}")
+        except ConnectionError as e:
+            raise MalformedDataError("Connection error") from e
 
     async def write(self, data):
         if self._closed:
             return False
-        self.writer.write(data)
-        await self.writer.drain()
+        try:
+            self.writer.write(data)
+            await self.writer.drain()
+        except ConnectionError as e:
+            raise MalformedDataError("Connection error") from e
         return True
 
     def close(self):

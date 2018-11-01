@@ -1,5 +1,6 @@
 import asyncio
 
+from replayserver import metrics
 from replayserver.collections import AsyncDict
 from replayserver.server.replay import Replay
 from replayserver.server.connection import ConnectionHeader
@@ -42,11 +43,13 @@ class Replays:
         self._replays[game_id] = replay
         asyncio.ensure_future(self._remove_replay_when_done(game_id, replay))
         logger.debug(f"New Replay created: id {game_id}")
+        metrics.running_replays.inc()
 
     async def _remove_replay_when_done(self, game_id, replay):
         await replay.wait_for_ended()
         self._replays.pop(game_id, None)
         logger.debug(f"Replay removed: id {game_id}")
+        metrics.running_replays.dec()
 
     async def stop_all(self):
         logger.info("Stopping all replays")

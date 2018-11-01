@@ -1,3 +1,5 @@
+from replayserver import metrics
+
 from replayserver.collections import AsyncSet
 from replayserver.errors import BadConnectionError
 from replayserver.server.connection import ConnectionHeader
@@ -15,6 +17,7 @@ class Connections:
         return cls(ConnectionHeader.read, replays)
 
     async def handle_connection(self, connection):
+        metrics.active_connections.inc()
         self._connections.add(connection)
         try:
             header = await self._header_read(connection)
@@ -25,6 +28,7 @@ class Connections:
         finally:
             self._connections.remove(connection)
             connection.close()
+            metrics.active_connections.dec()
 
     def close_all(self):
         logger.info("Closing all connections")

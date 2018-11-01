@@ -15,21 +15,23 @@ def eget(*args, **kwargs):
 
 
 def get_config_from_env():
+    MISSING = object()
     env_config = {
         "merger_grace_period_time": ("REPLAY_GRACE_PERIOD", 30, int),
         "replay_merge_strategy":
-            ("REPLAY_MERGE_STRATEGY", "FOLLOW_STREAM", MergeStrategies),
+            ("REPLAY_MERGE_STRATEGY", MergeStrategies.FOLLOW_STREAM,
+             MergeStrategies),
         "mergestrategy_stall_check_period":
             ("MERGESTRATEGY_MAX_STALL_TIME", 60, int),
         "sent_replay_delay": ("REPLAY_DELAY", 5 * 60, int),
         "replay_forced_end_time": ("REPLAY_FORCE_END_TIME", 5 * 60 * 60, int),
         "server_port": ("PORT", 15000, int),
-        "db_host": ("MYSQL_HOST", None, str),
-        "db_port": ("MYSQL_PORT", None, int),
-        "db_user": ("MYSQL_USER", None, str),
-        "db_password": ("MYSQL_PASSWORD", None, str),
-        "db_name": ("MYSQL_DB", None, str),
-        "replay_store_path": ("REPLAY_DIR", None, str),
+        "db_host": ("MYSQL_HOST", MISSING, str),
+        "db_port": ("MYSQL_PORT", MISSING, int),
+        "db_user": ("MYSQL_USER", MISSING, str),
+        "db_password": ("MYSQL_PASSWORD", MISSING, str),
+        "db_name": ("MYSQL_DB", MISSING, str),
+        "replay_store_path": ("REPLAY_DIR", MISSING, str),
         "sent_replay_position_update_interval":
             ("SENT_REPLAY_UPDATE_INTERVAL", 1, int),
         "prometheus_port": ("PROMETHEUS_PORT", None, int),
@@ -38,14 +40,17 @@ def get_config_from_env():
     config = {}
     for k, v in env_config.items():
         env_name, env_default, env_type = v
-        config[k] = eget(env_name, env_default)
-        if config[k] is None:
-            raise ValueError((f"Missing config key: {k}. "
-                              f"Set it using env var {env_name}."))
-        try:
-            config[k] = v[2](config[k])
-        except ValueError as e:
-            raise ValueError(f"Invalid value for {k} ({env_name}) - {str(e)}")
+        env_value = eget(env_name, None)
+        if env_value is None:
+            if env_default is MISSING:
+                raise ValueError((f"Missing config key: {k}. "
+                                  f"Set it using env var {env_name}."))
+            config[k] = env_default
+        else:
+            try:
+                config[k] = v[2](env_value)
+            except ValueError as e:
+                raise ValueError(f"Bad value for {k} ({env_name}) - {str(e)}")
     config = {"config_" + k: v for k, v in config.items()}
     return config
 

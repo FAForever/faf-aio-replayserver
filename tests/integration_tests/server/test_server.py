@@ -71,8 +71,8 @@ async def test_server_replay_force_end(mock_database, tmpdir):
     conf = dict(config)
     conf["config_server_port"] = 15002
     conf["config_replay_store_path"] = str(tmpdir)
-    conf["config_replay_forced_end_time"] = 3
-    conf["config_replay_delay"] = 1
+    conf["config_replay_forced_end_time"] = 1
+    conf["config_replay_delay"] = 0.5
 
     await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
     server = Server.build(dep_database=lambda **kwargs: mock_database,
@@ -85,7 +85,7 @@ async def test_server_replay_force_end(mock_database, tmpdir):
         w.write(example_replay.header_data)
         while True:
             w.write(b"foo")
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
 
     writing = asyncio.ensure_future(write_forever())
     rep = await server._replays.wait_for_replay(1)
@@ -116,10 +116,10 @@ async def test_server_force_close_server(mock_database, tmpdir):
         w.write(example_replay.header_data)
         while True:
             w.write(b"foo")
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
 
     writing = asyncio.ensure_future(write_forever())
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.5)
     await server.stop()
     writing.cancel()
     with pytest.raises(ConnectionRefusedError):
@@ -135,7 +135,7 @@ async def test_server_force_close_server(mock_database, tmpdir):
 @timeout(5)
 async def test_server_reader_is_delayed(mock_database, tmpdir):
     conf = dict(config)
-    conf["config_sent_replay_delay"] = 1
+    conf["config_sent_replay_delay"] = 0.5
     conf["config_server_port"] = 15004
     conf["config_replay_store_path"] = str(tmpdir)
 
@@ -158,7 +158,7 @@ async def test_server_reader_is_delayed(mock_database, tmpdir):
         while True:
             w.write(b"f" * CHUNK)
             written_data += b"f" * CHUNK
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
 
     async def read_forever():
         nonlocal read_data
@@ -173,7 +173,7 @@ async def test_server_reader_is_delayed(mock_database, tmpdir):
     writing = asyncio.ensure_future(read_forever())
 
     for i in range(20):
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.05)
         assert len(read_data) <= max(len(written_data) - 5 * CHUNK,
                                      len(example_replay.header_data))
         assert len(read_data) >= len(written_data) - 15 * CHUNK
@@ -191,7 +191,7 @@ async def test_server_stress_test(mock_database, tmpdir):
     conf["config_server_port"] = 15005
     conf["prometheus_port"] = 16005
     conf["config_replay_store_path"] = str(tmpdir)
-    conf["config_sent_replay_delay"] = 1
+    conf["config_sent_replay_delay"] = 0.5
 
     for i in range(1, 50):
         await mock_database.add_mock_game((i, 1, 1), [(1, 1), (2, 2)])
@@ -205,7 +205,7 @@ async def test_server_stress_test(mock_database, tmpdir):
         for pos in range(0, len(example_replay.data), 4000):
             w.write(example_replay.data[pos:pos+4000])
             await w.drain()
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
         w.close()
 
     async def do_read(r, w, i):
@@ -223,5 +223,5 @@ async def test_server_stress_test(mock_database, tmpdir):
             r, w = await asyncio.open_connection('127.0.0.1', 15005)
             asyncio.ensure_future(do_read(r, w, i))
 
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.5)
     await server._connections.wait_until_empty()

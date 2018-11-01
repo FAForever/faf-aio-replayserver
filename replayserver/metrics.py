@@ -14,5 +14,5 @@ finished_replays = Counter(
     "replayserver_finished_replays_total",
     "Number of replays ran to completion.")
 saved_replays = Counter(
-    "replayserver_finished_replays_total",
+    "replayserver_saved_replay_files_total",
     "Total replays successfully saved to disk.")

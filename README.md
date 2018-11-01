@@ -38,6 +38,9 @@ As well as all kinds of special conditions we need to watch out for, e.g.:
 * Connection shenanigans, like a 'replay watcher' type connection arriving while
   nobody is streaming a given replay, or 'replay sender' type connections
   arriving in an unexpected order,
+* Connection stalling - it's not uncommon for connection from the game to never
+  get closed on the other end, but at the same time there are valid reasons for
+  connections to resume after dozens of minutes,
 * Ability to 'force' an end to a replay if it was taking way too long (e.g. 5
   hours).
 

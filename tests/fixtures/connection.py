@@ -8,10 +8,11 @@ __all__ = ["mock_connections", "controlled_connections"]
 
 
 class ControlledConnection:
-    def __init__(self, data, limit):
+    def __init__(self, data, limit, leave_open=False):
         self._reader = StreamReader(limit)
         self._reader.feed_data(data)
-        self._reader.feed_eof()
+        if not leave_open:
+            self._reader.feed_eof()
         self._mock_write_data = b""
 
     def get_mock_write_data(self):
@@ -53,8 +54,8 @@ def mock_connections():
 
 @pytest.fixture
 def controlled_connections():
-    def build(data, limit=100000000):
-        conn = ControlledConnection(data, limit)
+    def build(data, limit=100000000, leave_open=False):
+        conn = ControlledConnection(data, limit, leave_open)
         return asynctest.Mock(wraps=conn, spec=conn)
 
     return build

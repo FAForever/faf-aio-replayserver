@@ -1,4 +1,5 @@
 from enum import Enum
+import asyncio
 from asyncio.streams import IncompleteReadError, LimitOverrunError
 from replayserver.errors import MalformedDataError
 
@@ -63,7 +64,14 @@ class ConnectionHeader:
         return f"{self.type.value} for {self.game_id} ({self.game_name})"
 
     @classmethod
-    async def read(cls, connection):
+    async def read(cls, connection, timeout=60):    # FIXME - hardcoded
+        try:
+            return await asyncio.wait_for(cls._do_read(connection), timeout)
+        except asyncio.TimeoutError:
+            raise MalformedDataError("Timed out while reading header")
+
+    @classmethod
+    async def _do_read(cls, connection):
         type_ = await cls._read_type(connection)
         game_id, game_name = await cls._read_game_data(connection)
         return cls(type_, game_id, game_name)

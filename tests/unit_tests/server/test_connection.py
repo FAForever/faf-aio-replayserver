@@ -2,7 +2,7 @@ import pytest
 import asynctest
 from asyncio.streams import StreamReader, StreamWriter
 
-from tests import timeout
+from tests import timeout, fast_forward_time
 from replayserver.server.connection import Connection, ConnectionHeader
 from replayserver.errors import MalformedDataError
 
@@ -210,5 +210,15 @@ async def test_connection_replay_info_limit_overrun(controlled_connections):
 @timeout(1)
 async def test_connection_replay_info_negative_id(controlled_connections):
     mock_conn = controlled_connections(b"G/-1/foo\0")
+    with pytest.raises(MalformedDataError):
+        await ConnectionHeader.read(mock_conn)
+
+
+@fast_forward_time(1, 200)
+@pytest.mark.asyncio
+@timeout(120)
+async def test_connection_header_read_times_out(event_loop,
+                                                controlled_connections):
+    mock_conn = controlled_connections(b"G/-1/fo", leave_open=True)
     with pytest.raises(MalformedDataError):
         await ConnectionHeader.read(mock_conn)

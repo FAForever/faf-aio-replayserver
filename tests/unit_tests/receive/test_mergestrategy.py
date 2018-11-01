@@ -21,7 +21,8 @@ general_test_strats = [MergeStrategies.GREEDY, MergeStrategies.FOLLOW_STREAM]
 
 @pytest.mark.parametrize("strategy", general_test_strats)
 def test_strategy_ends_stream_when_finalized(strategy, outside_source_stream):
-    strat = strategy.build(outside_source_stream)
+    strat = strategy.build(outside_source_stream,
+                           config_mergestrategy_stall_check_period=60)
     stream1 = MockStream()
     strat.stream_added(stream1)
     strat.stream_removed(stream1)
@@ -31,7 +32,8 @@ def test_strategy_ends_stream_when_finalized(strategy, outside_source_stream):
 
 @pytest.mark.parametrize("strategy", general_test_strats)
 def test_strategy_picks_at_least_one_header(strategy, outside_source_stream):
-    strat = strategy.build(outside_source_stream)
+    strat = strategy.build(outside_source_stream,
+                           config_mergestrategy_stall_check_period=60)
     stream1 = MockStream()
     stream2 = MockStream()
     stream2._header = "Header"
@@ -47,7 +49,8 @@ def test_strategy_picks_at_least_one_header(strategy, outside_source_stream):
 
 @pytest.mark.parametrize("strategy", general_test_strats)
 def test_strategy_gets_all_data_of_one(strategy, outside_source_stream):
-    strat = strategy.build(outside_source_stream)
+    strat = strategy.build(outside_source_stream,
+                           config_mergestrategy_stall_check_period=60)
     stream1 = MockStream()
     stream1._header = "Header"
 
@@ -68,7 +71,8 @@ def test_strategy_gets_all_data_of_one(strategy, outside_source_stream):
 
 @pytest.mark.parametrize("strategy", general_test_strats)
 def test_strategy_gets_common_prefix_of_all(strategy, outside_source_stream):
-    strat = strategy.build(outside_source_stream)
+    strat = strategy.build(outside_source_stream,
+                           config_mergestrategy_stall_check_period=60)
     stream1 = MockStream()
     stream2 = MockStream()
     stream2._header = "Header"
@@ -97,7 +101,8 @@ def test_strategy_gets_common_prefix_of_all(strategy, outside_source_stream):
 @pytest.mark.parametrize("strategy", [MergeStrategies.FOLLOW_STREAM])
 def test_strategy_follow_stream_later_has_more_data(strategy,
                                                     outside_source_stream):
-    strat = strategy.build(outside_source_stream)
+    strat = strategy.build(outside_source_stream,
+                           config_mergestrategy_stall_check_period=60)
     stream1 = MockStream()
     stream2 = MockStream()
     stream2._header = "Header"
@@ -120,7 +125,8 @@ def test_strategy_follow_stream_later_has_more_data(strategy,
 @pytest.mark.parametrize("strategy", [MergeStrategies.FOLLOW_STREAM])
 def test_strategy_follow_stream_new_tracked_stream_diverges(
         strategy, outside_source_stream):
-    strat = strategy.build(outside_source_stream)
+    strat = strategy.build(outside_source_stream,
+                           config_mergestrategy_stall_check_period=60)
     stream1 = MockStream()
     stream2 = MockStream()
     stream2._header = "Header"

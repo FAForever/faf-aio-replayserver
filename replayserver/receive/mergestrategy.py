@@ -1,4 +1,5 @@
 from enum import Enum
+import asyncio
 
 
 class MergeStrategies(Enum):
@@ -96,9 +97,10 @@ class FollowStreamMergeStrategy(MergeStrategy):
     This strategy guarantees that the sink will equal a stream which is not a
     prefix of any other (a "maximal" stream). It does NOT guarantee that a most
     common stream will be picked, so if a replay we track diverges and
-    terminates early, tough luck. It also does not protect against a stream
-    that stalls.
-    This is the strategy of the original replay server.
+    terminates early, tough luck. It does, however, protect against a stream
+    that stalls by periodically checking if any new data has been sent and
+    switching to another stream if it hasn't.
+    This is roughly the strategy of the original replay server.
 
     Invariants:
     0. Streams match iif one's data is a prefix of the other's.
@@ -109,14 +111,17 @@ class FollowStreamMergeStrategy(MergeStrategy):
        when we check if a stream is fit to be tracked.
     5. After finalize(), ALL streams either diverge or are prefices of sink.
     """
-    def __init__(self, sink_stream):
+    def __init__(self, sink_stream, mergestrategy_stall_check_period):
         MergeStrategy.__init__(self, sink_stream)
         self._candidates = {}
         self._tracked = None
+        self._stalling_watchdog = asyncio.ensure_future(
+            self._guard_against_stalling(mergestrategy_stall_check_period))
 
     @classmethod
-    def build(cls, sink_stream, **kwargs):
-        return cls(sink_stream)
+    def build(cls, sink_stream, *, config_mergestrategy_stall_check_period,
+              **kwargs):
+        return cls(sink_stream, config_mergestrategy_stall_check_period)
 
     def _is_ahead_of_sink(self, stream):
         return len(stream.data) > len(self.sink_stream.data)
@@ -164,6 +169,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
             self._feed_sink()
 
     def finalize(self):
+        self._stalling_watchdog.cancel()
         # Check any ended streams we saved for later
         while self._tracked is not None:
             self.stream_removed(self._tracked)
@@ -173,3 +179,23 @@ class FollowStreamMergeStrategy(MergeStrategy):
     def new_header(self, stream):
         if self.sink_stream.header is None:
             self.sink_stream.set_header(stream.header)
+
+    async def _guard_against_stalling(self, stall_check_period):
+        """
+        Stops tracking a stream if it didn't advance for stall_check_period
+        seconds, possibly finding a better one.
+        This will always let us advance further if possible - the stream we
+        just removed won't get picked again, since a stream needs to be
+        strictly ahead of the sink to be eligible (and a tracked stream is
+        always equal with it). Either we'll immediately pick a stream that's
+        further ahead or won't track until first eligible stream appears.
+        """
+        current_pos = len(self.sink_stream.data)
+        previous_pos = current_pos
+        while True:
+            previous_pos = current_pos
+            await asyncio.sleep(stall_check_period)
+            current_pos = len(self.sink_stream.data)
+            if current_pos == previous_pos and self._tracked is not None:
+                self._tracked = None
+                self._find_new_stream()

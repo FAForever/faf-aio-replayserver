@@ -126,7 +126,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
     def _is_ahead_of_sink(self, stream):
         return len(stream.data) > len(self.sink_stream.data)
 
-    def _fits_tracking_conditions(self, stream):
+    def _eligible_for_tracking(self, stream):
         if not self._is_ahead_of_sink(stream):
             return False
         self._check_for_divergence(stream)
@@ -146,7 +146,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
 
     def _find_new_stream(self):
         for stream in list(self._candidates.keys()):
-            if self._fits_tracking_conditions(stream):
+            if self._eligible_for_tracking(stream):
                 self._tracked = stream
                 break
         self._feed_sink()
@@ -163,7 +163,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
             self._find_new_stream()
 
     def new_data(self, stream):
-        if self._tracked is None and self._fits_tracking_conditions(stream):
+        if self._tracked is None and self._eligible_for_tracking(stream):
             self._tracked = stream
         if stream is self._tracked:
             self._feed_sink()

@@ -1,5 +1,7 @@
 import pytest
+import asyncio
 
+from tests import fast_forward_time
 from replayserver.receive.mergestrategy import MergeStrategies
 from replayserver.stream import ReplayStream, ConcreteDataMixin
 
@@ -143,3 +145,47 @@ def test_strategy_follow_stream_new_tracked_stream_diverges(
     strat.stream_removed(stream2)
     strat.finalize()
     assert outside_source_stream.data.bytes() == b"Data and stuff"
+
+
+@fast_forward_time(10, 0.1)
+@pytest.mark.asyncio
+@pytest.mark.parametrize("strategy", [MergeStrategies.FOLLOW_STREAM])
+async def test_strategy_follow_stream_deals_with_stalled_connections(
+        event_loop, strategy, outside_source_stream):
+    strat = strategy.build(outside_source_stream,
+                           config_mergestrategy_stall_check_period=3)
+    stalled_stream = MockStream()
+    ahead_stream = MockStream()
+
+    stalled_stream._header = "Header"
+    stalled_stream._data += b"a" * 10
+    strat.stream_added(stalled_stream)
+    strat.new_header(stalled_stream)
+    strat.new_data(stalled_stream)
+
+    # Check that we're tracking the stalled stream
+    assert outside_source_stream.data.bytes() == b"a" * 10
+
+    ahead_stream._header = "Header"
+    strat.stream_added(ahead_stream)
+    strat.new_header(ahead_stream)
+
+    for i in range(20):
+        await asyncio.sleep(0.1)
+        ahead_stream._data += b"a"
+        strat.new_data(ahead_stream)
+
+    # We should still be tracking the stalled stream
+    assert outside_source_stream.data.bytes() == b"a" * 10
+
+    for i in range(40):
+        await asyncio.sleep(0.1)
+        ahead_stream._data += b"a"
+        strat.new_data(ahead_stream)
+
+    # By now we should've switched
+    assert outside_source_stream.data.bytes() == b"a" * 60
+
+    strat.stream_removed(stalled_stream)
+    strat.stream_removed(ahead_stream)
+    strat.finalize()

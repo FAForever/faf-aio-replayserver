@@ -17,19 +17,28 @@ class Connections:
         return cls(ConnectionHeader.read, replays)
 
     async def handle_connection(self, connection):
-        metrics.active_connections.inc()
         self._connections.add(connection)
         try:
-            header = await self._header_read(connection)
-            logger.debug(f"Accepted new connection: {header}")
-            await self._replays.handle_connection(header, connection)
+            header = await self._handle_initial_data(connection)
+            await self._pass_control_to_replays(connection, header)
         except BadConnectionError as e:
             logger.info(f"Bad connection was dropped; {e.__class__}: {str(e)}")
         finally:
             self._connections.remove(connection)
             connection.close()
-            metrics.active_connections.dec()
-            metrics.served_connections.inc()
+            metrics.served_conns.inc()
+
+    async def _handle_initial_data(self, connection):
+        metric = metrics.active_conns.labels(category="initial")
+        with metrics.track(metric):
+            header = await self._header_read(connection)
+            logger.debug(f"Accepted new connection: {header}")
+            return header
+
+    async def _pass_control_to_replays(self, connection, header):
+        metric = metrics.active_conns.labels(category=header.type.value)
+        with metrics.track(metric):
+            await self._replays.handle_connection(header, connection)
 
     def close_all(self):
         logger.info("Closing all connections")

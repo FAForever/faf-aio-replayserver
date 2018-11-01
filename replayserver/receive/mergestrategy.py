@@ -111,7 +111,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
     """
     def __init__(self, sink_stream):
         MergeStrategy.__init__(self, sink_stream)
-        self._matching = {}
+        self._candidates = {}
         self._tracked = None
 
     @classmethod
@@ -125,13 +125,13 @@ class FollowStreamMergeStrategy(MergeStrategy):
         if not self._is_ahead_of_sink(stream):
             return False
         self._check_for_divergence(stream)
-        return stream in self._matching
+        return stream in self._candidates
 
     def _check_for_divergence(self, stream):
-        check = self._matching[stream]
+        check = self._candidates[stream]
         check.check_divergence()
         if check.diverges:
-            del self._matching[stream]
+            del self._candidates[stream]
 
     def _feed_sink(self):
         if self._tracked is None:
@@ -140,21 +140,21 @@ class FollowStreamMergeStrategy(MergeStrategy):
         self.sink_stream.feed_data(self._tracked.data[sink_len:])
 
     def _find_new_stream(self):
-        for stream in list(self._matching.keys()):
+        for stream in list(self._candidates.keys()):
             if self._fits_tracking_conditions(stream):
                 self._tracked = stream
                 break
         self._feed_sink()
 
     def stream_added(self, stream):
-        self._matching[stream] = DivergenceTracking(stream, self.sink_stream)
+        self._candidates[stream] = DivergenceTracking(stream, self.sink_stream)
 
     def stream_removed(self, stream):
         # Don't remove a not-tracked stream - it might have more data that
         # matches currently tracked stream, in case it ends short!
         if stream is self._tracked:
             self._tracked = None
-            self._matching.pop(stream, None)
+            self._candidates.pop(stream, None)
             self._find_new_stream()
 
     def new_data(self, stream):
@@ -167,7 +167,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
         # Check any ended streams we saved for later
         while self._tracked is not None:
             self.stream_removed(self._tracked)
-        self._matching.clear()
+        self._candidates.clear()
         self.sink_stream.finish()
 
     def new_header(self, stream):

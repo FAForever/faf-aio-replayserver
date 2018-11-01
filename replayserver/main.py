@@ -32,6 +32,7 @@ def get_config_from_env():
         "replay_store_path": ("REPLAY_DIR", None, str),
         "sent_replay_position_update_interval":
             ("SENT_REPLAY_UPDATE_INTERVAL", 1, int),
+        "prometheus_port": ("PROMETHEUS_PORT", None, int),
     }
 
     config = {}

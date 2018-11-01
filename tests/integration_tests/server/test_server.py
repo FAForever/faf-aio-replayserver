@@ -20,7 +20,8 @@ config = {
     "db_user": docker_faf_db_config["user"],
     "db_password": docker_faf_db_config["password"],
     "db_name":     docker_faf_db_config["db"],
-    "replay_store_path": "/tmp/replaceme"
+    "replay_store_path": "/tmp/replaceme",
+    "prometheus_port": None
 }
 config = {"config_" + k: v for k, v in config.items()}
 
@@ -42,6 +43,7 @@ async def assert_connection_closed(r, w):
 async def test_server_single_connection(mock_database, tmpdir):
     conf = dict(config)
     conf["config_server_port"] = 15001
+    conf["prometheus_port"] = 16001
     conf["config_replay_store_path"] = str(tmpdir)
 
     await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
@@ -187,6 +189,7 @@ async def test_server_reader_is_delayed(mock_database, tmpdir):
 async def test_server_stress_test(mock_database, tmpdir):
     conf = dict(config)
     conf["config_server_port"] = 15005
+    conf["prometheus_port"] = 16005
     conf["config_replay_store_path"] = str(tmpdir)
     conf["config_sent_replay_delay"] = 1
 

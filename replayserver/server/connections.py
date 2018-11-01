@@ -21,12 +21,13 @@ class Connections:
         try:
             header = await self._handle_initial_data(connection)
             await self._pass_control_to_replays(connection, header)
+            metrics.served_conns.labels(result="Success").inc()
         except BadConnectionError as e:
             logger.info(f"Bad connection was dropped; {e.__class__}: {str(e)}")
+            metrics.served_conns.labels(result=e.type_name()).inc()
         finally:
             self._connections.remove(connection)
             connection.close()
-            metrics.served_conns.inc()
 
     async def _handle_initial_data(self, connection):
         metric = metrics.active_conns.labels(category="initial")

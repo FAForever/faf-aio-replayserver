@@ -1,6 +1,7 @@
 class BadConnectionError(Exception):
     """Superclass for things a connection can do wrong."""
-    pass
+    def type_name(self):
+        return type(self).__name__
 
 
 class MalformedDataError(BadConnectionError):

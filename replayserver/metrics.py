@@ -8,7 +8,8 @@ active_conns = Gauge(
     ["category"])
 served_conns = Counter(
     "replayserver_served_connections_total",
-    "How many connections we served to completion, including failures.")
+    "How many connections we served to completion.",
+    ["result"])
 
 running_replays = Gauge(
     "replayserver_running_replays_count",

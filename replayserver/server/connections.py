@@ -29,6 +29,7 @@ class Connections:
             self._connections.remove(connection)
             connection.close()
             metrics.active_connections.dec()
+            metrics.served_connections.inc()
 
     def close_all(self):
         logger.info("Closing all connections")

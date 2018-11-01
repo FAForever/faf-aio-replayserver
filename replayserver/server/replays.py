@@ -50,6 +50,7 @@ class Replays:
         self._replays.pop(game_id, None)
         logger.debug(f"Replay removed: id {game_id}")
         metrics.running_replays.dec()
+        metrics.finished_replays.inc()
 
     async def stop_all(self):
         logger.info("Stopping all replays")

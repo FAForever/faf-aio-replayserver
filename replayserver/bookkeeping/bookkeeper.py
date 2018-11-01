@@ -2,6 +2,7 @@ from replayserver.errors import BookkeepingError
 from replayserver.bookkeeping.storage import ReplaySaver
 from replayserver.bookkeeping.database import ReplayDatabaseQueries
 from replayserver.logging import logger
+from replayserver import metrics
 
 
 class Bookkeeper:
@@ -20,5 +21,6 @@ class Bookkeeper:
             logger.debug(f"Saving replay {game_id}")
             await self._saver.save_replay(game_id, stream)
             logger.debug(f"Saved replay {game_id}")
+            metrics.saved_replays.inc()
         except BookkeepingError as e:
             logger.warn(f"Failed to save replay for game {game_id}: {e}")

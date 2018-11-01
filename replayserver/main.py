@@ -19,7 +19,7 @@ def get_config_from_env():
         "merger_grace_period_time": ("REPLAY_GRACE_PERIOD", 30, int),
         "replay_merge_strategy":
             ("REPLAY_MERGE_STRATEGY", "FOLLOW_STREAM", MergeStrategies),
-        "mergestrategy__stall_check_period":
+        "mergestrategy_stall_check_period":
             ("MERGESTRATEGY_MAX_STALL_TIME", 60, int),
         "sent_replay_delay": ("REPLAY_DELAY", 5 * 60, int),
         "replay_forced_end_time": ("REPLAY_FORCE_END_TIME", 5 * 60 * 60, int),

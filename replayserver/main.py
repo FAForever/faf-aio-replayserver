@@ -22,7 +22,7 @@ def get_config_from_env():
             ("REPLAY_MERGE_STRATEGY", MergeStrategies.FOLLOW_STREAM,
              MergeStrategies),
         "mergestrategy_stall_check_period":
-            ("MERGESTRATEGY_MAX_STALL_TIME", 60, int),
+            ("MERGESTRATEGY_STALL_CHECK_PERIOD", 60, int),
         "sent_replay_delay": ("REPLAY_DELAY", 5 * 60, int),
         "replay_forced_end_time": ("REPLAY_FORCE_END_TIME", 5 * 60 * 60, int),
         "server_port": ("PORT", 15000, int),

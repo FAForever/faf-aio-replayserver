@@ -1,5 +1,6 @@
 from enum import Enum
 import asyncio
+from replayserver.logging import logger
 
 
 class MergeStrategies(Enum):
@@ -114,7 +115,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
     def __init__(self, sink_stream, mergestrategy_stall_check_period):
         MergeStrategy.__init__(self, sink_stream)
         self._candidates = {}
-        self._tracked = None
+        self._tracked_value = None
         self._stalling_watchdog = asyncio.ensure_future(
             self._guard_against_stalling(mergestrategy_stall_check_period))
 
@@ -122,6 +123,18 @@ class FollowStreamMergeStrategy(MergeStrategy):
     def build(cls, sink_stream, *, config_mergestrategy_stall_check_period,
               **kwargs):
         return cls(sink_stream, config_mergestrategy_stall_check_period)
+
+    @property
+    def _tracked(self):
+        return self._tracked_value
+
+    @_tracked.setter
+    def _tracked(self, val):
+        if self._tracked_value is not None:
+            logger.debug(f"Stopped tracking {self._tracked}")
+        self._tracked_value = val
+        if self._tracked_value is not None:
+            logger.debug(f"Started tracking {self._tracked}")
 
     def _is_ahead_of_sink(self, stream):
         return len(stream.data) > len(self.sink_stream.data)
@@ -136,6 +149,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
         check = self._candidates[stream]
         check.check_divergence()
         if check.diverges:
+            logger.debug("f{stream} diverges from canonical stream, removing")
             del self._candidates[stream]
 
     def _feed_sink(self):
@@ -197,5 +211,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
             await asyncio.sleep(stall_check_period)
             current_pos = len(self.sink_stream.data)
             if current_pos == previous_pos and self._tracked is not None:
+                logger.debug((f"{self._tracked} has been stalling for"
+                              f"{stall_check_period}s - stopping tracking"))
                 self._tracked = None
                 self._find_new_stream()

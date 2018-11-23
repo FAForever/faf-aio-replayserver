@@ -44,6 +44,9 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
         self._data += data
         self._signal_new_data_or_ended()
 
+    def __str__(self):
+        return f"{self._connection}"
+
 
 class OutsideSourceReplayStream(ConcreteDataMixin, DataEventMixin,
                                 HeaderEventMixin, EndedEventMixin,

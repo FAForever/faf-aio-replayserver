@@ -35,6 +35,7 @@ after_success:
   - coveralls
   - export IMAGE_TAG=faf-aio-replayserver;
   - export REPO=faforever/faf-aio-replayserver;
+  - sudo rm -rf "./faf-stack"        # faf-db leaves some -r files, docker complains about these
   - if [ -n "${TRAVIS_TAG}" ]; then
     docker build -t ${IMAGE_TAG} . &&
     echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin &&

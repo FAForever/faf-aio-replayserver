@@ -84,8 +84,10 @@ def read_header(gen):
     result["map_name"] = map_name
     yield from read_exactly(gen, 4)     # skip
 
-    yield from read_value(gen, "I", 4)  # Mod (data?) size
-    result["mods"] = yield from read_lua_value(gen)
+    # We don't need to parse mods
+    ssize = yield from read_value(gen, "I", 4)  # Mod (data?) size
+    yield from read_exactly(gen, ssize)
+    # result["mods"] = yield from read_lua_value(gen)
 
     # We don't need to parse scenario info
     ssize = yield from read_value(gen, "I", 4)  # Scenario (data?) size

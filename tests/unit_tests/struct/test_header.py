@@ -181,7 +181,6 @@ EXAMPLE_HEADER = {
     },
     'cheats_enabled': 0,
     'map_name': '/maps/SCMP_016/SCMP_016.scmap',
-    'mods': {},
     'random_seed': 65637294,
     'remaining_timeouts': {
         'MazorNoob': 3,

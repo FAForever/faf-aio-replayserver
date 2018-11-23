@@ -33,7 +33,8 @@ class Connections:
         metric = metrics.active_conns.labels(category="initial")
         with metrics.track(metric):
             header = await self._header_read(connection)
-            logger.debug(f"Accepted new connection: {header}")
+            connection.add_header(header)
+            logger.debug(f"Accepted new connection: {connection}")
             return header
 
     async def _pass_control_to_replays(self, connection, header):

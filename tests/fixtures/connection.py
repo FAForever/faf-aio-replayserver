@@ -39,6 +39,9 @@ class ControlledConnection:
     async def write(self, data):
         self._mock_write_data += data
 
+    async def add_header(self, header):
+        pass
+
     def close(self):
         pass
 

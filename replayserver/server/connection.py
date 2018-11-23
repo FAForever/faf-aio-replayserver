@@ -9,6 +9,7 @@ class Connection:
         self.reader = reader
         self.writer = writer
         self._closed = False
+        self._header = None
 
     async def read(self, size):
         try:
@@ -48,6 +49,15 @@ class Connection:
         self.writer.transport.abort()   # Drop connection immediately
         self._closed = True
         # We don't need to close reader (according to docs?)
+
+    def add_header(self, header):
+        self._header = header
+
+    def __str__(self):
+        if self._header is None:
+            return f"Initial connection: {self}"
+        else:
+            return f"{self._header}"
 
 
 class ConnectionHeader:

@@ -23,7 +23,7 @@ class Connections:
             await self._pass_control_to_replays(connection, header)
             metrics.successful_conns.inc()
         except BadConnectionError as e:
-            logger.info(f"Bad connection was dropped; {e.__class__}: {str(e)}")
+            logger.info(f"Bad connection was dropped; {e.__class__.__name__}: {str(e)}")
             metrics.failed_conns(e).inc()
         finally:
             self._connections.remove(connection)

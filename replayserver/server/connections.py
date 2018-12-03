@@ -13,8 +13,10 @@ class Connections:
         self._connections = AsyncSet()
 
     @classmethod
-    def build(cls, replays, **kwargs):
-        return cls(ConnectionHeader.read, replays)
+    def build(cls, replays, *, config_connection_header_read_timeout,
+              **kwargs):
+        timeout = config_connection_header_read_timeout
+        return cls(lambda c: ConnectionHeader.read(c, timeout), replays)
 
     async def handle_connection(self, connection):
         self._connections.add(connection)

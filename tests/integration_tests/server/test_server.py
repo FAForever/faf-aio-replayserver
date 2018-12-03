@@ -13,6 +13,7 @@ config = {
     "mergestrategy_stall_check_period": 60,
     "sent_replay_delay": 5,
     "sent_replay_position_update_interval": 0.1,
+    "connection_header_read_timeout": 6 * 60 * 60,
     "replay_forced_end_time": 60,
     "server_port": 15000,
     "db_host": docker_faf_db_config["host"],

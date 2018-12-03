@@ -214,11 +214,11 @@ async def test_connection_replay_info_negative_id(controlled_connections):
         await ConnectionHeader.read(mock_conn)
 
 
-@fast_forward_time(1, 200)
+@fast_forward_time(1, 20)
 @pytest.mark.asyncio
-@timeout(120)
+@timeout(10)
 async def test_connection_header_read_times_out(event_loop,
                                                 controlled_connections):
     mock_conn = controlled_connections(b"G/-1/fo", leave_open=True)
     with pytest.raises(MalformedDataError):
-        await ConnectionHeader.read(mock_conn)
+        await ConnectionHeader.read(mock_conn, timeout=5)

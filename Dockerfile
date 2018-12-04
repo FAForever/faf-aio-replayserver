@@ -11,6 +11,6 @@ EXPOSE 15000
 
 COPY . /var/faf-aio-replayserver
 RUN cd /var/faf-aio-replayserver && \
-    pip3 install -r requirements.txt && \
+    pip3 install -r requirements-pinned.txt && \
     python3 setup.py install
 CMD ["faf_replay_server"]

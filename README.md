@@ -182,7 +182,8 @@ follows:
   and watching the replay at the same time.
 - `SENT_REPLAY_UPDATE_INTERVAL` - replay stream timestamping interval, in
   seconds. Affects frequency of checking if there is new data to be sent to
-  readers. *Might* affect performance, defaults to 1 second.
+  readers. Also affects frequency of calling `send()`, since asyncio write
+  buffer is set to 0 - therefore increasing this might help performance.
 - `CONNECTION_HEADER_READ_TIMEOUT` - time in seconds, after which a connection
   that did not send an initial header will be dropped. Suggested to be large,
   since connection starts at lobby launch and sends header at game launch.

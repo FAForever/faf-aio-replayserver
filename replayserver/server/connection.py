@@ -47,17 +47,16 @@ class Connection:
 
     async def close(self):
         # Below lines deal with some idiosyncrasies of asyncio:
-        # - There is no explicit method to await queuing all writer data, then
-        #   closing it - we need to manually set watermarks to 0, drain and
-        #   close.
+        # - Before 3.7, there is no explicit method to await queuing all writer
+        #   data, then closing it - we need to manually drain and close.
+        #   Thankfully we already set watermarks to 0.
         # - We need to let event loop run once after closing the writer, since
         #   the actual socket closes on the NEXT run of the event loop.
         self._closed = True
-        self.writer.transport.set_write_buffer_limits(0)
         await self.writer.drain()
         self.writer.close()
         await asyncio.sleep(0)
-        # Reader and writer share a transport, so no need to close reader
+        # Reader and writer share a transport, so no need to close reader.
 
     def add_header(self, header):
         self._header = header

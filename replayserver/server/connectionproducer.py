@@ -25,6 +25,15 @@ class ConnectionProducer:
         logger.info(f"Started listening on {self._server_port}")
 
     async def _make_connection(self, reader, writer):
+        # By default asyncio streams keep around a fairly large write buffer -
+        # something around 64kb. We already perform our own buffering and flow
+        # control (via 5 minute replay delay and sending data after regular
+        # timestamps), so we don't need it.
+        # Bufferbloat like this can actually harm us - even though we sent the
+        # game's header, it might take minutes before enough (delayed!) replay
+        # data accumulates and everything is sent, and until then the game
+        # won't load the map and appear frozen.
+        writer.transport.set_write_buffer_limits(0)
         connection = Connection(reader, writer)
         await self._callback(connection)
 

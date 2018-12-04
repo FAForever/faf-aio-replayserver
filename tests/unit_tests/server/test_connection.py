@@ -94,13 +94,7 @@ async def test_connection_readexactly_too_big(rw_pairs_with_data):
         await connection.readexactly(32)
 
 
-@pytest.mark.asyncio
-@timeout(1)
-async def test_connection_closes(rw_pairs_with_data):
-    r, w = rw_pairs_with_data(b"G/1/foo\0")
-    connection = Connection(r, w)
-    connection.close()
-    w.transport.abort.assert_called()
+# TODO - test connection closing with real readers / writers
 
 
 @pytest.mark.asyncio

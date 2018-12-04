@@ -44,7 +44,7 @@ class Server:
 
     async def stop(self):
         await self._connection_producer.stop()
-        self._connections.close_all()
+        await self._connections.close_all()
         await self._replays.stop_all()
         await self._connections.wait_until_empty()
         await self._database.stop()

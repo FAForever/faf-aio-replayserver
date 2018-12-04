@@ -42,7 +42,7 @@ class ControlledConnection:
     async def add_header(self, header):
         pass
 
-    def close(self):
+    async def close(self):
         pass
 
 

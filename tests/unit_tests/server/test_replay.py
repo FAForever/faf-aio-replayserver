@@ -72,7 +72,7 @@ async def test_replay_close_cancels_timeout(
     timeout = 15
     replay = Replay(mock_merger, mock_sender, mock_bookkeeper, timeout, 1)
     exhaust_callbacks(event_loop)
-    replay.close()
+    await replay.close()
     mock_merger.close.assert_called()
     mock_sender.close.assert_called()
     mock_merger.close.reset_mock()

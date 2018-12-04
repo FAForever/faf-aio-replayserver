@@ -48,11 +48,12 @@ class Replay:
                 raise MalformedDataError("Invalid connection type")
             logger.debug(f"{self} - connection over, {connection}")
 
-    def close(self):
+    async def close(self):
         self.merger.close()
         self.sender.close()
-        for connection in self._connections:
-            connection.close()
+        if self._connections:
+            await asyncio.wait(
+                [connection.close() for connection in self._connections])
 
     async def _timeout_force_close(self):
         try:
@@ -60,7 +61,7 @@ class Replay:
                                    timeout=self._timeout)
         except asyncio.TimeoutError:
             logger.info(f"Timeout - force-ending {self}")
-            self.close()
+            await self.close()
 
     async def _lifetime(self):
         await self.merger.wait_for_ended()

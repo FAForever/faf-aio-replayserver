@@ -1,5 +1,6 @@
-from replayserver import metrics
+import asyncio
 
+from replayserver import metrics
 from replayserver.collections import AsyncSet
 from replayserver.errors import BadConnectionError
 from replayserver.server.connection import ConnectionHeader
@@ -29,7 +30,7 @@ class Connections:
             metrics.failed_conns(e).inc()
         finally:
             self._connections.remove(connection)
-            connection.close()
+            await connection.close()
 
     async def _handle_initial_data(self, connection):
         with metrics.track(metrics.active_conns_by_header(None)):
@@ -42,10 +43,11 @@ class Connections:
         with metrics.track(metrics.active_conns_by_header(header)):
             await self._replays.handle_connection(header, connection)
 
-    def close_all(self):
+    async def close_all(self):
         logger.info("Closing all connections")
-        for connection in self._connections:
-            connection.close()
+        if self._connections:
+            await asyncio.wait(
+                [connection.close() for connection in self._connections])
 
     async def wait_until_empty(self):
         await self._connections.wait_until_empty()

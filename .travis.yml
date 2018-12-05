@@ -9,7 +9,8 @@ before_install:
     - DOCKER_IMAGE_VERSION=$([ -n "${TRAVIS_TAG}" ] && echo "${TRAVIS_TAG}" || echo "${TRAVIS_BRANCH##*/}")
 
 install:
-  - pip3 install -r requirements-pinned.txt -r requirements-test.txt
+  - pip3 install -r requirements-test.txt
+  - pip3 install -r requirements-pinned.txt
   - pip3 install 'coverage>=4.4'
 
 before_script:

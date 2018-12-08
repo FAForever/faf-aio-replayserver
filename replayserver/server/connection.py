@@ -53,7 +53,8 @@ class Connection:
         # - We need to let event loop run once after closing the writer, since
         #   the actual socket closes on the NEXT run of the event loop.
         self._closed = True
-        await self.writer.drain()
+        if not self.writer.transport.is_closing():
+            await self.writer.drain()
         self.writer.close()
         await asyncio.sleep(0)
         # Reader and writer share a transport, so no need to close reader.

@@ -91,7 +91,7 @@ class ReplaySaver:
         try:
             rfile.write(json.dumps(info).encode('UTF-8'))
             rfile.write(b"\n")
-            data = struct.pack("i", len(data)) + zlib.compress(data)
+            data = struct.pack(">i", len(data)) + zlib.compress(data)
             data = base64.b64encode(data)
             rfile.write(data)
         except UnicodeEncodeError:

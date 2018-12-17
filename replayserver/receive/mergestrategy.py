@@ -149,7 +149,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
         check = self._candidates[stream]
         check.check_divergence()
         if check.diverges:
-            logger.debug("f{stream} diverges from canonical stream, removing")
+            logger.debug(f"{stream} diverges from canonical stream, removing")
             del self._candidates[stream]
 
     def _feed_sink(self):

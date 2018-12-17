@@ -189,3 +189,28 @@ async def test_strategy_follow_stream_deals_with_stalled_connections(
     strat.stream_removed(stalled_stream)
     strat.stream_removed(ahead_stream)
     strat.finalize()
+
+
+@pytest.mark.parametrize("strategy", [MergeStrategies.FOLLOW_STREAM])
+def test_strategy_follow_stream_new_data_of_diverged_stream(
+        strategy, outside_source_stream):
+    strat = strategy.build(outside_source_stream,
+                           config_mergestrategy_stall_check_period=60)
+    stream1 = MockStream()
+    stream2 = MockStream()
+    stream2._header = "Header"
+
+    strat.stream_added(stream1)
+    strat.stream_added(stream2)
+    strat.new_header(stream2)
+
+    stream1._data += b"Data and stuff"
+    strat.new_data(stream1)
+    strat.stream_removed(stream1)
+    stream2._data += b"Data and smeg and blahblah"
+    strat.new_data(stream2)
+    stream2._data += b"this should not cause an exception"
+    strat.new_data(stream2)
+    strat.stream_removed(stream2)
+    strat.finalize()
+    assert outside_source_stream.data.bytes() == b"Data and stuff"

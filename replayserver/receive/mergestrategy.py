@@ -152,6 +152,9 @@ class FollowStreamMergeStrategy(MergeStrategy):
             logger.debug(f"{stream} diverges from canonical stream, removing")
             del self._candidates[stream]
 
+    def _stream_has_diverged(self, stream):
+        return stream not in self._candidates
+
     def _feed_sink(self):
         if self._tracked is None:
             return
@@ -169,6 +172,8 @@ class FollowStreamMergeStrategy(MergeStrategy):
         self._candidates[stream] = DivergenceTracking(stream, self.sink_stream)
 
     def stream_removed(self, stream):
+        if self._stream_has_diverged(stream):
+            return
         # Don't remove a not-tracked stream - it might have more data that
         # matches currently tracked stream, in case it ends short!
         if stream is self._tracked:
@@ -177,6 +182,8 @@ class FollowStreamMergeStrategy(MergeStrategy):
             self._find_new_stream()
 
     def new_data(self, stream):
+        if self._stream_has_diverged(stream):
+            return
         if self._tracked is None and self._eligible_for_tracking(stream):
             self._tracked = stream
         if stream is self._tracked:

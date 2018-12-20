@@ -1,7 +1,7 @@
 from enum import Enum
 import asyncio
 from asyncio.streams import IncompleteReadError, LimitOverrunError
-from replayserver.errors import MalformedDataError
+from replayserver.errors import MalformedDataError, EmptyConnectionError
 
 
 class Connection:
@@ -97,7 +97,14 @@ class ConnectionHeader:
 
     @classmethod
     async def _read_type(cls, connection):
-        prefix = await connection.readexactly(2)
+        try:
+            prefix = await connection.readexactly(2)
+        except MalformedDataError:
+            # Vast majority of these will be connections that entered lobby,
+            # but quit without starting the game. This also ignores very early
+            # connection errors and reads of length exactly 1; consider that a
+            # FIXME.
+            raise EmptyConnectionError
         if prefix == b"P/":
             return cls.Type.WRITER
         elif prefix == b"G/":

@@ -4,7 +4,7 @@ from asyncio.streams import StreamReader, StreamWriter
 
 from tests import timeout, fast_forward_time
 from replayserver.server.connection import Connection, ConnectionHeader
-from replayserver.errors import MalformedDataError
+from replayserver.errors import MalformedDataError, EmptyConnectionError
 
 
 @pytest.fixture
@@ -133,8 +133,17 @@ async def test_connection_header_invalid_type(controlled_connections):
 @pytest.mark.asyncio
 @timeout(1)
 async def test_connection_header_type_short_data(controlled_connections):
+    # FIXME - should be MalformedDataError, but we hacked it for convenience
     mock_conn = controlled_connections(b"g")
-    with pytest.raises(MalformedDataError):
+    with pytest.raises(EmptyConnectionError):
+        await ConnectionHeader.read(mock_conn)
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_header_no_data(controlled_connections):
+    mock_conn = controlled_connections(b"g")
+    with pytest.raises(EmptyConnectionError):
         await ConnectionHeader.read(mock_conn)
 
 

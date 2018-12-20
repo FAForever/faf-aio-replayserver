@@ -20,5 +20,13 @@ class CannotAcceptConnectionError(BadConnectionError):
     pass
 
 
+class EmptyConnectionError(BadConnectionError):
+    """
+    Reserved for connections that never wrote anything. We don't log these,
+    since they happen whenever somebody joined a game and left without that
+    game starting.
+    """
+    pass
+
 class BookkeepingError(Exception):
     pass

@@ -2,7 +2,7 @@ import asyncio
 
 from replayserver import metrics
 from replayserver.collections import AsyncSet
-from replayserver.errors import BadConnectionError
+from replayserver.errors import BadConnectionError, EmptyConnectionError
 from replayserver.server.connection import ConnectionHeader
 from replayserver.logging import logger
 
@@ -26,6 +26,9 @@ class Connections:
             await self._pass_control_to_replays(connection, header)
             metrics.successful_conns.inc()
         except BadConnectionError as e:
+            # Ignore empty connections, these happen often and are not errors
+            if isinstance(e, EmptyConnectionError):
+                return
             logger.info(f"Bad connection was dropped; {e.__class__.__name__}: {str(e)}")
             metrics.failed_conns(e).inc()
         finally:

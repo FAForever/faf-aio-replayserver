@@ -218,7 +218,7 @@ class FollowStreamMergeStrategy(MergeStrategy):
             await asyncio.sleep(stall_check_period)
             current_pos = len(self.sink_stream.data)
             if current_pos == previous_pos and self._tracked is not None:
-                logger.debug((f"{self._tracked} has been stalling for"
+                logger.debug((f"{self._tracked} has been stalling for "
                               f"{stall_check_period}s - stopping tracking"))
                 self._tracked = None
                 self._find_new_stream()

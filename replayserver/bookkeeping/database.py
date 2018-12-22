@@ -83,13 +83,11 @@ class ReplayDatabaseQueries:
                 `login`.`login` AS host,
                 `game_stats`.`gameName` AS game_name,
                 `game_featuredMods`.`gamemod` AS game_mod,
-                `map`.`display_name` as map_name,
-                `map_version`.`filename` AS file_name
+                `table_map`.`name` as map_name,
+                `table_map`.`filename` AS file_name
             FROM `game_stats`
-            LEFT JOIN `map`
-              ON `game_stats`.`mapId` = `map`.`id`
-            LEFT JOIN `map_version`
-              ON `map_version`.`map_id` = `map`.`id`
+            LEFT JOIN `table_map`
+              ON `game_stats`.`mapId` = `table_map`.`id`
             LEFT JOIN `login`
               ON `login`.id = `game_stats`.`host`
             LEFT JOIN  `game_featuredMods`

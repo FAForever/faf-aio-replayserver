@@ -6,6 +6,7 @@ from asyncio.locks import Lock
 
 from replayserver.errors import BookkeepingError
 from tests import docker_faf_db_config
+from tests import test_db
 
 
 class MockDatabase:
@@ -42,13 +43,15 @@ class MockDatabase:
         pass
 
     async def _db_mock_game_stats(self, cursor, replay_id, map_id, host_id):
+        # The 'mapid' field refers to the 'map_version' table, not 'map'!
+        mid = test_db.MAP_VERSION_ID_OFFSET + map_id
         await cursor.execute(f"""
             INSERT INTO `game_stats`
                 (`id`, `starttime`, `endtime`, `gametype`,
                  `gamemod`, `host`, `mapid`, `gamename`, `validity`)
             VALUES
                 ({replay_id}, '2001-01-01 00:00:00', '2001-01-02 00:00:00',
-                 '0', 1, {host_id}, {map_id}, "Name of the game", 1)
+                 '0', 1, {host_id}, {mid}, "Name of the game", 1)
         """)
 
     async def _db_mock_game_player_stats(self, cursor,

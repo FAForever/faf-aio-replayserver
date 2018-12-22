@@ -1,5 +1,5 @@
 import pytest
-from tests import docker_faf_db_config
+from tests import docker_faf_db_config, test_db
 import datetime
 import random
 
@@ -123,7 +123,7 @@ async def test_queries_missing_game_stats(mock_database):
 @pytest.mark.asyncio
 async def test_queries_null_game_end(mock_database):
     queries = ReplayDatabaseQueries(mock_database)
-    stats = await queries.get_game_stats(101)   # Game with no end time
+    stats = await queries.get_game_stats(test_db.SPECIAL_GAME_NO_END_TIME_ID)
     assert type(stats['game_end']) is float
 
 

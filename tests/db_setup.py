@@ -1,6 +1,8 @@
 import asyncio
 import aiomysql
 from docker_db_config import docker_faf_db_config
+from test_db import MAP_VERSION_ID_OFFSET, MAP_ID_OFFSET, \
+                    SPECIAL_GAME_NO_END_TIME_ID
 
 
 async def clear_db(cursor):
@@ -53,7 +55,7 @@ async def db_mock_game_validity(cursor):
 
 
 async def db_mock_login(cursor, nums):
-    data = [(i, "user{}".format(i), "foo", "bar{}".format(i))
+    data = [(i, f"user{i}", "foo", f"bar{i}")
             for i in nums]
     await cursor.executemany("""
         INSERT INTO login (id, login, password, email) VALUES
@@ -62,9 +64,14 @@ async def db_mock_login(cursor, nums):
 
 
 async def db_mock_map(cursor, nums):
-    data = [(i, 'scmp_{}'.format(i), '?', '?', None,
+    # We offset map and map_version to catch errors if we accidentally join
+    # with the wrong one
+    map_ids = [MAP_ID_OFFSET + i for i in nums]
+    map_version_ids = [MAP_VERSION_ID_OFFSET + i for i in nums]
+
+    data = [(mi, f'scmp_{i}', '?', '?', None,
             0, 0, '2000-01-01 00:00:00', '2000-01-02 00:00:00')
-            for i in nums]
+            for i, mi in zip(nums, map_ids)]
     await cursor.executemany("""
         INSERT INTO `map`
             (`id`, `display_name`, `map_type`, `battle_type`, `author`,
@@ -72,21 +79,23 @@ async def db_mock_map(cursor, nums):
         VALUES
             (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, data)
-    data = [(None, 8, 100, 100, 1, 'maps/scmp_{}.zip'.format(i), 1, 0, i,
+
+    data = [(vi, None, 8, 100, 100, 1,
+             f'maps/scmp_{i}.zip', 1, 0, mi,
              '2000-01-03 00:00:00', '2000-01-04 00:00:00')
-            for i in nums]
+            for i, vi, mi in zip(nums, map_version_ids, map_ids)]
     await cursor.executemany("""
         INSERT INTO `map_version`
-            (`description`, `max_players`, `width`, `height`, `version`,
+            (`id`, `description`, `max_players`, `width`, `height`, `version`,
              `filename`, `ranked`, `hidden`, `map_id`,
              `create_time`, `update_time`)
         VALUES
-            (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, data)
 
 
 async def db_mock_updates_faf(cursor, nums):
-    data = [(i, "scmp_{}".format(i), "maps/scmp_{}.zip".format(i))
+    data = [(i, f"scmp_{i}", f"maps/scmp_{i}.zip")
             for i in nums]
     await cursor.executemany("""
         INSERT INTO updates_faf
@@ -106,12 +115,12 @@ async def db_mock_updates_faf(cursor, nums):
 
 async def db_mock_special_games(cursor):
     # Game without end time
-    await cursor.execute("""
+    await cursor.execute(f"""
         INSERT INTO `game_stats`
             (`id`, `starttime`, `endtime`, `gametype`,
              `gamemod`, `host`, `mapid`, `gamename`, `validity`)
         VALUES
-            (101, '2001-01-01 00:00:00', NULL,
+            ({SPECIAL_GAME_NO_END_TIME_ID}, '2001-01-01 00:00:00', NULL,
              '0', 1, 1, 1, "Name of the game", 1)
     """)
 

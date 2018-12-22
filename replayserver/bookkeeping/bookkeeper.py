@@ -23,4 +23,4 @@ class Bookkeeper:
             logger.debug(f"Saved replay {game_id}")
             metrics.saved_replays.inc()
         except BookkeepingError as e:
-            logger.warn(f"Failed to save replay for game {game_id}: {e}")
+            logger.warning(f"Failed to save replay for game {game_id}: {e}")

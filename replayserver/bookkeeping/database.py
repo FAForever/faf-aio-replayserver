@@ -38,7 +38,7 @@ class Database:
                 await conn.commit()
             return data
         except (DatabaseError, RuntimeError) as e:
-            raise BookkeepingError("Failed to run database query") from e
+            raise BookkeepingError(f"Failed to run database query: {str(e)}")
 
     async def stop(self):
         self._connection_pool.close()
@@ -63,6 +63,7 @@ class ReplayDatabaseQueries:
               ON `login`.id = `game_player_stats`.`playerId`
             WHERE `game_stats`.`id` = %s AND `game_player_stats`.`AI` = 0
         """
+        logger.debug(f"Performing query: {query}")
         players = await self._db.execute(query, (game_id,))
         if not players:
             raise BookkeepingError("No game players found")
@@ -98,7 +99,9 @@ class ReplayDatabaseQueries:
            SELECT COUNT(*) FROM `game_player_stats`
            WHERE `game_player_stats`.`gameId` = %s
         """
+        logger.debug(f"Performing query: {query}")
         game_stats = await self._db.execute(query, (game_id,))
+        logger.debug(f"Performing query: {player_query}")
         player_count = await self._db.execute(player_query, (game_id,))
         if not game_stats:
             raise BookkeepingError(f"No stats found for game {game_id}")
@@ -134,6 +137,7 @@ class ReplayDatabaseQueries:
             INNER JOIN `updates_{mod}_files` ON `fileId` = `updates_{mod}`.`id`
             GROUP BY `updates_{mod}_files`.`fileId`
         """.format(mod=mod)
+        logger.debug(f"Performing query: {query}")
         featured_mods = await self._db.execute(query)
         return {str(mod['file_id']): mod['version']
                 for mod in featured_mods}

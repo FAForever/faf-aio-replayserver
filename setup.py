@@ -9,7 +9,7 @@ hopefully is better designed than the old replay server.
 
 setup(
     name="faf_replay_server",
-    version='0.5.10',
+    version='0.5.11',
     description="FAF replay server using asyncio",
     long_description=long_desc,
     classifiers=[

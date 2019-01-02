@@ -1,7 +1,7 @@
 FROM python:3.6
 
 LABEL maintainer="FAF Community"
-LABEL version="0.1"
+LABEL version="0.4.2"
 LABEL description="Forged Alliance Forever: Replay server"
 
 ENV PYTHON_VERSION 3.6.6

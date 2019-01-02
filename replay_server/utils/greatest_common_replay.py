@@ -3,12 +3,23 @@ from plistlib import Dict
 from typing import List
 
 from replay_server.logger import logger
-from replay_server.replay_parser.replay_parser.parser import parse
+from replay_parser.replay import parse
 
 __all__ = (
     'get_greatest_common_stream',
     'get_replay',
 )
+
+
+def get_buffer_size(buffer: RawIOBase) -> int:
+    """
+    Computes buffers size
+    """
+    current_position = buffer.tell()
+    buffer.seek(0, SEEK_END)
+    file_size = buffer.tell()
+    buffer.seek(current_position)
+    return file_size
 
 
 def _get_stream_part(buffer: RawIOBase, position: int, size: int) -> bytearray:
@@ -35,9 +46,16 @@ def get_greatest_common_stream(
     greatest_common_stream = None
     greatest_common_count = 0
 
-    # for one or two streams no reason to check if there is any common part
-    if len(buffers) == 1:
-        return _get_stream_part(buffers[0], buffers_positions[0] + position, size)
+    if len(buffers) <= 2:
+        buffer = buffers[0]
+        buffer_position = buffers_positions[0]
+
+        # if second stream is bigger than first one, we get second one
+        if len(buffers) > 1 and get_buffer_size(buffers[1]) > get_buffer_size(buffers[0]):
+            buffer = buffers[1]
+            buffer_position = buffers_positions[1]
+
+        return _get_stream_part(buffer, buffer_position + position, size)
 
     stream_information = get_common_buffers_info(buffers, buffers_positions, position, size)
     stream_keys = stream_information.keys()
@@ -67,10 +85,7 @@ def get_common_buffers_info(
     # get buffers information: file handler id and file length
     for i, buffer in enumerate(buffers):
         file_no = buffer.fileno()
-        current_position = buffer.tell()
-        buffer.seek(0, SEEK_END)
-        file_size = buffer.tell()
-        buffer.seek(current_position)
+        file_size = get_buffer_size(buffer)
         stream_part = _get_stream_part(buffer, buffers_positions[i] + position, size)
         stream_information[file_no] = {"file_size": file_size, "stream_part": stream_part}
 
@@ -110,7 +125,7 @@ def get_replay(paths: List[str]) -> str:
         body_positions = []
         for buffer in buffers:
             try:
-                replay = parse(buffer)
+                replay = parse(buffer, parse_body=False)
                 body_positions.append(replay['body_offset'])
             except ValueError as e:
                 logger.exception("Wrong replay structure")

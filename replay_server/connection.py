@@ -34,7 +34,7 @@ class ReplayConnection:
         """
         Determines which action client is asking for.
         """
-        logger.debug("Determining action type")
+        logger.debug("<%s> Determining action type", self)
         try:
             action = await self.get_type()
             if action is None:
@@ -47,7 +47,7 @@ class ReplayConnection:
         """
         Parses request and returns uid & name
         """
-        logger.debug("Getting replay name")
+        logger.debug("<%s> Getting replay name", self)
         try:
             line = (await self.reader.readuntil(TERMINATOR))[:-1].decode()
             self.uid, self.game_name = line.split("/", 1)
@@ -62,6 +62,9 @@ class ReplayConnection:
             raise ConnectionError("Replay name: Unexpected data received")
 
     async def close(self):
-        logger.debug("Closing connection...")
+        logger.debug("<%s> Closing connection...", self)
         self.writer.close()
-        logger.debug("Connection closed")
+        logger.debug("<%s> Connection closed", self)
+
+    def __str__(self):
+        return str(id(self))

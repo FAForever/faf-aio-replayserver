@@ -2,15 +2,17 @@ import asyncio
 import base64
 import datetime
 import json
+import os
 import struct
 import time
 import zlib
 from typing import List, Dict
 
+from replay_parser.replay import parse
+
 from replay_server.constants import DATABASE_WRITE_WAIT_TIME
 from replay_server.db_conn import db
 from replay_server.logger import logger
-from replay_server.replay_parser.replay_parser.parser import parse
 from replay_server.utils.greatest_common_replay import get_replay
 from replay_server.utils.paths import get_replay_path
 
@@ -24,7 +26,8 @@ async def save_replay(uid: int, file_paths: List[str], start_time: int) -> None:
     replay_path = get_replay(file_paths)
     output_path = get_replay_path(uid)
 
-    with open(output_path, "wb") as output_file:
+    os_handler = os.open(output_path, flags=os.O_CREAT | os.O_WRONLY, mode=0o664)
+    with open(os_handler, "wb") as output_file:
         with open(replay_path, "rb") as replay_file:
             replay_data = replay_file.read()
             output_file.write(json.dumps(await get_replay_info(uid, replay_data, start_time)).encode('raw_unicode_escape'))
@@ -44,7 +47,7 @@ async def get_replay_info(game_id: int, replay_data: bytes, start_time: int) -> 
     }
 
     try:
-        header = parse(replay_data)['header']
+        header = parse(replay_data, parse_body=False)['header']
         game_version = header.get("version")
         result['sim_mods'] = {mod['uid']: mod['version'] for mod in header.get('mods', []).values()}
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 VERSION=`grep "LABEL version" Dockerfile | cut -d'"' -f2`
-IMAGE_VERSION="faf-aio-replayserver:$VERSION"
+IMAGE_VERSION="faforever/faf-aio-replayserver:$VERSION"
 
 docker stop faf-aio-replayserver
 docker rm faf-aio-replayserver

@@ -13,7 +13,8 @@ PORT = int(os.environ.get("PORT", 15000))
 WAIT_STEP = 0.1  # in seconds, it might influence fluent streaming, default is 0.1
 # Wait timeout, till we will send live stream back
 REPLAY_TIMEOUT = int(os.environ.get("REPLAY_TIMEOUT", 60 * 5))
-READ_BUFFER_SIZE = int(os.environ.get("READ_BUFFER_SIZE", 1024))
+READ_BUFFER_SIZE = 65535 + 1 + 2  # 65535 max tick size + 1 for type + 2 for tick content size
+TICK_COUNT_TIMEOUT = 3000  # 5 minutes * 10 tick per sec
 WRITE_BUFFER_SIZE = int(os.environ.get("WRITE_BUFFER_SIZE", 1024))
 DATABASE_WRITE_WAIT_TIME = float(os.environ.get("DATABASE_WRITE_WAIT_TIME", 10))
 # base for uploading streams

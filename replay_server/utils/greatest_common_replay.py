@@ -36,7 +36,7 @@ def get_greatest_common_stream(
     greatest_common_count = 0
 
     # for one or two streams no reason to check if there is any common part
-    if len(buffers) <= 2:
+    if len(buffers) == 1:
         return _get_stream_part(buffers[0], buffers_positions[0] + position, size)
 
     stream_information = get_common_buffers_info(buffers, buffers_positions, position, size)

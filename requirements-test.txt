@@ -1,6 +1,6 @@
-python-coveralls
 decorator
 pytest-asyncio
-pytest-cov
 pytest-mock
 asynctest
+coveralls
+pytest-cov

@@ -125,12 +125,10 @@ Top-down code overview
 
 ### Server
 
-The server as a whole is a blackbox with 2 external dependencies - connection
-producer and database. The server accepts connections from the producer and
-does things with them, saves replay files on the disk and reads from / writes
-to the database as required. Note that in theory the disk we save replays on is
-also a dependency - however we can configure the base directory for replays,
-and that serves as abstraction enough.
+The server as a whole is a blackbox with 3 external dependencies - connection
+producer, database and saved replay directory. The server accepts connections
+from the producer and does things with them, saves replay files on the disk and
+reads from / writes to the database as required.
 
 Server has start and stop methods. Start method prepares the database to run
 and activates the connection producer. Stop method stops the connection
@@ -196,4 +194,4 @@ follows:
   MergeStrategies enum values.
 - `MERGESTRATEGY_STALL_CHECK_PERIOD` - used by the 'follow stream' strategy.
   Interval, in seconds, after which a followed stream that did not send any data
-  is swapped ot for another.
+  is swapped out for another.

@@ -45,18 +45,23 @@ As well as all kinds of special conditions we need to watch out for, e.g.:
   hours).
 
 
-Testing
+Dev environment and testing
 -------
+
+You'll need to setup faf-db for most work requiring a database. See
+instructions at https://github.com/FAForever/db and .travis.yml for details on
+how to start the container and populate it with test data. Once you setup
+faf-db, run the setup\_db.py script to populate it with test data:
+
+`python3 setup/db_setup.py`
+
+For python packages, just install dependencies in requirements.txt and
+requirements-test.txt in a virtualenv. Note that asynctest 0.12.2 throws errors
+in a few tests - see issue #108 in asynctest's github for a fix you can apply
+manually. Once everything is setup, you can run tests with:
 
 `python3 -m pytest`
 
-For most tests, things in requirements-test.txt should be enough. Some tests
-require `asynctest`'s issue #107 to be fixed, these have been disabled for
-travis until the fix is merged.
-
-For tests that require the database, you'll need to setup faf-db. See
-instructions at https://github.com/FAForever/db and .travis.yml for details on
-how to start the container and populate it with test data.
 
 General architecture
 --------------------

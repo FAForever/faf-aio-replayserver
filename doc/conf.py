@@ -12,7 +12,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
+import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
@@ -22,10 +22,10 @@
 project = 'faf-aio-replayserver'
 author = 'MazorNoob'
 
-# The short X.Y version
-version = '0.5'
 # The full version, including alpha/beta/rc tags
-release = '0.5.12'
+release = open(os.path.join("..", "VERSION")).read().strip()
+# The short X.Y version
+version = ".".join(release.split(".")[0:2])
 
 
 # -- General configuration ---------------------------------------------------

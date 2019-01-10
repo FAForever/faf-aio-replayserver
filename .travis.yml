@@ -37,7 +37,7 @@ after_success:
   - export REPO=faforever/faf-aio-replayserver;
   - sudo rm -rf "./faf-stack"        # faf-db leaves some -r files, docker complains about these
   - if [ -n "${TRAVIS_TAG}" ]; then
-    docker build -t ${IMAGE_TAG} . &&
+    docker build -t ${IMAGE_TAG} --label="version=$(cat VERSION)" . &&
     echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin &&
     docker tag ${IMAGE_TAG} ${REPO}:${DOCKER_IMAGE_VERSION} &&
     docker push ${REPO};

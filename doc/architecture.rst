@@ -14,6 +14,32 @@ Various functions revolving around these two entities - creating a Connection,
 figuring out its type and replay ID, creating Replays, merging / sending
 streams, saving the replay etc. - are provided or delegated to other classes.
 
+Design and coding guidelines
+----------------------------
+
+* Usual stuff - single responsibility, in general no singletons, why-not-what
+  comments, pep-8 style.
+
+* Use DI. An object's __init__ accepts all object dependencies (including
+  factory methods), while a ``build`` classmethod accepts external dependencies
+  and creates any dependencies the object owns (e.g. ``Replay`` owns objects it
+  delegates work to). Configuration options can be passed in kwargs.
+
+* In general, object lifetime should correspond to coroutines. An object's
+  lifetime can either be handled in a single coroutine (initialized at start,
+  cleaned up at end), or it can provide an 'await end' coroutine that lets its
+  parent clean it up after it's done. In latter case, having a single
+  'lifetime' method in such an object is a nice pattern.
+
+* Any coroutines launched by an object should be stopped before its lifetime
+  ends.
+
+* Always finalize objects you own before ending your own lifetime.
+
+* Keep track of exceptions you throw - think checked exceptions, but manual.
+  Always clean up resources you allocate, e.g. with try-finally and
+  with-statements. Coroutine-per-object-lifetime helps a lot here.
+
 Connection lifetime
 -------------------
 

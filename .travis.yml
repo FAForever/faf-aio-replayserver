@@ -29,6 +29,7 @@ before_script:
 
 script:
   - python3 -m pytest -v --cov replayserver
+  - sphinx-build -b text doc _docbuild
   - python3 setup.py bdist
 
 after_success:

@@ -1,3 +1,8 @@
+"""
+Wrappers for prometheus metrics and their helper functions, for more idiomatic
+usage.
+"""
+
 from prometheus_client import Gauge, Counter
 from contextlib import contextmanager
 

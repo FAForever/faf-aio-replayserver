@@ -1,3 +1,10 @@
+"""
+Entry point to the server, installed as a runnable script. Gets arguments from
+the environment, constructs and runs the server. ::
+
+TODO: Move config to a separate class.
+"""
+
 import asyncio
 import logging
 import os

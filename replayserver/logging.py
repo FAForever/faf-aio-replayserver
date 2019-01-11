@@ -1,5 +1,7 @@
 import logging
 
+__all__ = ["logger"]
+
 logger = logging.getLogger("replayserver")
 stderr_handler = logging.StreamHandler()
 stderr_handler.setFormatter(logging.Formatter(

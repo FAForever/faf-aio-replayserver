@@ -2,6 +2,9 @@ from asyncio.locks import Event
 
 
 class ReplayStreamData:
+    """
+    Data buffer wrapper that allows to avoid unnecessary copies.
+    """
     def __init__(self, stream):
         self._stream = stream
 
@@ -19,9 +22,9 @@ class ReplayStreamData:
 
 class ReplayStream:
     """
-    This abstract class represents a stream of replay data. It allows users of
-    this class to wait until the header is available, or wait for more data to
-    arrive. It also lets them access the header and the data.
+    Abstract class representing a stream of replay data. Allows users to wait
+    until the header is available, or wait for more data to arrive. Also lets
+    them access the header and the data.
 
     A concrete implementation can cause new data to arrive in various ways
     (e.g. reading from network, merging other streams, being a delay layer to
@@ -33,7 +36,6 @@ class ReplayStream:
     copy, it's not a raw bytes object, but a proxy you can slice and convert to
     bytes to get the whole underlying buffer. This way we can avoid copying the
     whole proxied buffer every time we need a small slice.
-    ( TODO - is the above premature optimization? )
     """
 
     def __init__(self):
@@ -49,16 +51,23 @@ class ReplayStream:
         pass
 
     async def wait_for_header(self):
-        """ Wait until either the header was read or the stream ended. """
+        "Wait until either the header was read or the stream ended."
         raise NotImplementedError
 
     def _data_length(self):
+        "Current data length."
         raise NotImplementedError
 
     def _data_slice(self, s):
+        "Given a slice, returns sliced data."
         raise NotImplementedError
 
     def _data_bytes(self):
+        """
+        Returns byte buffer with entire stream data. For some subclasses it may
+        create a new buffer each time, for these you should avoid calling this
+        too often.
+        """
         raise NotImplementedError
 
     async def wait_for_data(self, position=None):
@@ -85,7 +94,7 @@ class ReplayStream:
 
 
 class HeaderEventMixin:
-    """ Useful when the class adds header via a coroutine. """
+    "Mixin with a convenient ``wait_for_header`` implementation."
     def __init__(self):
         self._header_read_or_ended = Event()
 
@@ -98,7 +107,7 @@ class HeaderEventMixin:
 
 
 class DataEventMixin:
-    """ Useful when the class adds data via a coroutine. """
+    "Mixin with a convenient ``wait_for_data`` implementation."
     def __init__(self):
         self._new_data_or_ended = Event()
 
@@ -111,7 +120,7 @@ class DataEventMixin:
             position = len(self.data)
         return self._wait_for_data(position)
 
-    async def _wait_for_data(self, position=None):
+    async def _wait_for_data(self, position):
         while position >= len(self.data) and not self.ended():
             await self._new_data_or_ended.wait()
         if position < len(self.data):
@@ -120,6 +129,7 @@ class DataEventMixin:
 
 
 class EndedEventMixin:
+    "Mixin with a convenient ``ended`` implementation."
     def __init__(self):
         self._ended = Event()
 
@@ -134,7 +144,10 @@ class EndedEventMixin:
 
 
 class ConcreteDataMixin:
-    """ Useful when the class holds the data instead of proxying it. """
+    """
+    Mixin with convenient data methods, for when we own the buffer backing the
+    replay.
+    """
     def __init__(self):
         self._header = None
         self._data = bytearray()

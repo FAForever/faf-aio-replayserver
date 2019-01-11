@@ -1,3 +1,8 @@
+"""
+Wrappers for data structures that allow us to await on them becoming empty or
+nonempty.
+"""
+
 from collections.abc import MutableMapping, MutableSet
 from asyncio.locks import Event
 
@@ -83,6 +88,10 @@ class AsyncSet(MutableSet, EmptyWaitMixin):
 
 
 class AsyncCounter(EmptyWaitMixin):
+    """
+    Counter that lets us await until it's zero / non-zero. Useful when you
+    don't want to keep the things you're tracking count of around.
+    """
     def __init__(self):
         EmptyWaitMixin.__init__(self)
         self._count = 0

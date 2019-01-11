@@ -1,5 +1,8 @@
 class BadConnectionError(Exception):
-    """Superclass for things a connection can do wrong."""
+    """
+    Superclass for things a connection can do wrong. Thrown in connection
+    handling code, used to clean up any resources and the connection itself.
+    """
     def type_name(self):
         return type(self).__name__
 
@@ -28,5 +31,10 @@ class EmptyConnectionError(BadConnectionError):
     """
     pass
 
+
 class BookkeepingError(Exception):
+    """
+    Used by Bookkeeper to signify that something went wrong when saving a
+    replay.
+    """
     pass

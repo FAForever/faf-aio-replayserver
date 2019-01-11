@@ -11,8 +11,8 @@ Documentation
 -------------
 
 You can find documentation in the doc directory. It's built with sphinx using
-autodoc, so you'll need to install server dependencies to generate it properly
-- see the 'dev environment' section. Docs can be built with:
+autodoc, so you'll need to install server dependencies to generate it properly -
+see the 'dev environment' section. Docs can be built with:
 
 `sphinx-build -b html ./doc ./build`
 

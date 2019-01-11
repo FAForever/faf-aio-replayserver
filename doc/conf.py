@@ -13,8 +13,10 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import sys
+
+# FIXME - there are other things in root that might shadow important names!
+sys.path.insert(0, os.path.abspath('../'))
 
 
 # -- Project information -----------------------------------------------------

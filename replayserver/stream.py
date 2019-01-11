@@ -1,3 +1,7 @@
+"""
+Abstract classes for manipulating data streams as replays.
+"""
+
 from asyncio.locks import Event
 
 

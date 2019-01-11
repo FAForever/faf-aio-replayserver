@@ -1,6 +1,5 @@
 """
-Wrappers for data structures that allow us to await on them becoming empty or
-nonempty.
+Collection wrappers that let us await on certain conditions.
 """
 
 from collections.abc import MutableMapping, MutableSet

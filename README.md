@@ -10,8 +10,9 @@ hopefully is better designed than the old replay server.
 Documentation
 -------------
 
-You can find documentation in the doc directory. You can build it with sphinx
-as follows:
+You can find documentation in the doc directory. It's built with sphinx using
+autodoc, so you'll need to install server dependencies to generate it properly
+- see the 'dev environment' section. Docs can be built with:
 
 `sphinx-build -b html ./doc ./build`
 

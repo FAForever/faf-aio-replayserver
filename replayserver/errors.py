@@ -1,3 +1,7 @@
+"""
+Custom server exception classes.
+"""
+
 class BadConnectionError(Exception):
     """
     Superclass for things a connection can do wrong. Thrown in connection

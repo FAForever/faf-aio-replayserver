@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "69fcc78b2478ed58759bbdeb6ecee42e111d50d7191d490a44794a860a2737c0"
+            "sha256": "12217f1c7a7088f47bec56d77dc0b20512b6fd0bfd3730efd29071558044f19d"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -237,7 +237,8 @@
         },
         "replay-parser": {
             "editable": true,
-            "path": "/home/konstantin/var/faf-scfa-replay-parser"
+            "git": "https://github.com/FAForever/faf-scfa-replay-parser.git",
+            "ref": "9355cfdd0e959c12e63672174e971335627a94c2"
         },
         "six": {
             "hashes": [

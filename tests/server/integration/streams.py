@@ -2,7 +2,7 @@ import pytest
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(2)
+@pytest.mark.timeout(30)
 async def test_multiple_connections(client, put_replay_command, replay_data, get_replay_command, db_replay):
     """
     Concurency behavior, we can read data, while they're streamed.
@@ -27,8 +27,9 @@ async def test_multiple_connections(client, put_replay_command, replay_data, get
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(2)
-async def test_common_read_from_multiple_different_streams(client, replay_data, put_replay_command, get_replay_command, db_replay):
+@pytest.mark.timeout(30)
+async def test_common_read_from_multiple_different_streams(
+        client, replay_data, put_replay_command, get_replay_command, db_replay):
     """
     Problem: two groups of users will split in 2 or more parts during the game, mostly because of network problems.
     Some players will be kicked, but they might continue the game and send data to the server.
@@ -67,10 +68,11 @@ async def test_common_read_from_multiple_different_streams(client, replay_data, 
     writer3.close()
 
     assert await reader4.read() == replay_data
+    writer4.close()
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(3)
+@pytest.mark.timeout(120)
 async def test_read_stream(client, streamed_replay_data, put_replay_command, get_replay_command, db_replay):
     """
     Testing streamed content
@@ -98,4 +100,3 @@ async def test_read_stream(client, streamed_replay_data, put_replay_command, get
 
     writer1.close()
     writer2.close()
-    assert False

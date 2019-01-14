@@ -4,4 +4,4 @@ pyclean .
 rm -r tmp/*
 rm -r replays/*
 
-DATABASE_WRITE_WAIT_TIME=0 REPLAY_TIMEOUT=1 python3.6 -m pytest -rxs `find ./tests/conftest.py ./tests/fixtures/ ./tests/server/ -iname "*.py"`
+DATABASE_WRITE_WAIT_TIME=0 python3.6 -m pytest -rxs `find ./tests/conftest.py ./tests/fixtures/ ./tests/server/ -iname "*.py"` --profile

@@ -1,6 +1,5 @@
 import asyncio
-from io import RawIOBase, BytesIO
-from time import time
+from io import RawIOBase
 from typing import List, Any, Dict
 
 from replay_parser.body import ReplayBody
@@ -8,7 +7,7 @@ from replay_parser.constants import CommandStates
 from replay_parser.reader import ReplayReader as Reader
 from replay_parser.replay import parse
 
-from replay_server.constants import WAIT_STEP, REPLAY_TIMEOUT, TICK_COUNT_TIMEOUT
+from replay_server.constants import WAIT_STEP, TICK_COUNT_TIMEOUT
 from replay_server.logger import logger
 from replay_server.stream.base import ReplayWorkerBase
 from replay_server.stream.replay_storage import ReplayStorage
@@ -63,7 +62,7 @@ class ReplayReader(ReplayWorkerBase):
         """
         try:
             while True:
-                await asyncio.sleep(WAIT_STEP)
+                await asyncio.sleep(0)
                 has_writer_online = self.has_writer_online()
                 data = get_greatest_common_stream(self.buffers, self.body_positions, self.position)
 
@@ -80,8 +79,8 @@ class ReplayReader(ReplayWorkerBase):
 
                 max_tick = TICK_COUNT_TIMEOUT
                 read_size = 0
-                for tick, command_type, data in self.replay_body_parser.continuous_parse(data):
-                    read_length = len(data)
+                for tick, command_type, replay_data in self.replay_body_parser.continuous_parse(data):
+                    read_length = len(replay_data)
                     # parser couldn't understand, even if we have data
                     if not read_length:
                         break
@@ -119,11 +118,6 @@ class ReplayReader(ReplayWorkerBase):
         data = self.buffers[0].read(self.body_positions[0])
         self._connection.writer.write(data)
         logger.info("<%s> Header for %s with length %s", self._connection, self.get_uid(), len(data))
-
-        replay_start_time = ReplayStorage.get_replay_start_time(self.get_uid())
-        now = time()
-        if now < replay_start_time + REPLAY_TIMEOUT:
-            await asyncio.sleep((replay_start_time + REPLAY_TIMEOUT) - now)
 
         # read common stream
         await self.process_body()

@@ -35,6 +35,7 @@ class ReplayReader(ReplayWorkerBase):
                 CommandStates.Advance,
                 CommandStates.SetCommandSource,
                 CommandStates.CommandSourceTerminated,
+                CommandStates.EndGame,
             }
         )
 
@@ -78,7 +79,7 @@ class ReplayReader(ReplayWorkerBase):
                 logger.debug("<%s> Streaming data %s", self._connection, len(data))
 
                 max_tick = TICK_COUNT_TIMEOUT
-                read_size = 0
+                size_to_read = 0
                 for tick, command_type, replay_data in self.replay_body_parser.continuous_parse(data):
                     read_length = len(replay_data)
                     # parser couldn't understand, even if we have data
@@ -86,7 +87,7 @@ class ReplayReader(ReplayWorkerBase):
                         break
 
                     self.tick = tick
-                    read_size += read_length
+                    size_to_read += read_length
 
                     # no need to slow down
                     if not has_writer_online:
@@ -98,9 +99,9 @@ class ReplayReader(ReplayWorkerBase):
                     elif tick - TICK_COUNT_TIMEOUT > max_tick or command_type == CommandStates.EndGame:
                         break
 
-                if read_size:
-                    self._connection.writer.write(data[:read_size])
-                    self.position += read_size
+                if size_to_read:
+                    self._connection.writer.write(data[:size_to_read])
+                    self.position += size_to_read
                 await self._connection.writer.drain()
 
         finally:

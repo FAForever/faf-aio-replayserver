@@ -2,7 +2,7 @@ import pytest
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(5)
 async def test_multiple_connections(client, put_replay_command, replay_data, get_replay_command, db_replay):
     """
     Concurency behavior, we can read data, while they're streamed.
@@ -24,6 +24,9 @@ async def test_multiple_connections(client, put_replay_command, replay_data, get
 
     assert await reader2.read() == replay_data
     assert await reader3.read() == replay_data
+
+    writer2.close()
+    writer3.close()
 
 
 @pytest.mark.asyncio
@@ -72,31 +75,39 @@ async def test_common_read_from_multiple_different_streams(
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(120)
-async def test_read_stream(client, streamed_replay_data, put_replay_command, get_replay_command, db_replay):
+@pytest.mark.timeout(10)
+async def test_read_stream(client, streamed_replay_data, replay_data, put_replay_command, get_replay_command):
     """
-    Testing streamed content
+    Testing streamed content, command by command
     """
     _, writer1 = await client()
     reader2, writer2 = await client()
+    header_data = next(streamed_replay_data)
 
     # send header
     writer1.write(put_replay_command)
-    header_data = next(streamed_replay_data)
     writer1.write(header_data)
     await writer1.drain()
+    offset = len(header_data)
 
     # connect to the server
     writer2.write(get_replay_command)
     await writer2.drain()
-    assert await reader2.read(len(header_data)) == header_data
+    assert await reader2.read(offset) == header_data
 
+    i = 0
+    sent_data = b''
     for data in streamed_replay_data:
+        sent_data += data
         writer1.write(data)
-        await writer1.drain()
-
-        part_data = await reader2.read(len(data))
-        assert part_data == data
+        if i > 0 and i % 10000 == 0:
+            await writer1.drain()
+            readed_data = await reader2.read(len(sent_data))
+            assert readed_data == sent_data, (readed_data, sent_data)
+            sent_data = b''
+        i += 1
 
     writer1.close()
     writer2.close()
+
+

@@ -16,13 +16,15 @@ install:
       && pushd faf-stack
       && cp -r config.template config
       && popd
-  - pip3 install -r requirements.txt
   - docker-compose -f faf-stack/docker-compose.yml up -d faf-db
   - ./docker-build.sh
+  - pip3 install pipenv
+  - pipenv install
+  - pipenv install coveralls
 
 script:
   - sleep 60
-  - MYSQL_HOST=127.0.0.1 MYSQL_USER=root MYSQL_PASSWORD=banana ./test.sh
+  - MYSQL_HOST=127.0.0.1 MYSQL_USER=root MYSQL_PASSWORD=banana pipenv run ./test.sh
 
 after_script:
   - docker-compose -f faf-stack/docker-compose.yml down -d faf-db
@@ -34,3 +36,4 @@ after_success:
       docker tag faforever/faf-aio-replayserver ${REPO}:${TRAVIS_TAG};
       docker push ${REPO}:${TRAVIS_TAG};
     fi
+  - coveralls

@@ -2,9 +2,7 @@ import os
 from collections import Iterator
 
 import pytest
-from replay_parser.body import ReplayBody
-from replay_parser.constants import CommandStates
-from replay_parser.replay import parse, continuous_parse
+from replay_parser.replay import continuous_parse
 
 from replay_server.constants import TERMINATOR
 
@@ -91,19 +89,13 @@ def streamed_replay_data(replay_data):
         parser: Iterator = continuous_parse(
             replay_data,
             parse_header=True,
-            parse_commands={
-                CommandStates.Advance,
-                CommandStates.SetCommandSource,
-                CommandStates.CommandSourceTerminated,
-            }
+            parse_commands={-1}
         )
         header = next(parser)
-        offset = header['body_offset']
-        yield replay_data[:offset]
+        yield replay_data[:header['body_offset']]
 
         # yield body
         for tick, command_type, data in parser:
             yield data
-            offset += len(data)
 
     return iterator()

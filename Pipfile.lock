@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "734dba0964fbaf5378f57613c96149aae8a5501125e0ac4ec519b2546f6909be"
+            "sha256": "b9d7c0bb965e92a29cf7680f0716de0b012f0b703716e2cae077f8b64efb7f30"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -235,11 +235,11 @@
         },
         "pytest-profiling": {
             "hashes": [
-                "sha256:6b86a2e547bf1a70610da6568d91ed3e785d15a12151abebdd5e885fba532523",
-                "sha256:ce222a8682b893467b95e48e8cfe7372cf1afd213ffe558c023fd3591ebdadd8"
+                "sha256:437be67114009b40aac145bb135fcd9a4cf2cc6bbf8ccb3d2921894396e92640",
+                "sha256:f826859197a41f719a853b7e14ea0fd9b8f9de5515aad6827451f204813c0e4f"
             ],
             "index": "pypi",
-            "version": "==1.3.0"
+            "version": "==1.4.0"
         },
         "pytest-timeout": {
             "hashes": [
@@ -252,7 +252,7 @@
         "replay-parser": {
             "editable": true,
             "git": "https://github.com/FAForever/faf-scfa-replay-parser.git",
-            "ref": "9355cfdd0e959c12e63672174e971335627a94c2"
+            "ref": "ccffd8080d689e60b401a558bb469e8c0ec1484b"
         },
         "six": {
             "hashes": [

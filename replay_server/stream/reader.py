@@ -62,7 +62,7 @@ class ReplayReader(ReplayWorkerBase):
         """
         try:
             while True:
-                await asyncio.sleep(0)
+                await asyncio.sleep(WAIT_STEP)
                 has_writer_online = self.has_writer_online()
                 data = get_greatest_common_stream(self.buffers, self.body_positions, self.position)
 
@@ -75,9 +75,8 @@ class ReplayReader(ReplayWorkerBase):
                     await asyncio.sleep(WAIT_STEP)
                     continue
 
-                logger.debug("<%s> Streaming data %s", self._connection, len(data))
-
                 size_to_read = self.get_size_to_read(data, has_writer_online)
+                logger.debug("<%s> Streaming data %s", self._connection, size_to_read)
                 if size_to_read > 0:
                     self._connection.writer.write(data[:size_to_read])
                     self.position += size_to_read

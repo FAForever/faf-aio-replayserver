@@ -252,7 +252,7 @@
         "replay-parser": {
             "editable": true,
             "git": "https://github.com/FAForever/faf-scfa-replay-parser.git",
-            "ref": "ccffd8080d689e60b401a558bb469e8c0ec1484b"
+            "ref": "1310611ffdfcedd044ff8ae3fee5c61df41bf43e"
         },
         "six": {
             "hashes": [

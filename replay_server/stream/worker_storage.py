@@ -21,5 +21,5 @@ class WorkerStorage:
 
     @classmethod
     def remove_worker(cls, uid, worker_instance: ReplayWorkerBase):
-        if uid in cls.online_workers and cls.online_workers[uid].index(worker_instance) >= 0:
+        if uid in cls.online_workers and worker_instance in cls.online_workers[uid]:
             cls.online_workers[uid].remove(worker_instance)

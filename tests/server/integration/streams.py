@@ -102,8 +102,8 @@ async def test_read_stream(client, streamed_replay_data, replay_data, put_replay
         writer1.write(data)
         if i > 0 and i % 10000 == 0:
             await writer1.drain()
-            readed_data = await reader2.read(len(sent_data))
-            assert readed_data == sent_data, (readed_data, sent_data)
+            read_data = await reader2.read(len(sent_data))
+            assert read_data == sent_data, (read_data, sent_data)
             sent_data = b''
         i += 1
 

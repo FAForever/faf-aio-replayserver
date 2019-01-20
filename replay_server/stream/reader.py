@@ -35,7 +35,6 @@ class ReplayReader(ReplayWorkerBase):
                 CommandStates.Advance,
                 CommandStates.SetCommandSource,
                 CommandStates.CommandSourceTerminated,
-                CommandStates.EndGame,
             }
         )
 
@@ -78,28 +77,8 @@ class ReplayReader(ReplayWorkerBase):
 
                 logger.debug("<%s> Streaming data %s", self._connection, len(data))
 
-                max_tick = TICK_COUNT_TIMEOUT
-                size_to_read = 0
-                for tick, command_type, replay_data in self.replay_body_parser.continuous_parse(data):
-                    read_length = len(replay_data)
-                    # parser couldn't understand, even if we have data
-                    if not read_length:
-                        break
-
-                    self.tick = tick
-                    size_to_read += read_length
-
-                    # no need to slow down
-                    if not has_writer_online:
-                        continue
-
-                    # can't stream anymore, otherwise we'll cheat
-                    if has_writer_online:
-                        continue
-                    elif tick - TICK_COUNT_TIMEOUT > max_tick or command_type == CommandStates.EndGame:
-                        break
-
-                if size_to_read:
+                size_to_read = self.get_size_to_read(data, has_writer_online)
+                if size_to_read > 0:
                     self._connection.writer.write(data[:size_to_read])
                     self.position += size_to_read
                 await self._connection.writer.drain()
@@ -108,6 +87,32 @@ class ReplayReader(ReplayWorkerBase):
             logger.debug("<%s> Ended reading data for %s. Total length %s",
                          self._connection, self.get_uid(), self.position)
             await self._connection.writer.drain()
+
+    def get_size_to_read(self, data, has_writer_online):
+        max_tick = self.tick
+        # find greatest tick
+        for tick, _, _ in self.replay_body_parser.continuous_parse(data):
+            max_tick = tick
+        max_tick = max(max_tick - TICK_COUNT_TIMEOUT, 0)
+
+        self.replay_body_parser.tick = self.tick
+        self.replay_body_parser.replay_reader.seek(0)
+
+        size_to_read = 0
+        for tick, _, replay_data in self.replay_body_parser.continuous_parse():
+            read_length = len(replay_data)
+
+            # parser couldn't understand, even if we have data
+            if not read_length:
+                break
+
+            if tick > max_tick and has_writer_online:
+                break
+
+            self.tick = tick
+            size_to_read += read_length
+
+        return size_to_read
 
     async def process(self):
         """

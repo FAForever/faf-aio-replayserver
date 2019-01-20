@@ -1,7 +1,7 @@
 FROM python:3.6-slim
 
 LABEL maintainer="FAF Community"
-LABEL version="0.4.6"
+LABEL version="0.4.7"
 LABEL description="Forged Alliance Forever: Replay server"
 
 EXPOSE 15000

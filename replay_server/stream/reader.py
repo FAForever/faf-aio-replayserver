@@ -41,7 +41,7 @@ class ReplayReader(ReplayWorkerBase):
         self.initialize_buffers(buffers)
         logger.debug("<%s> Prepared to read stream for %s", self._connection, self.get_uid())
 
-    def initialize_buffers(self, buffers: List[RawIOBase]):
+    def initialize_buffers(self, buffers: List[RawIOBase]) -> None:
         """
         Initializes which streams can use, finds replay body start positions.
         """
@@ -56,7 +56,7 @@ class ReplayReader(ReplayWorkerBase):
             except ValueError as e:
                 continue
 
-    async def process_body(self):
+    async def process_body(self) -> None:
         """
         Continuously parses replay body, checks for current ticks, pauses, resumes of the game.
         """
@@ -87,7 +87,13 @@ class ReplayReader(ReplayWorkerBase):
                          self._connection, self.get_uid(), self.position)
             await self._connection.writer.drain()
 
-    def get_size_to_read(self, data, has_writer_online):
+    def get_size_to_read(self, data: bytes, has_writer_online: bool) -> int:
+        """
+        Compute amount of ticks that we can read.
+        1. parse to max tick
+        2. read to max tick - TICK_COUNT_TIMEOUT
+        Return size to read.
+        """
         max_tick = self.tick
         # find greatest tick
         for tick, _, _ in self.replay_body_parser.continuous_parse(data):
@@ -113,7 +119,7 @@ class ReplayReader(ReplayWorkerBase):
 
         return size_to_read
 
-    async def process(self):
+    async def process(self) -> None:
         """
         Streams the most common stream of connected players.
         Waits, for data, if buffers are "empty".
@@ -130,7 +136,7 @@ class ReplayReader(ReplayWorkerBase):
         logger.info("<%s> End reading data for %s. Total length %s",
                     self._connection, self.get_uid(), self.position)
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         logger.info("<%s> Closing buffers for %s", self._connection, self.get_uid())
         for buffer in self.buffers:
             buffer.close()
@@ -144,7 +150,7 @@ class ReplayReader(ReplayWorkerBase):
 
         logger.info("<%s> Closed buffers for %s", self._connection, self.get_uid())
 
-    def has_writer_online(self):
+    def has_writer_online(self) -> bool:
         """
         Checks if uid has active writter
         """

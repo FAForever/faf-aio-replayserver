@@ -101,7 +101,7 @@ async def test_server_save_data(client, put_replay_command, replay_data, replay_
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(2)
+@pytest.mark.timeout(20)
 async def test_stream_write_and_clean(client, replay_data, put_replay_command, replay_id, db_replay):
     """
     Check, that we will know that temporary file is moved at the end of replay
@@ -114,7 +114,7 @@ async def test_stream_write_and_clean(client, replay_data, put_replay_command, r
     await writer1.drain()
     writer1.close()
 
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(2)
 
     assert not os.path.exists(temp_replay_path)
     assert os.path.exists(saved_replay_path)

@@ -18,21 +18,10 @@ async def db_connection_fixture(event_loop):
     await db.close()
 
 
-@pytest.yield_fixture
-async def cursor(db_connection_fixture):
-    db.set_testing_conn(db_connection_fixture)
-    yield db
-
-
-@pytest.fixture
-async def db_login(cursor):
-    await cursor.execute("INSERT INTO login (login, email) VALUES ('user1', 'user1@email.cc')")
-
-
 @pytest.fixture
 async def db_game_featured_mods(cursor):
     await cursor.execute("""
-        INSERT INTO `game_featuredMods` (id, gamemod, description, name, publish, order)
+        INSERT INTO `game_featuredMods` (id, gamemod, description, `name`, publish, `order`)
         VALUES
         (0, "faf", "description", "FAF", 1, 0),
         (1, "murderparty", "description", "Murder Party", 1, 10),
@@ -53,6 +42,17 @@ async def db_game_featured_mods(cursor):
         (29, "equilibrium", "description", "Equilibrium", 1, 3)
         ON DUPLICATE KEY UPDATE `id` = `id`
     """)
+
+
+@pytest.yield_fixture
+async def cursor(db_connection_fixture):
+    db.set_testing_conn(db_connection_fixture)
+    yield db
+
+
+@pytest.fixture
+async def db_login(cursor):
+    await cursor.execute("INSERT INTO login (login, email) VALUES ('user1', 'user1@email.cc')")
 
 
 @pytest.fixture
@@ -81,7 +81,7 @@ async def db_user(cursor):
 
 
 @pytest.fixture
-async def db_game_stats(cursor, replay_id, db_user):
+async def db_game_stats(cursor, replay_id, db_user, db_game_featured_mods):
     await cursor.execute("""
         INSERT INTO `game_stats` (`id`, `starttime`, `endtime`, `gametype`, `gamemod`, 
                                   `host`, `mapid`, `gamename`, `validity`)

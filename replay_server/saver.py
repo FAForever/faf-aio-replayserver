@@ -62,7 +62,7 @@ async def get_replay_info(game_id: int, replay_data: bytes, start_time: int) -> 
             featured_mods = await get_mod_updates(game_stats[0].get("game_mod"), game_version)
             game_stats_first_row = game_stats[0]
 
-            teams = {}
+            teams: Dict[int, List[str]] = {}
             for player in players:
                 teams.setdefault(player['team'], []).append(player['login'])
 

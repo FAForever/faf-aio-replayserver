@@ -16,8 +16,8 @@ class ReplayConnection:
     def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         self.reader: asyncio.StreamReader = reader
         self.writer: asyncio.StreamWriter = writer
-        self.uid: int = None
-        self.game_name: str = None
+        self.uid: Optional[int] = None
+        self.game_name: Optional[str] = None
 
     async def get_type(self) -> Optional[int]:
         """
@@ -50,9 +50,9 @@ class ReplayConnection:
         logger.debug("<%s> Getting replay name", self)
         try:
             line = (await self.reader.readuntil(TERMINATOR))[:-1].decode()
-            self.uid, self.game_name = line.split("/", 1)
+            uid, self.game_name = line.split("/", 1)
             try:
-                self.uid = int(self.uid)
+                self.uid = int(uid)
             except ValueError:
                 raise ConnectionError("Invalid data")
             return self.uid, self.game_name

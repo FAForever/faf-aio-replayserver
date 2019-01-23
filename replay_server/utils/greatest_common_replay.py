@@ -1,9 +1,10 @@
-from io import RawIOBase, SEEK_END, FileIO
+from io import SEEK_END, FileIO
 from plistlib import Dict
-from typing import List
+from typing import List, Optional
+
+from replay_parser.replay import parse
 
 from replay_server.logger import logger
-from replay_parser.replay import parse
 
 __all__ = (
     'get_greatest_common_stream',
@@ -11,7 +12,7 @@ __all__ = (
 )
 
 
-def get_buffer_size(buffer: RawIOBase) -> int:
+def get_buffer_size(buffer: FileIO) -> int:
     """
     Computes buffers size
     """
@@ -22,7 +23,7 @@ def get_buffer_size(buffer: RawIOBase) -> int:
     return file_size
 
 
-def _get_stream_part(buffer: RawIOBase, position: int, size: int) -> bytearray:
+def _get_stream_part(buffer: FileIO, position: int, size: int) -> Optional[bytes]:
     """
     Reads reads part of stream from position, with some size
     """
@@ -30,20 +31,20 @@ def _get_stream_part(buffer: RawIOBase, position: int, size: int) -> bytearray:
     buffer.seek(position)
     stream_part = buffer.read(size)
     buffer.seek(previous_position)
-    return bytearray(stream_part)
+    return stream_part
 
 
 def get_greatest_common_stream(
-        buffers: List[RawIOBase],
+        buffers: List[FileIO],
         buffers_positions: List[int],
         position: int,
         size: int =-1
-) -> bytearray:
+) -> Optional[bytes]:
     """
     That method will return greatest common stream from position, with some size.
     """
 
-    greatest_common_stream = None
+    greatest_common_stream: Optional[bytes] = None
     greatest_common_count = 0
 
     if len(buffers) <= 2:
@@ -71,7 +72,7 @@ def get_greatest_common_stream(
 
 
 def get_common_buffers_info(
-        buffers: List[RawIOBase],
+        buffers: List[FileIO],
         buffers_positions: List[int],
         position: int,
         size: int = -1
@@ -115,7 +116,7 @@ def get_replay(paths: List[str]) -> str:
     """
     logger.debug("Finding greatest common replay stream for paths: %s", str(paths))
     file_nos: Dict[int, str] = {}  # list of buffers file handler ids
-    buffers: List[RawIOBase] = []
+    buffers: List[FileIO] = []
     try:
         for path in paths:
             buffer = FileIO(path, "rb")

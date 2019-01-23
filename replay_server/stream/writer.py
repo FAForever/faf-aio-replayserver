@@ -19,6 +19,7 @@ class ReplayWriter(ReplayWorkerBase):
     def __init__(self, buffer: RawIOBase, *args: List[Any], **kwargs: Dict[Any, Any]):
         super(ReplayWriter, self).__init__(*args, **kwargs)
         self.buffer: RawIOBase = buffer
+        self.position: int = 0
         logger.info("<%s> Prepared to save stream %s for", self._connection, self.get_uid())
 
     async def process(self) -> None:

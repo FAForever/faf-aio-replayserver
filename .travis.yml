@@ -19,7 +19,7 @@ install:
   - docker-compose -f faf-stack/docker-compose.yml up -d faf-db
   - ./docker-build.sh
   - pip3 install pipenv
-  - pipenv install
+  - pipenv install --dev
   - pipenv install coveralls
 
 script:

@@ -22,8 +22,15 @@ install:
   - pipenv install --dev
   - pipenv install coveralls
 
+before_script:
+  - export FAF_STACK_DB_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -q -f "name=faf-db"))
+  - while ! docker exec -it faf-db sh -c "mysqladmin ping -h 127.0.0.1 -uroot -pbanana" &> /dev/null ; do
+    echo -n ".";
+    sleep 1;
+    done
+  - docker-compose -f faf-stack/docker-compose.yml run faf-db-migrations migrate
+
 script:
-  - sleep 60
   - MYSQL_HOST=127.0.0.1 MYSQL_USER=root MYSQL_PASSWORD=banana pipenv run ./test.sh
 
 after_script:

@@ -1,2 +1,3 @@
 aiomysql
 prometheus_client
+everett[yaml]

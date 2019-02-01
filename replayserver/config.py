@@ -7,7 +7,8 @@ import os
 from everett.component import RequiredConfigMixin, ConfigOptions
 
 
-__all__ = ["positive_int", "nonnegative_int", "is_dir", "Config"]
+__all__ = ["positive_int", "nonnegative_int", "positive_float",
+           "nonnegative_float", "is_dir", "Config"]
 
 
 def positive_int(v):
@@ -24,9 +25,24 @@ def nonnegative_int(v):
     return i
 
 
+def positive_float(v):
+    i = float(v)
+    if i <= 0:
+        raise ValueError("Expected a positive value")
+    return i
+
+
+def nonnegative_float(v):
+    i = float(v)
+    if i < 0:
+        raise ValueError("Expected a nonnegative value")
+    return i
+
+
 def is_dir(d):
-    if not os.path.is_dir(d):
+    if not os.path.isdir(d):
         raise ValueError(f"Directory {d} does not exist")
+    return d
 
 
 class _ConfigMeta(type):

@@ -13,7 +13,7 @@ from replayserver import config
 class ReplayConfig(config.Config):
     _options = {
         "forced_end_time": {
-            "parser": config.positive_int,
+            "parser": config.positive_float,
             "doc": "Time in seconds after which a replay is forcefully ended."
         },
     }

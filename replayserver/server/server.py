@@ -11,17 +11,22 @@ from replayserver import config
 
 
 class ServerConfig(config.Config):
+    def _optional_port(i):
+        if i in ["", "None"]:
+            return None
+        return config.positive_int(i)
+
     _options = {
         "port": {
             "parser": config.positive_int,
             "doc": "Replayserver port."
         },
         "prometheus_port": {
-            "parser": config.positive_int,
+            "parser": _optional_port,
             "doc": "Replayserver prometheus endpoint."
         },
         "connection_header_read_timeout": {
-            "parser": config.positive_int,
+            "parser": config.positive_float,
             "doc": ("Time in seconds until we drop a connection that doesn't "
                     "send us the initial header. This is significant since FA "
                     "connects to the replayserver at lobby creation, but "
@@ -48,7 +53,7 @@ class MainConfig(config.Config):
         self.server = ServerConfig(config.with_namespace("server"))
         self.db = DatabaseConfig(config.with_namespace("db"))
         self.storage = BookkeeperConfig(config.with_namespace("storage"))
-        self.replay = ReplayConfig(config.with_namespace("config"))
+        self.replay = ReplayConfig(config.with_namespace("replay"))
 
 
 class Server:

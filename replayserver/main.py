@@ -21,7 +21,7 @@ __all__ = ["main"]
 def get_program_config():
     sources = [ConfigOSEnv()]
     if "RS_CONFIG_FILE" in os.environ:
-        sources.append(os.environ["RS_CONFIG_FILE"])
+        sources.append(ConfigYamlEnv(os.environ["RS_CONFIG_FILE"]))
     config = ConfigManager(sources)
     return MainConfig(config)
 

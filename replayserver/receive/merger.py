@@ -46,7 +46,7 @@ class MergerEndCondition:
 class MergerConfig(config.Config):
     _options = {
         "grace_period": {
-            "parser": config.nonnegative_int,
+            "parser": config.nonnegative_float,
             "doc": ("Time in seconds after which a replay with no writers "
                     "will consider itself over.")
         },

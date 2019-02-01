@@ -1,34 +1,58 @@
 import pytest
 import asyncio
-from tests import timeout, slow_test, docker_faf_db_config, skip_stress_test
+import copy
+
+from tests import timeout, slow_test, docker_faf_db_config, skip_stress_test, \
+    config_from_dict
 from tests.replays import example_replay
-
 from replayserver import Server
-from replayserver.receive.mergestrategy import MergeStrategies
+from replayserver.server.server import MainConfig
 
 
-config = {
-    "merger_grace_period_time": 1,
-    "replay_merge_strategy": MergeStrategies.FOLLOW_STREAM,
-    "mergestrategy_stall_check_period": 60,
-    "sent_replay_delay": 5,
-    "sent_replay_position_update_interval": 0.1,
-    "connection_header_read_timeout": 6 * 60 * 60,
-    "replay_forced_end_time": 60,
-    "server_port": 15000,
-    "db_host": docker_faf_db_config["host"],
-    "db_port": docker_faf_db_config["port"],
-    "db_user": docker_faf_db_config["user"],
-    "db_password": docker_faf_db_config["password"],
-    "db_name":     docker_faf_db_config["db"],
-    "replay_store_path": "/tmp/replaceme",
-    "prometheus_port": None
+config_dict = {
+    "log_level": 20,
+    "server": {
+        "port": 15000,
+        "prometheus_port": "None",
+        "connection_header_read_timeout": 6 * 60 * 60
+    },
+    "db": {
+        "host": docker_faf_db_config["host"],
+        "port": docker_faf_db_config["port"],
+        "user": docker_faf_db_config["user"],
+        "password": docker_faf_db_config["password"],
+        "name": docker_faf_db_config["db"],
+    },
+    "storage": {
+        "vault_path": "/tmp/replaceme"
+    },
+    "replay": {
+        "forced_end_time": 60,
+        "send": {
+            "replay_delay": 5,
+            "update_interval": 0.1,
+        },
+        "merge": {
+            "strategy": "FOLLOW_STREAM",
+            "grace_period": 1,
+            "strategy_config": {
+                "follow_stream": {
+                    "stall_check_period": 60
+                }
+            }
+        }
+    },
 }
-config = {"config_" + k: v for k, v in config.items()}
 
 
-def test_server_init():
-    Server.build(**config)
+def server_config(d):
+    return MainConfig(config_from_dict(d))
+
+
+def test_server_init(tmpdir):
+    conf = copy.deepcopy(config_dict)
+    conf["storage"]["vault_path"] = str(tmpdir)
+    Server.build(config=server_config(conf))
 
 
 async def assert_connection_closed(r, w):
@@ -42,14 +66,14 @@ async def assert_connection_closed(r, w):
 @pytest.mark.asyncio
 @timeout(3)
 async def test_server_single_connection(mock_database, tmpdir):
-    conf = dict(config)
-    conf["config_server_port"] = 15001
-    conf["config_prometheus_port"] = 16001
-    conf["config_replay_store_path"] = str(tmpdir)
+    conf = copy.deepcopy(config_dict)
+    conf["server"]["port"] = 15001
+    conf["server"]["prometheus_port"] = 16001
+    conf["storage"]["vault_path"] = str(tmpdir)
 
     await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
-    server = Server.build(dep_database=lambda **kwargs: mock_database,
-                          **conf)
+    server = Server.build(dep_database=lambda _: mock_database,
+                          config=server_config(conf))
     await server.start()
     r, w = await asyncio.open_connection('127.0.0.1', 15001)
 
@@ -69,15 +93,15 @@ async def test_server_single_connection(mock_database, tmpdir):
 @pytest.mark.asyncio
 @timeout(5)
 async def test_server_replay_force_end(mock_database, tmpdir):
-    conf = dict(config)
-    conf["config_server_port"] = 15002
-    conf["config_replay_store_path"] = str(tmpdir)
-    conf["config_replay_forced_end_time"] = 1
-    conf["config_replay_delay"] = 0.5
+    conf = copy.deepcopy(config_dict)
+    conf["server"]["port"] = 15002
+    conf["storage"]["vault_path"] = str(tmpdir)
+    conf["replay"]["forced_end_time"] = 1
+    conf["replay"]["send"]["replay_delay"] = 0.5
 
     await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
-    server = Server.build(dep_database=lambda **kwargs: mock_database,
-                          **conf)
+    server = Server.build(dep_database=lambda _: mock_database,
+                          config=server_config(conf))
     await server.start()
     r, w = await asyncio.open_connection('127.0.0.1', 15002)
 
@@ -102,13 +126,13 @@ async def test_server_replay_force_end(mock_database, tmpdir):
 @pytest.mark.asyncio
 @timeout(3)
 async def test_server_force_close_server(mock_database, tmpdir):
-    conf = dict(config)
-    conf["config_server_port"] = 15003
-    conf["config_replay_store_path"] = str(tmpdir)
+    conf = copy.deepcopy(config_dict)
+    conf["server"]["port"] = 15003
+    conf["storage"]["vault_path"] = str(tmpdir)
 
     await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
-    server = Server.build(dep_database=lambda **kwargs: mock_database,
-                          **conf)
+    server = Server.build(dep_database=lambda _: mock_database,
+                          config=server_config(conf))
     await server.start()
     r, w = await asyncio.open_connection('127.0.0.1', 15003)
 
@@ -135,14 +159,14 @@ async def test_server_force_close_server(mock_database, tmpdir):
 @pytest.mark.asyncio
 @timeout(5)
 async def test_server_reader_is_delayed(mock_database, tmpdir):
-    conf = dict(config)
-    conf["config_sent_replay_delay"] = 0.5
-    conf["config_server_port"] = 15004
-    conf["config_replay_store_path"] = str(tmpdir)
+    conf = copy.deepcopy(config_dict)
+    conf["replay"]["send"]["replay_delay"] = 0.5
+    conf["server"]["port"] = 15004
+    conf["storage"]["vault_path"] = str(tmpdir)
 
     await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
-    server = Server.build(dep_database=lambda **kwargs: mock_database,
-                          **conf)
+    server = Server.build(dep_database=lambda _: mock_database,
+                          config=server_config(conf))
     await server.start()
     r, w = await asyncio.open_connection('127.0.0.1', 15004)
     r2, w2 = await asyncio.open_connection('127.0.0.1', 15004)
@@ -188,17 +212,17 @@ async def test_server_reader_is_delayed(mock_database, tmpdir):
 @pytest.mark.asyncio
 @timeout(10)
 async def test_server_stress_test(mock_database, tmpdir):
-    conf = dict(config)
-    conf["config_server_port"] = 15005
-    conf["config_prometheus_port"] = 16005
-    conf["config_replay_store_path"] = str(tmpdir)
-    conf["config_sent_replay_delay"] = 0.5
+    conf = copy.deepcopy(config_dict)
+    conf["server"]["port"] = 15005
+    conf["server"]["prometheus_port"] = 16005
+    conf["storage"]["vault_path"] = str(tmpdir)
+    conf["replay"]["send"]["replay_delay"] = 0.5
 
     for i in range(1, 50):
         await mock_database.add_mock_game((i, 1, 1), [(1, 1), (2, 2)])
 
-    server = Server.build(dep_database=lambda **kwargs: mock_database,
-                          **conf)
+    server = Server.build(dep_database=lambda _: mock_database,
+                          config=server_config(conf))
     await server.start()
 
     async def do_write(r, w, i):

@@ -106,7 +106,7 @@ class DivergenceTracking:
 class FollowStreamMergeStrategyConfig(config.Config):
     _options = {
         "stall_check_period": {
-            "parser": config.positive_int,
+            "parser": config.positive_float,
             "doc": ("Time in seconds after which, if the followed connection "
                     "did not produce data, another connection is selected.")
         }

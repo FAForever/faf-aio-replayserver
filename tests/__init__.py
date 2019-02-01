@@ -4,6 +4,9 @@ import decorator
 import unittest
 from tests.timeskipper import TimeSkipper
 from tests.docker_db_config import docker_faf_db_config
+from everett.manager import ConfigManager, ConfigDictEnv
+
+# FIXME - there's all kinds of utility stuff here, we should tidy it up
 
 __all__ = ["timeout", "fast_forward_time", "TimeSkipper",
            "skip_if_needs_asynctest_107", "slow_test",
@@ -52,3 +55,18 @@ def slow_test(fn):
     return unittest.skipIf(
         "SKIP_SLOW_TESTS" in os.environ,
         "Test is slow")(fn)
+
+
+def config_from_dict(d):
+    def flatten_dict(d, prefix=""):
+        newd = {}
+        for key, val in d.items():
+            if isinstance(val, dict):
+                flatval = flatten_dict(val, f"{prefix}{key}_")
+                newd.update(flatval)
+            else:
+                newd[f"{prefix}{key}"] = val
+        return newd
+
+    flatd = flatten_dict(d)
+    return ConfigManager([ConfigDictEnv(flatd)])

@@ -13,7 +13,7 @@ class ReplayFilePaths:
         self._replay_base_path = replay_store_path
 
     @classmethod
-    def build(cls, *, config_replay_store_path, **kwargs):
+    def build(cls, config_replay_store_path):
         return cls(config_replay_store_path)
 
     def get(self, game_id):
@@ -43,8 +43,8 @@ class ReplaySaver:
         self._database = database
 
     @classmethod
-    def build(cls, database, **kwargs):
-        paths = ReplayFilePaths.build(**kwargs)
+    def build(cls, database, config):
+        paths = ReplayFilePaths.build(config.vault_path)
         return cls(paths, database)
 
     async def save_replay(self, game_id, stream):

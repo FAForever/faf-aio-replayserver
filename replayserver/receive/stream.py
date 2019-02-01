@@ -18,7 +18,7 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
         self._leftovers = b""
 
     @classmethod
-    def build(cls, connection, **kwargs):
+    def build(cls, connection):
         header_reader = ReplayHeader.from_connection
         return cls(header_reader, connection)
 

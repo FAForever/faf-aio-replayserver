@@ -6,6 +6,8 @@ from replayserver.errors import CannotAcceptConnectionError
 from replayserver.collections import AsyncCounter
 from replayserver.receive.stream import ConnectionReplayStream, \
     OutsideSourceReplayStream
+from replayserver.receive.mergestrategy import MergeStrategies
+from replayserver import config
 
 
 class MergerEndCondition:
@@ -41,8 +43,28 @@ class MergerEndCondition:
         self._force_end.set()
 
 
+class MergerConfig(config.Config):
+    _options = {
+        "grace_period": {
+            "parser": config.nonnegative_int,
+            "doc": ("Time in seconds after which a replay with no writers "
+                    "will consider itself over.")
+        },
+        "strategy": {
+            "parser": MergeStrategies,
+            "doc": ("Replay merge strategy to use. Available strategies are "
+                    "GREEDY and FOLLOW_STREAM (recommended).")
+        }
+    }
+
+    def __init__(self, config):
+        super().__init__(config)
+        strat_config = config.with_namespace("strategy_config")
+        self.strategy_config = self.strategy.config(strat_config)
+
+
 class Merger:
-    def __init__(self, stream_builder, grace_period_time, merge_strategy,
+    def __init__(self, stream_builder, grace_period, merge_strategy,
                  canonical_stream):
         self._stream_builder = stream_builder
         self._stream_count = AsyncCounter()
@@ -51,17 +73,16 @@ class Merger:
         self._closing = False
         self._ended = Event()
         self._end_condition = MergerEndCondition(self._stream_count,
-                                                 grace_period_time)
+                                                 grace_period)
         asyncio.ensure_future(self._lifetime())
 
     @classmethod
-    def build(cls, *, config_merger_grace_period_time,
-              config_replay_merge_strategy, **kwargs):
+    def build(cls, config):
         canonical_replay = OutsideSourceReplayStream()
-        merge_strategy = config_replay_merge_strategy.build(
-            canonical_replay, **kwargs)
+        merge_strategy = config.strategy.build(canonical_replay,
+                                               config.strategy_config)
         stream_builder = ConnectionReplayStream.build
-        return cls(stream_builder, config_merger_grace_period_time,
+        return cls(stream_builder, config.grace_period,
                    merge_strategy, canonical_replay)
 
     @contextmanager

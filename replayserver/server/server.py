@@ -2,10 +2,53 @@ from asyncio.locks import Event
 import prometheus_client
 
 from replayserver.server.connectionproducer import ConnectionProducer
-from replayserver.bookkeeping.database import Database
+from replayserver.bookkeeping.database import Database, DatabaseConfig
 from replayserver.server.connections import Connections
 from replayserver.server.replays import Replays
-from replayserver.bookkeeping.bookkeeper import Bookkeeper
+from replayserver.server.replay import ReplayConfig
+from replayserver.bookkeeping.bookkeeper import Bookkeeper, BookkeeperConfig
+from replayserver import config
+
+
+class ServerConfig(config.Config):
+    _options = {
+        "port": {
+            "parser": config.positive_int,
+            "doc": "Replayserver port."
+        },
+        "prometheus_port": {
+            "parser": config.positive_int,
+            "doc": "Replayserver prometheus endpoint."
+        },
+        "connection_header_read_timeout": {
+            "parser": config.positive_int,
+            "doc": ("Time in seconds until we drop a connection that doesn't "
+                    "send us the initial header. This is significant since FA "
+                    "connects to the replayserver at lobby creation, but "
+                    "starts sending data only once the lobby launches. It's "
+                    "a good idea to set this to a few hours. Note that after "
+                    "we read the header, a connection's lifetime is bounded "
+                    "by lifetime of its replay, so no further configuration "
+                    "is needed.")
+        },
+    }
+
+
+class MainConfig(config.Config):
+    _options = {
+        "log_level": {
+            "parser": int,
+            "doc": ("Server log level. Numeric value corresponding to "
+                    "Python's logging module value.")
+        }
+    }
+
+    def __init__(self, config):
+        super().__init__(config)
+        self.server = ServerConfig(config.with_namespace("server"))
+        self.db = DatabaseConfig(config.with_namespace("db"))
+        self.storage = BookkeeperConfig(config.with_namespace("storage"))
+        self.replay = ReplayConfig(config.with_namespace("config"))
 
 
 class Server:
@@ -25,15 +68,16 @@ class Server:
     def build(cls, *,
               dep_connection_producer=ConnectionProducer.build,
               dep_database=Database.build,
-              config_prometheus_port,
-              **kwargs):
-        database = dep_database(**kwargs)
-        bookkeeper = Bookkeeper.build(database, **kwargs)
-        replays = Replays.build(bookkeeper, **kwargs)
-        conns = Connections.build(replays, **kwargs)
-        producer = dep_connection_producer(conns.handle_connection, **kwargs)
+              config):
+        database = dep_database(config.db)
+        bookkeeper = Bookkeeper.build(database, config.storage)
+        replays = Replays.build(bookkeeper, config.replay)
+        conns = Connections.build(replays,
+                                  config.server.connection_header_read_timeout)
+        producer = dep_connection_producer(conns.handle_connection,
+                                           config.server.port)
         return cls(producer, database, conns, replays, bookkeeper,
-                   config_prometheus_port)
+                   config.server.prometheus_port)
 
     async def start(self):
         if self._prometheus_port is not None:

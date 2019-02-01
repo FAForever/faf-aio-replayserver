@@ -14,11 +14,10 @@ class DelayedReplayStream(DataEventMixin, EndedEventMixin, ReplayStream):
         asyncio.ensure_future(self._track_current_position())
 
     @classmethod
-    def build(cls, stream, *, config_sent_replay_position_update_interval,
-              config_sent_replay_delay, **kwargs):
+    def build(cls, stream, config):
         timestamp = Timestamp(stream,
-                              config_sent_replay_position_update_interval,
-                              config_sent_replay_delay)
+                              config.update_interval,
+                              config.replay_delay)
         return cls(stream, timestamp)
 
     @property

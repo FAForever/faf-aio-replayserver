@@ -16,8 +16,8 @@ class ConnectionProducer:
         self._callback = callback
 
     @classmethod
-    def build(cls, callback, *, config_server_port, **kwargs):
-        return cls(callback, config_server_port)
+    def build(cls, callback, server_port):
+        return cls(callback, server_port)
 
     async def start(self):
         self._server = await asyncio.streams.start_server(

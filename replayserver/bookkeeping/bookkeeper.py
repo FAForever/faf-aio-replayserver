@@ -3,6 +3,16 @@ from replayserver.bookkeeping.storage import ReplaySaver
 from replayserver.bookkeeping.database import ReplayDatabaseQueries
 from replayserver.logging import logger
 from replayserver import metrics
+from replayserver import config
+
+
+class BookkeeperConfig(config.Config):
+    _options = {
+        "vault_path": {
+            "doc": "Root directory for saved replays.",
+            "parser": config.is_dir
+        }
+    }
 
 
 class Bookkeeper:
@@ -11,9 +21,9 @@ class Bookkeeper:
         self._saver = saver
 
     @classmethod
-    def build(cls, database, **config):
+    def build(cls, database, config):
         queries = ReplayDatabaseQueries(database)
-        saver = ReplaySaver.build(queries, **config)
+        saver = ReplaySaver.build(queries, config)
         return cls(queries, saver)
 
     async def save_replay(self, game_id, stream):

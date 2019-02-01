@@ -3,10 +3,25 @@ from asyncio.locks import Event
 from contextlib import contextmanager
 
 from replayserver.server.connection import ConnectionHeader
-from replayserver.send.sender import Sender
-from replayserver.receive.merger import Merger
+from replayserver.send.sender import Sender, SenderConfig
+from replayserver.receive.merger import Merger, MergerConfig
 from replayserver.errors import MalformedDataError
 from replayserver.logging import logger
+from replayserver import config
+
+
+class ReplayConfig(config.Config):
+    _options = {
+        "forced_end_time": {
+            "parser": config.positive_int,
+            "doc": "Time in seconds after which a replay is forcefully ended."
+        },
+    }
+
+    def __init__(self, config):
+        super().__init__(config)
+        self.merge = MergerConfig(config.with_namespace("merge"))
+        self.send = SenderConfig(config.with_namespace("send"))
 
 
 class Replay:
@@ -22,12 +37,10 @@ class Replay:
         self._force_close = asyncio.ensure_future(self._timeout_force_close())
 
     @classmethod
-    def build(cls, game_id, bookkeeper, *, config_replay_forced_end_time,
-              **kwargs):
-        merger = Merger.build(**kwargs)
-        sender = Sender.build(merger.canonical_stream, **kwargs)
-        return cls(merger, sender, bookkeeper, config_replay_forced_end_time,
-                   game_id)
+    def build(cls, game_id, bookkeeper, config):
+        merger = Merger.build(config.merge)
+        sender = Sender.build(merger.canonical_stream, config.send)
+        return cls(merger, sender, bookkeeper, config.forced_end_time, game_id)
 
     @contextmanager
     def _track_connection(self, connection):

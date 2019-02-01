@@ -1,17 +1,25 @@
 from enum import Enum
 import asyncio
 from replayserver.logging import logger
+from replayserver import config
 
 
 class MergeStrategies(Enum):
     GREEDY = "GREEDY"
     FOLLOW_STREAM = "FOLLOW_STREAM"
 
-    def build(self, *args, **kwargs):
+    def build(self, sink_stream, config):
         if self == MergeStrategies.GREEDY:
-            return GreedyMergeStrategy.build(*args, **kwargs)
+            return GreedyMergeStrategy.build(sink_stream, config)
         elif self == MergeStrategies.FOLLOW_STREAM:
-            return FollowStreamMergeStrategy.build(*args, **kwargs)
+            return FollowStreamMergeStrategy.build(sink_stream, config)
+
+    def config(self, config):
+        if self == MergeStrategies.GREEDY:
+            return GreedyMergeStrategyConfig(config.with_namespace("greedy"))
+        elif self == MergeStrategies.FOLLOW_STREAM:
+            return FollowStreamMergeStrategyConfig(
+                config.with_namespace("follow_stream"))
 
 
 class MergeStrategy:
@@ -35,6 +43,10 @@ class MergeStrategy:
         raise NotImplementedError
 
 
+class GreedyMergeStrategyConfig(config.Config):
+    pass
+
+
 class GreedyMergeStrategy(MergeStrategy):
     """
     Greedily takes data from the first stream that has it.
@@ -43,7 +55,7 @@ class GreedyMergeStrategy(MergeStrategy):
         MergeStrategy.__init__(self, sink_stream)
 
     @classmethod
-    def build(cls, sink_stream, **kwargs):
+    def build(cls, sink_stream, config):
         return cls(sink_stream)
 
     def stream_added(self, stream):
@@ -91,6 +103,16 @@ class DivergenceTracking:
         self._compared_num = end
 
 
+class FollowStreamMergeStrategyConfig(config.Config):
+    _options = {
+        "stall_check_period": {
+            "parser": config.positive_int,
+            "doc": ("Time in seconds after which, if the followed connection "
+                    "did not produce data, another connection is selected.")
+        }
+    }
+
+
 class FollowStreamMergeStrategy(MergeStrategy):
     """
     Tries its best to follow a single stream. If it ends, looks for a new
@@ -112,17 +134,16 @@ class FollowStreamMergeStrategy(MergeStrategy):
        when we check if a stream is fit to be tracked.
     5. After finalize(), ALL streams either diverge or are prefices of sink.
     """
-    def __init__(self, sink_stream, mergestrategy_stall_check_period):
+    def __init__(self, sink_stream, config):
         MergeStrategy.__init__(self, sink_stream)
         self._candidates = {}
         self._tracked_value = None
         self._stalling_watchdog = asyncio.ensure_future(
-            self._guard_against_stalling(mergestrategy_stall_check_period))
+            self._guard_against_stalling(config.stall_check_period))
 
     @classmethod
-    def build(cls, sink_stream, *, config_mergestrategy_stall_check_period,
-              **kwargs):
-        return cls(sink_stream, config_mergestrategy_stall_check_period)
+    def build(cls, sink_stream, config):
+        return cls(sink_stream, config)
 
     @property
     def _tracked(self):

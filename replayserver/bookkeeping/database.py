@@ -1,30 +1,49 @@
+import time
 import aiomysql
 from aiomysql import create_pool, DatabaseError
 from replayserver.errors import BookkeepingError
 from replayserver.logging import logger
-import time
+from replayserver import config
+
+
+class DatabaseConfig(config.Config):
+    _options = {
+        "host": {
+            "doc": "FAF DB host."
+        },
+        "port": {
+            "doc": "FAF DB port.",
+            "parser": config.positive_int
+        },
+        "user": {
+            "doc": "FAF DB username."
+        },
+        "password": {
+            "doc": "FAF DB password."
+        },
+        "name": {
+            "doc": "FAF DB name."
+        },
+    }
 
 
 class Database:
-    def __init__(self, pool_starter):
-        self._pool_starter = pool_starter
+    def __init__(self, pool_builder, config):
+        self._pool_builder = pool_builder
+        self._config = config
         self._connection_pool = None
 
     @classmethod
-    def build(cls, *, config_db_host, config_db_port, config_db_user,
-              config_db_password, config_db_name, **kwargs):
-
-        async def _start_pool():
-            return await create_pool(host=config_db_host,
-                                     port=config_db_port,
-                                     user=config_db_user,
-                                     password=config_db_password,
-                                     db=config_db_name)
-
-        return cls(_start_pool)
+    def build(cls, config):
+        return cls(create_pool, config)
 
     async def start(self):
-        self._connection_pool = await self._pool_starter()
+        self._connection_pool = await self._pool_builder(
+            host=self._config.host,
+            port=self._config.port,
+            user=self._config.user,
+            password=self._config.password,
+            db=self._config.name)
         logger.info("Initialized database connection pool")
 
     async def execute(self, query, params=[]):

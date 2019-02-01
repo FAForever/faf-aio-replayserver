@@ -15,8 +15,8 @@ class Replays:
         self._closing = False
 
     @classmethod
-    def build(cls, bookkeeper, **kwargs):
-        return cls(lambda game_id: Replay.build(game_id, bookkeeper, **kwargs))
+    def build(cls, bookkeeper, config):
+        return cls(lambda game_id: Replay.build(game_id, bookkeeper, config))
 
     async def handle_connection(self, header, connection):
         replay = self._get_matching_replay(header)

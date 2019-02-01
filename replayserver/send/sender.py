@@ -6,6 +6,25 @@ from replayserver.send.stream import DelayedReplayStream
 from replayserver.errors import MalformedDataError, \
     CannotAcceptConnectionError
 from replayserver.collections import AsyncCounter
+from replayserver import config
+
+
+class SenderConfig(config.Config):
+    _options = {
+        "replay_delay": {
+            "parser": config.nonnegative_int,
+            "doc": ("Delay in seconds between receiving replay data and "
+                    "sending it to readers. Used to prevent cheating via "
+                    "playing and observing at the same time.")
+        },
+        "update_interval": {
+            "parser": config.positive_int,
+            "doc": ("Frequency, in seconds, of checking for new data to send "
+                    "to listeners. Note that in order to prevent unwanted "
+                    "latency, low/high asyncio water marks are disabled, "
+                    "so setting this value higher might improve performance.")
+        }
+    }
 
 
 class Sender:
@@ -16,8 +35,8 @@ class Sender:
         asyncio.ensure_future(self._lifetime())
 
     @classmethod
-    def build(cls, stream, **kwargs):
-        delayed_stream = DelayedReplayStream.build(stream, **kwargs)
+    def build(cls, stream, config):
+        delayed_stream = DelayedReplayStream.build(stream, config)
         return cls(delayed_stream)
 
     @contextmanager

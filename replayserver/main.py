@@ -8,7 +8,8 @@ TODO: Move config to a separate class.
 import asyncio
 import signal
 import os
-from everett.manager import ConfigManager, ConfigOSEnv, ConfigYamlEnv
+from everett.manager import ConfigManager, ConfigOSEnv
+from everett.ext.yamlfile import ConfigYamlEnv
 from everett import ConfigurationError
 
 from replayserver import Server, MainConfig

@@ -1,3 +1,3 @@
-from replayserver.server.server import Server
+from replayserver.server.server import Server, MainConfig
 
-__all__ = ["Server"]
+__all__ = ["Server", "MainConfig"]

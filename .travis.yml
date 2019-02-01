@@ -9,8 +9,8 @@ before_install:
     - DOCKER_IMAGE_VERSION=$([ -n "${TRAVIS_TAG}" ] && echo "${TRAVIS_TAG}" || echo "${TRAVIS_BRANCH##*/}")
 
 install:
-  - pip3 install -r requirements-pinned.txt
-  - pip3 install -r requirements-test-pinned.txt
+  - pip3 install -r requirements/main-pinned.txt
+  - pip3 install -r requirements/test-pinned.txt
 
 before_script:
   - sudo service mysql stop     # For some reason conflicts with faf-db

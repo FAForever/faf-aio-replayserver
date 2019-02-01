@@ -23,7 +23,7 @@ Design and coding guidelines
 * Use DI. An object's __init__ accepts all object dependencies (including
   factory methods), while a ``build`` classmethod accepts external dependencies
   and creates any dependencies the object owns (e.g. ``Replay`` owns objects it
-  delegates work to). Configuration options can be passed in kwargs.
+  delegates work to).
 
 * In general, object lifetime should correspond to coroutines. An object's
   lifetime can either be handled in a single coroutine (initialized at start,

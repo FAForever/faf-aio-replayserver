@@ -20,9 +20,10 @@ class SenderConfig(config.Config):
         "update_interval": {
             "parser": config.positive_float,
             "doc": ("Frequency, in seconds, of checking for new data to send "
-                    "to listeners. Note that in order to prevent unwanted "
-                    "latency, low/high asyncio water marks are disabled, "
-                    "so setting this value higher might improve performance.")
+                    "to listeners. This affects frequency of calling send() "
+                    "of isteners' sockets, as the server sets high/low buffer "
+                    "water marks to 0 in order to prevent unwanted latency. "
+                    "Setting this value higher might improve performance.")
         }
     }
 

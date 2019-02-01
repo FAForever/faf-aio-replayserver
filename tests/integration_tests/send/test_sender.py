@@ -1,16 +1,20 @@
 import pytest
 import asyncio
 from tests.replays import example_replay
-from tests import fast_forward_time, timeout
+from tests import fast_forward_time, timeout, config_from_dict
 
-from replayserver.send.sender import Sender
+from replayserver.send.sender import Sender, SenderConfig
 from replayserver.struct.header import ReplayHeader
 
 
-config = {
-    "config_sent_replay_delay": 5 * 60,
-    "config_sent_replay_position_update_interval": 1,
+config_dict = {
+    "replay_delay": 5 * 60,
+    "update_interval": 1,
 }
+
+
+def sender_config(d):
+    return SenderConfig(config_from_dict(config_dict))
 
 
 @pytest.fixture
@@ -27,7 +31,7 @@ def data_receive_mixin():
 
 
 def test_sender_init(outside_source_stream):
-    Sender.build(outside_source_stream, **config)
+    Sender.build(outside_source_stream, sender_config(config_dict))
 
 
 @pytest.mark.asyncio
@@ -35,7 +39,7 @@ def test_sender_init(outside_source_stream):
 @timeout(1000)
 async def test_sender_one_connection(event_loop, outside_source_stream,
                                      mock_connections, data_receive_mixin):
-    sender = Sender.build(outside_source_stream, **config)
+    sender = Sender.build(outside_source_stream, sender_config(config_dict))
     conn = mock_connections()
     data_receive_mixin(conn, 0.1)
 

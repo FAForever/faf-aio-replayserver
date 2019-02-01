@@ -1,0 +1,25 @@
+rs:
+    log_level: "20"
+    server: 
+        port: "15000"
+        prometheus_port: "15001"
+        connection_header_read_timeout: "21600"
+    db: 
+        host: 172.19.0.2
+        port: "3306"
+        user: root
+        password: banana
+        name: faf
+    storage: 
+        vault_path: /home/igor
+    replay: 
+        forced_end_time: "60"
+        send: 
+            replay_delay: "5"
+            update_interval: "0.1"
+        merge: 
+            strategy: FOLLOW_STREAM
+            grace_period: "1"
+            strategy_config: 
+                follow_stream: 
+                    stall_check_period: "60"

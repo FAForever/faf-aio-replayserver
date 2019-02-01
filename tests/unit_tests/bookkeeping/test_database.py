@@ -7,19 +7,25 @@ from replayserver.bookkeeping.database import Database, ReplayDatabaseQueries
 from replayserver.errors import BookkeepingError
 
 
-docker_db_config = {
-    "config_db_host": docker_faf_db_config["host"],
-    "config_db_port": docker_faf_db_config["port"],
-    "config_db_user": docker_faf_db_config["user"],
-    "config_db_password": docker_faf_db_config["password"],
-    "config_db_name": docker_faf_db_config["db"]
-}
+class DockerDbConfig:
+    def __init__(self, **kwargs):
+        for n, v in kwargs.items():
+            setattr(self, n, v)
+
+
+docker_db_config = DockerDbConfig(
+    host=docker_faf_db_config["host"],
+    port=docker_faf_db_config["port"],
+    user=docker_faf_db_config["user"],
+    password=docker_faf_db_config["password"],
+    name=docker_faf_db_config["db"]
+)
 
 
 # TODO - no tests modifying the db just yet until we set up a db reset fixture
 @pytest.mark.asyncio
 async def test_database_ok_query():
-    db = Database.build(**docker_db_config)
+    db = Database.build(docker_db_config)
 
     await db.start()
     result = await db.execute('SELECT * FROM login')
@@ -29,7 +35,7 @@ async def test_database_ok_query():
 
 @pytest.mark.asyncio
 async def test_database_bad_query():
-    db = Database.build(**docker_db_config)
+    db = Database.build(docker_db_config)
 
     await db.start()
     with pytest.raises(BookkeepingError):
@@ -39,7 +45,7 @@ async def test_database_bad_query():
 
 @pytest.mark.asyncio
 async def test_database_query_at_bad_time():
-    db = Database.build(**docker_db_config)
+    db = Database.build(docker_db_config)
 
     with pytest.raises(BookkeepingError):
         await db.execute('SELECT * FROM login')
@@ -53,7 +59,7 @@ async def test_database_query_at_bad_time():
 # out-of-way data and prepare tests for existing data, we should be fine.
 @pytest.mark.asyncio
 async def test_database_commits_results():
-    db = Database.build(**docker_db_config)
+    db = Database.build(docker_db_config)
     await db.start()
     random.seed()
     randnum = random.randint(1, 100000)

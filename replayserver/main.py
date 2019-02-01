@@ -24,7 +24,7 @@ def get_program_config():
     if "RS_CONFIG_FILE" in os.environ:
         sources.append(ConfigYamlEnv(os.environ["RS_CONFIG_FILE"]))
     config = ConfigManager(sources)
-    return MainConfig(config)
+    return MainConfig(config.with_namespace("rs"))
 
 
 def setup_signal_handler(server, loop):

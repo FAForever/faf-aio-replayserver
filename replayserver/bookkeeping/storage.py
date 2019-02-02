@@ -94,5 +94,6 @@ class ReplaySaver:
             data = struct.pack(">i", len(data)) + zlib.compress(data)
             data = base64.b64encode(data)
             rfile.write(data)
+        # json should always produce ascii, but just in case...
         except UnicodeEncodeError:
             raise BookkeepingError("Unicode encoding error")

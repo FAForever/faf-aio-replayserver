@@ -250,3 +250,4 @@ async def test_server_stress_test(mock_database, tmpdir):
 
     await asyncio.sleep(0.5)
     await server._connections.wait_until_empty()
+    await server.stop()

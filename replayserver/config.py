@@ -7,7 +7,7 @@ import os
 from everett.component import RequiredConfigMixin, ConfigOptions
 
 
-__all__ = ["positive_int", "nonnegative_int", "positive_float",
+__all__ = ["positive_int", "positive_float",
            "nonnegative_float", "is_dir", "Config"]
 
 
@@ -15,13 +15,6 @@ def positive_int(v):
     i = int(v)
     if i <= 0:
         raise ValueError("Expected a positive value")
-    return i
-
-
-def nonnegative_int(v):
-    i = int(v)
-    if i < 0:
-        raise ValueError("Expected a nonnegative value")
     return i
 
 

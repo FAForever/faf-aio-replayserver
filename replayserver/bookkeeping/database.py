@@ -122,9 +122,10 @@ class ReplayDatabaseQueries:
         game_stats = await self._db.execute(query, (game_id,))
         logger.debug(f"Performing query: {player_query}")
         player_count = await self._db.execute(player_query, (game_id,))
+        player_count = player_count[0]['COUNT(*)']
         if not game_stats:
             raise BookkeepingError(f"No stats found for game {game_id}")
-        if not player_count:
+        if player_count == 0:
             raise BookkeepingError(f"No players found for game {game_id}")
         start_time = game_stats[0]['start_time'].timestamp()
 
@@ -144,7 +145,7 @@ class ReplayDatabaseQueries:
             'title': game_stats[0]['game_name'],
             'mapname': game_stats[0]['map_name'],
             'map_file_path': game_stats[0]['file_name'],
-            'num_players': player_count[0]['COUNT(*)']
+            'num_players': player_count
         }
 
     async def get_mod_versions(self, mod):

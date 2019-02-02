@@ -127,6 +127,14 @@ async def test_queries_missing_game_stats(mock_database):
 
 
 @pytest.mark.asyncio
+async def test_queries_missing_game_players(mock_database):
+    await mock_database.add_mock_game((1, 1, 1), [])
+    queries = ReplayDatabaseQueries(mock_database)
+    with pytest.raises(BookkeepingError):
+        await queries.get_game_stats(1)
+
+
+@pytest.mark.asyncio
 async def test_queries_null_game_end(mock_database):
     queries = ReplayDatabaseQueries(mock_database)
     stats = await queries.get_game_stats(test_db.SPECIAL_GAME_NO_END_TIME_ID)

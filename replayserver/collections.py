@@ -2,6 +2,7 @@
 Collection wrappers that let us await on certain conditions.
 """
 
+import asyncio
 from collections.abc import MutableMapping, MutableSet
 from asyncio.locks import Event
 
@@ -17,6 +18,19 @@ class EmptyWaitMixin:
 
     async def wait_until_not_empty(self):
         await self._not_empty.wait()
+
+    async def wait_until_empty_for(self, period):
+        while True:
+            await self.wait_until_empty()
+            if await self._empty_for(period):
+                return
+
+    async def _empty_for(self, period):
+        _, pending = await asyncio.wait([self.wait_until_not_empty()],
+                                        timeout=period)
+        for coro in pending:
+            coro.cancel()
+        return len(pending) != 0
 
     def _is_empty(self):
         self._empty.set()

@@ -31,8 +31,9 @@ class Connections:
             logger.info(f"Bad connection was dropped; {e.__class__.__name__}: {str(e)}")
             metrics.failed_conns(e).inc()
         finally:
+            connection.close()
+            await connection.wait_closed()
             self._connections.remove(connection)
-            await connection.close()
 
     async def _handle_initial_data(self, connection):
         with metrics.track(metrics.active_conns_by_header(None)):
@@ -47,9 +48,11 @@ class Connections:
 
     async def close_all(self):
         logger.info("Closing all connections")
+        for c in self._connections:
+            c.close()
         if self._connections:
             await asyncio.wait(
-                [connection.close() for connection in self._connections])
+                [connection.wait_closed() for connection in self._connections])
 
     async def wait_until_empty(self):
         await self._connections.wait_until_empty()

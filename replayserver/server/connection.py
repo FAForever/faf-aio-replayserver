@@ -45,19 +45,18 @@ class Connection:
             raise MalformedDataError("Connection error") from e
         return True
 
-    async def close(self):
-        # Below lines deal with some idiosyncrasies of asyncio:
-        # - Before 3.7, there is no explicit method to await queuing all writer
-        #   data, then closing it - we need to manually drain and close.
-        #   Thankfully we already set watermarks to 0.
-        # - We need to let event loop run once after closing the writer, since
-        #   the actual socket closes on the NEXT run of the event loop.
+    def close(self):
         self._closed = True
-        if not self.writer.transport.is_closing():
-            await self.writer.drain()
         self.writer.close()
-        await asyncio.sleep(0)
         # Reader and writer share a transport, so no need to close reader.
+
+    async def wait_closed(self):
+        # FIXME: waiting for py 3.7 wait_closed()
+        try:
+            await self.writer.drain()
+        except ConnectionResetError:
+            pass
+        await asyncio.sleep(0)  # IIRC socket gets closed at NEXT loop run
 
     def add_header(self, header):
         self._header = header

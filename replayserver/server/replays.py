@@ -56,8 +56,8 @@ class Replays:
         logger.info("Stopping all replays")
         self._closing = True
         replays = self._replays.values()
-        if replays:
-            await asyncio.wait([replay.close() for replay in replays])
+        for replay in replays:
+            replay.close()
         await self._replays.wait_until_empty()
 
     # Tiny bit of introspection for easier testing

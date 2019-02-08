@@ -2,10 +2,10 @@ import asyncio
 from asyncio.locks import Event
 from contextlib import contextmanager
 
+from replayserver.common import CanStopServingConnsMixin
 from replayserver.send.stream import DelayedReplayStream
 from replayserver.errors import MalformedDataError, \
     CannotAcceptConnectionError
-from replayserver.collections import AsyncCounter
 from replayserver import config
 
 
@@ -28,10 +28,10 @@ class SenderConfig(config.Config):
     }
 
 
-class Sender:
+class Sender(CanStopServingConnsMixin):
     def __init__(self, delayed_stream):
+        CanStopServingConnsMixin.__init__(self)
         self._stream = delayed_stream
-        self._conn_count = AsyncCounter()
         self._ended = Event()
         asyncio.ensure_future(self._lifetime())
 
@@ -41,18 +41,18 @@ class Sender:
         return cls(delayed_stream)
 
     @contextmanager
-    def _connection_count(self):
-        self._conn_count.inc()
+    def _track_connection(self):
+        self._connection_count.inc()
         try:
             yield
         finally:
-            self._conn_count.dec()
+            self._connection_count.dec()
 
     async def handle_connection(self, connection):
-        if self._stream.ended():
+        if not self._accepts_connections():
             raise CannotAcceptConnectionError(
                 "Reader connection arrived after replay ended")
-        with self._connection_count():
+        with self._track_connection():
             await self._write_header(connection)
             await self._write_replay(connection)
 
@@ -73,12 +73,8 @@ class Sender:
             if not conn_open:
                 break
 
-    def close(self):
-        pass
-
     async def _lifetime(self):
-        await self._stream.wait_for_ended()
-        await self._conn_count.wait_until_empty()
+        await self._wait_until_all_connections_end()
         self._ended.set()
 
     async def wait_for_ended(self):

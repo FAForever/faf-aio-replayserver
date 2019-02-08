@@ -16,6 +16,11 @@ class ReplayConfig(config.Config):
             "parser": config.positive_float,
             "doc": "Time in seconds after which a replay is forcefully ended."
         },
+        "grace_period": {
+            "parser": config.nonnegative_float,
+            "doc": ("Time in seconds after which a replay with no writers "
+                    "will consider itself over.")
+        },
     }
 
     def __init__(self, config):
@@ -25,25 +30,27 @@ class ReplayConfig(config.Config):
 
 
 class Replay:
-    def __init__(self, merger, sender, bookkeeper, timeout, game_id):
+    def __init__(self, merger, sender, bookkeeper, config, game_id):
         self.merger = merger
         self.sender = sender
         self.bookkeeper = bookkeeper
         self._game_id = game_id
         self._connections = set()
-        self._timeout = timeout
         self._ended = Event()
+        self._lifetime_coroutines = [
+            asyncio.ensure_future(self._force_closing(config.forced_end_time)),
+            asyncio.ensure_future(self._write_phase(config.grace_period))
+        ]
         asyncio.ensure_future(self._lifetime())
-        self._force_close = asyncio.ensure_future(self._timeout_force_close())
 
     @classmethod
     def build(cls, game_id, bookkeeper, config):
         merger = Merger.build(config.merge)
         sender = Sender.build(merger.canonical_stream, config.send)
-        return cls(merger, sender, bookkeeper, config.forced_end_time, game_id)
+        return cls(merger, sender, bookkeeper, config, game_id)
 
     @contextmanager
-    def _track_connection(self, connection):
+    def _track_connection(self, connection, conn_type):
         self._connections.add(connection)
         try:
             yield
@@ -51,7 +58,7 @@ class Replay:
             self._connections.remove(connection)
 
     async def handle_connection(self, header, connection):
-        with self._track_connection(connection):
+        with self._track_connection(connection, header.type):
             logger.debug(f"{self} - new connection, {connection}")
             if header.type == ConnectionHeader.Type.WRITER:
                 await self.merger.handle_connection(connection)
@@ -61,20 +68,21 @@ class Replay:
                 raise MalformedDataError("Invalid connection type")
             logger.debug(f"{self} - connection over, {connection}")
 
-    async def close(self):
-        self.merger.close()
-        self.sender.close()
-        if self._connections:
-            await asyncio.wait(
-                [connection.close() for connection in self._connections])
+    def close(self):
+        self.merger.stop_accepting_connections()
+        self.sender.stop_accepting_connections()
+        for connection in self._connections:
+            connection.close()
 
-    async def _timeout_force_close(self):
-        try:
-            await asyncio.wait_for(self.wait_for_ended(),
-                                   timeout=self._timeout)
-        except asyncio.TimeoutError:
-            logger.info(f"Timeout - force-ending {self}")
-            await self.close()
+    async def _force_closing(self, timeout):
+        await asyncio.sleep(timeout)
+        logger.info(f"Timeout - force-ending {self}")
+        self.close()
+
+    async def _write_phase(self, grace_period):
+        await self.merger.no_connections_for(grace_period)
+        self.merger.stop_accepting_connections()
+        self.sender.stop_accepting_connections()
 
     async def _lifetime(self):
         await self.merger.wait_for_ended()
@@ -82,7 +90,8 @@ class Replay:
         await self.bookkeeper.save_replay(self._game_id,
                                           self.merger.canonical_stream)
         await self.sender.wait_for_ended()
-        self._force_close.cancel()
+        for coro in self._lifetime_coroutines:
+            coro.cancel()
         self._ended.set()
         logger.debug(f"Lifetime of {self} ended")
 

@@ -4,7 +4,7 @@ import asynctest
 from tests import timeout
 
 from replayserver.server.connections import Connections
-from replayserver.errors import BadConnectionError
+from replayserver.errors import BadConnectionError, EmptyConnectionError
 
 
 @pytest.fixture
@@ -86,6 +86,26 @@ async def test_connections_error_closes_connection(
 
     async def at_header_read(conn):
         raise BadConnectionError
+    mock_header_read.side_effect = at_header_read
+
+    conns = Connections(mock_header_read, mock_replays)
+    await conns.handle_connection(connection)
+    connection.close.assert_called()
+    connection.wait_closed.assert_awaited()
+    await conns.wait_until_empty()
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_connections_empty_connection_is_handled(
+        mock_replays, mock_header_read, mock_connections):
+
+    # We don't care if empty connection is treated differently, but it should
+    # still be properly closed and such
+    connection = mock_connections()
+
+    async def at_header_read(conn):
+        raise EmptyConnectionError
     mock_header_read.side_effect = at_header_read
 
     conns = Connections(mock_header_read, mock_replays)

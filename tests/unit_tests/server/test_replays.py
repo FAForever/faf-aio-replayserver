@@ -16,7 +16,7 @@ def mock_replays(locked_mock_coroutines):
             async def handle_connection():
                 pass
 
-            async def close():
+            def close():
                 pass
 
             def do_not_wait_for_more_connections():
@@ -87,7 +87,7 @@ async def test_replays_closing(
     assert 1 in replays
     mock_replay._manual_end.set()
     await replays.stop_all()
-    mock_replay.close.assert_awaited()
+    mock_replay.close.assert_called()
     mock_replay.wait_for_ended.assert_awaited()     # Only true if await ended
     assert 1 not in replays
 

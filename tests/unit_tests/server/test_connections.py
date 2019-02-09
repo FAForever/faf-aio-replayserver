@@ -43,7 +43,8 @@ async def test_connections_handle_connection(mock_replays, mock_header_read,
     await conns.handle_connection(connection)
     mock_header_read.assert_awaited()
     mock_replays.handle_connection.assert_awaited()
-    connection.close.assert_awaited()
+    connection.close.assert_called()
+    connection.wait_closed.assert_awaited()
     await conns.wait_until_empty()
 
 
@@ -69,7 +70,8 @@ async def test_connections_close_all(mock_replays, mock_header_read,
     await read_header_called.wait()
     await conns.close_all()
 
-    connection.close.assert_awaited()
+    connection.close.assert_called()
+    connection.wait_closed.assert_awaited()
     verified.set()
     await f
     await conns.wait_until_empty()
@@ -88,5 +90,6 @@ async def test_connections_error_closes_connection(
 
     conns = Connections(mock_header_read, mock_replays)
     await conns.handle_connection(connection)
-    connection.close.assert_awaited()
+    connection.close.assert_called()
+    connection.wait_closed.assert_awaited()
     await conns.wait_until_empty()

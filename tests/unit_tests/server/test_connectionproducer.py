@@ -62,7 +62,8 @@ async def test_connection_closes_immediately_no_data():
 
     r, w = await asyncio.open_connection('127.0.0.1', 6661)
     await asyncio.sleep(0.1)
-    await handled_conn.close()
+    handled_conn.close()
+    await handled_conn.wait_closed()
     await asyncio.sleep(0.1)
     assert handle_done.is_set()
 
@@ -97,7 +98,8 @@ async def test_connection_closes_does_not_allow_more_data():
     await w.drain()
     start_handling.set()
     await asyncio.sleep(0.1)
-    await handled_conn.close()
+    handled_conn.close()
+    await handled_conn.wait_closed()
     w.write(b"foo" * 1000)
     await w.drain()
     await handle_done.wait()

@@ -7,7 +7,7 @@ an RS_CONFIG_FILE environment variable.
 
 The YAML config file has hierarchical structure. Each value is a string parsed
 into an appropriate type. You can set or override values in the YAML config by
-setting an env var with scoped concatenated by '\_' as name, e.g. for:
+setting an env var with scopes concatenated by '\_' as name, e.g. for:
 
 ::
 

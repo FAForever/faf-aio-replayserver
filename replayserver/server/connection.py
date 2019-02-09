@@ -82,7 +82,7 @@ class ConnectionHeader:
         return f"{self.type.value} for {self.game_id} ({self.game_name})"
 
     @classmethod
-    async def read(cls, connection, timeout=60):    # FIXME - hardcoded
+    async def read(cls, connection, timeout):
         try:
             return await asyncio.wait_for(cls._do_read(connection), timeout)
         except asyncio.TimeoutError:

@@ -154,11 +154,11 @@ async def test_connection_write_exception(rw_pairs_with_data):
 @timeout(1)
 async def test_connection_header_type(controlled_connections):
     mock_conn = controlled_connections(b"P/1/foo\0")
-    ch = await ConnectionHeader.read(mock_conn)
+    ch = await ConnectionHeader.read(mock_conn, 60)
     assert ch.type == ConnectionHeader.Type.WRITER
 
     mock_conn = controlled_connections(b"G/1/foo\0")
-    ch = await ConnectionHeader.read(mock_conn)
+    ch = await ConnectionHeader.read(mock_conn, 60)
     assert ch.type == ConnectionHeader.Type.READER
 
 
@@ -167,7 +167,7 @@ async def test_connection_header_type(controlled_connections):
 async def test_connection_header_invalid_type(controlled_connections):
     mock_conn = controlled_connections(b"garbage/1/foo\0")
     with pytest.raises(MalformedDataError):
-        await ConnectionHeader.read(mock_conn)
+        await ConnectionHeader.read(mock_conn, 60)
 
 
 @pytest.mark.asyncio
@@ -176,7 +176,7 @@ async def test_connection_header_type_short_data(controlled_connections):
     # FIXME - should be MalformedDataError, but we hacked it for convenience
     mock_conn = controlled_connections(b"g")
     with pytest.raises(EmptyConnectionError):
-        await ConnectionHeader.read(mock_conn)
+        await ConnectionHeader.read(mock_conn, 60)
 
 
 @pytest.mark.asyncio
@@ -184,14 +184,14 @@ async def test_connection_header_type_short_data(controlled_connections):
 async def test_connection_header_no_data(controlled_connections):
     mock_conn = controlled_connections(b"g")
     with pytest.raises(EmptyConnectionError):
-        await ConnectionHeader.read(mock_conn)
+        await ConnectionHeader.read(mock_conn, 60)
 
 
 @pytest.mark.asyncio
 @timeout(1)
 async def test_connection_header_replay_info(controlled_connections):
     mock_conn = controlled_connections(b"G/1/foo\0")
-    ch = await ConnectionHeader.read(mock_conn)
+    ch = await ConnectionHeader.read(mock_conn, 60)
     assert ch.game_id == 1
     assert ch.game_name == "foo"
 
@@ -201,7 +201,7 @@ async def test_connection_header_replay_info(controlled_connections):
 async def test_connection_header_replay_uid_not_int(controlled_connections):
     mock_conn = controlled_connections(b"G/bar/foo\0")
     with pytest.raises(MalformedDataError):
-        await ConnectionHeader.read(mock_conn)
+        await ConnectionHeader.read(mock_conn, 60)
 
 
 @pytest.mark.asyncio
@@ -210,7 +210,7 @@ async def test_connection_header_replay_info_no_null_end(
         controlled_connections):
     mock_conn = controlled_connections(b"G/1/foo")
     with pytest.raises(MalformedDataError):
-        await ConnectionHeader.read(mock_conn)
+        await ConnectionHeader.read(mock_conn, 60)
 
 
 @pytest.mark.asyncio
@@ -219,7 +219,7 @@ async def test_connection_header_replay_info_no_delimiter(
         controlled_connections):
     mock_conn = controlled_connections(b"G/1\0")
     with pytest.raises(MalformedDataError):
-        await ConnectionHeader.read(mock_conn)
+        await ConnectionHeader.read(mock_conn, 60)
 
 
 @pytest.mark.asyncio
@@ -227,7 +227,7 @@ async def test_connection_header_replay_info_no_delimiter(
 async def test_connection_header_replay_info_more_slashes(
         controlled_connections):
     mock_conn = controlled_connections(b"G/1/name/with/slash\0")
-    ch = await ConnectionHeader.read(mock_conn)
+    ch = await ConnectionHeader.read(mock_conn, 60)
     assert ch.game_id == 1
     assert ch.game_name == "name/with/slash"
 
@@ -238,7 +238,7 @@ async def test_connection_replay_info_invalid_unicode(controlled_connections):
     # Lonely start character is invalid unicode
     mock_conn = controlled_connections(b"G/1/\xc0 blahblah\0")
     with pytest.raises(MalformedDataError):
-        await ConnectionHeader.read(mock_conn)
+        await ConnectionHeader.read(mock_conn, 60)
 
 
 @pytest.mark.asyncio
@@ -246,7 +246,7 @@ async def test_connection_replay_info_invalid_unicode(controlled_connections):
 async def test_connection_replay_info_limit_overrun(controlled_connections):
     mock_conn = controlled_connections(b"G/1/All Welcome 115k+\0", 8)
     with pytest.raises(MalformedDataError):
-        await ConnectionHeader.read(mock_conn)
+        await ConnectionHeader.read(mock_conn, 60)
 
 
 @pytest.mark.asyncio
@@ -254,7 +254,7 @@ async def test_connection_replay_info_limit_overrun(controlled_connections):
 async def test_connection_replay_info_negative_id(controlled_connections):
     mock_conn = controlled_connections(b"G/-1/foo\0")
     with pytest.raises(MalformedDataError):
-        await ConnectionHeader.read(mock_conn)
+        await ConnectionHeader.read(mock_conn, 60)
 
 
 @fast_forward_time(1, 20)

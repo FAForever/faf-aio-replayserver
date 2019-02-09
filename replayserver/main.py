@@ -45,12 +45,11 @@ def main():
         logger.exception("Invalid configuration was provided!")
         return 1
 
-    logger.setLevel(config.log_level)
-
-    server = Server.build(config=config)
-    loop = asyncio.get_event_loop()
-    setup_signal_handler(server, loop)
     try:
+        logger.setLevel(config.log_level)
+        server = Server.build(config=config)
+        loop = asyncio.get_event_loop()
+        setup_signal_handler(server, loop)
         loop.run_until_complete(server.run())
         loop.close()
         return 0

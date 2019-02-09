@@ -9,7 +9,6 @@ from replayserver.errors import MalformedDataError, CannotAcceptConnectionError
 
 config_dict = {
     "strategy": "FOLLOW_STREAM",
-    "grace_period": 30,
     "strategy_config": {
         "follow_stream": {
             "stall_check_period": 60
@@ -40,6 +39,7 @@ def mock_conn_read_data_mixin():
 
 
 async def verify_merger_ending_with_data(merger, data):
+    merger.stop_accepting_connections()
     await merger.wait_for_ended()
     stream = merger.canonical_stream
     assert stream.ended()
@@ -147,8 +147,8 @@ async def test_merger_sequential_connections(event_loop, mock_connections,
 @pytest.mark.asyncio
 @fast_forward_time(0.1, 1000)
 @timeout(500)
-async def test_merger_ends(event_loop, mock_connections,
-                           mock_conn_read_data_mixin):
+async def test_merger_refuses_conns(event_loop, mock_connections,
+                                    mock_conn_read_data_mixin):
     conn_1 = mock_connections()
     conn_2 = mock_connections()
     replay_data = example_replay.data
@@ -158,7 +158,7 @@ async def test_merger_ends(event_loop, mock_connections,
 
     merger = Merger.build(merger_config(config_dict))
     await merger.handle_connection(conn_1)
-    await asyncio.sleep(45)
+    merger.stop_accepting_connections()
     with pytest.raises(CannotAcceptConnectionError):
         await merger.handle_connection(conn_2)
     await verify_merger_ending_with_data(merger, replay_data)
@@ -177,6 +177,6 @@ async def test_merger_closes_fast(event_loop, mock_connections,
     f = asyncio.ensure_future(merger.handle_connection(conn))
     await asyncio.sleep(45)
     conn.read.side_effect = lambda _: b""   # Simulate connection.close()
-    merger.close()
+    merger.stop_accepting_connections()
     await asyncio.wait_for(merger.wait_for_ended(), 1)
     await asyncio.wait_for(f, 1)

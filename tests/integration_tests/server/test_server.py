@@ -28,13 +28,13 @@ config_dict = {
     },
     "replay": {
         "forced_end_time": 60,
+        "grace_period": 1,
         "send": {
             "replay_delay": 5,
             "update_interval": 0.1,
         },
         "merge": {
             "strategy": "FOLLOW_STREAM",
-            "grace_period": 1,
             "strategy_config": {
                 "follow_stream": {
                     "stall_check_period": 60

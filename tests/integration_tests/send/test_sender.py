@@ -56,3 +56,6 @@ async def test_sender_one_connection(event_loop, outside_source_stream,
 
     await f
     assert conn._written_data == b"data" + replay_data
+
+    sender.stop_accepting_connections()
+    await sender.wait_for_ended()

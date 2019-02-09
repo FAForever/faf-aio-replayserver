@@ -14,14 +14,17 @@ def mock_stream_writers():
 
 @pytest.fixture
 def rw_pairs_with_data(event_loop, mock_stream_writers):
-    def make(data, *, limit=None):
+    def make(data, *, limit=None, exc=None):
         if limit is not None:
             r = StreamReader(loop=event_loop, limit=limit)
         else:
             r = StreamReader(loop=event_loop)
         w = mock_stream_writers()
         r.feed_data(data)
-        r.feed_eof()
+        if exc is not None:
+            r.set_exception(exc)
+        else:
+            r.feed_eof()
         return r, w
     return make
 
@@ -49,11 +52,29 @@ async def test_connection_read(rw_pairs_with_data):
 
 @pytest.mark.asyncio
 @timeout(1)
+async def test_connection_read_exception(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"", exc=ConnectionError)
+    connection = Connection(r, w)
+    with pytest.raises(MalformedDataError):
+        await connection.read(10)
+
+
+@pytest.mark.asyncio
+@timeout(1)
 async def test_connection_readuntil(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"some string\0and some other string")
     connection = Connection(r, w)
     data = await connection.readuntil(b"\0")
     assert data == b"some string\0"
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_readuntil_exception(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"bcd", exc=ConnectionError)
+    connection = Connection(r, w)
+    with pytest.raises(MalformedDataError):
+        await connection.readuntil(b"a")
 
 
 @pytest.mark.asyncio
@@ -87,6 +108,15 @@ async def test_connection_readexactly(rw_pairs_with_data):
 
 @pytest.mark.asyncio
 @timeout(1)
+async def test_connection_readexactly_exception(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"bcd", exc=ConnectionError)
+    connection = Connection(r, w)
+    with pytest.raises(MalformedDataError):
+        await connection.readexactly(10)
+
+
+@pytest.mark.asyncio
+@timeout(1)
 async def test_connection_readexactly_too_big(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"something")
     connection = Connection(r, w)
@@ -108,6 +138,16 @@ async def test_connection_rw(rw_pairs_with_data):
 
     await connection.write(b"other_data")
     w.write.assert_called_with(b"other_data")
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_connection_write_exception(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"some_data")
+    w.write.side_effect = ConnectionError
+    connection = Connection(r, w)
+    with pytest.raises(MalformedDataError):
+        await connection.write(b"other_data")
 
 
 @pytest.mark.asyncio

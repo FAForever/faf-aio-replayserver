@@ -2,6 +2,7 @@
 Custom server exception classes.
 """
 
+
 class BadConnectionError(Exception):
     """
     Superclass for things a connection can do wrong. Thrown in connection
@@ -13,7 +14,9 @@ class BadConnectionError(Exception):
 
 class MalformedDataError(BadConnectionError):
     """
-    Used for ill-formed connections, including ones that end prematurely.
+    Used for ill-formed connections, including ones that end prematurely. We
+    don't care if the error is a broken pipe, or invalid data, or any such
+    thing; we just care that it's not our fault and we should clean up.
     """
     pass
 

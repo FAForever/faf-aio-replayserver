@@ -2,6 +2,7 @@ import pytest
 import asyncio
 import copy
 
+from everett import ConfigurationError
 from tests import timeout, slow_test, docker_faf_db_config, skip_stress_test, \
     config_from_dict
 from tests.replays import example_replay
@@ -60,6 +61,100 @@ async def assert_connection_closed(r, w):
         d = await r.read(4096)
         if not d:
             break
+
+
+# Some recursive function magic below so we can test the config dict with every
+# key changed in some way separately
+# It works, I promise
+def act_on_each_key(d, actor):
+    newd = copy.deepcopy(d)
+    for k, v in d.items():
+        if not isinstance(v, dict):
+            if not actor.will_act(newd, k):
+                continue
+            actor.act(newd, k)
+            yield newd
+            newd[k] = v
+        else:
+            for newv in act_on_each_key(v, actor.recurse(k)):
+                newd[k] = newv
+                yield newd
+            newd[k] = v
+
+
+def remove_each_key(d):
+    class ActorRemove:
+        def act(self, d, k):
+            del d[k]
+
+        def will_act(self, d, k):
+            return True
+
+        def recurse(self, k):
+            return self
+
+    return act_on_each_key(d, ActorRemove())
+
+
+def replace_each_key(d, repld):
+    class ActorReplace:
+        def __init__(self, repld):
+            self._repld = repld
+
+        def will_act(self, d, k):
+            return self._repld is not None and k in self._repld
+
+        def act(self, d, k):
+            d[k] = self._repld[k]
+
+        def recurse(self, k):
+            return ActorReplace(self._repld.get(k))
+
+    return act_on_each_key(d, ActorReplace(repld))
+
+
+def test_server_bad_config(tmpdir):
+    good_conf = copy.deepcopy(config_dict)
+    good_conf["storage"]["vault_path"] = str(tmpdir)
+
+    for partial_conf in remove_each_key(good_conf):
+        with pytest.raises(ConfigurationError):
+            MainConfig(config_from_dict(partial_conf))
+
+    bad_conf = {
+        "log_level": "foo",
+        "server": {
+            "port": "-50",
+            "prometheus_port": "bar",
+            "connection_header_read_timeout": "-50"
+        },
+        "db": {
+            "port": "0",
+        },
+        "storage": {
+            "vault_path": "/certainly_doesnt_exist"
+        },
+        "replay": {
+            "forced_end_time": "0",
+            "grace_period": "-1",
+            "send": {
+                "replay_delay": "-10",
+                "update_interval": "0",
+            },
+            "merge": {
+                "strategy": "DEFINITELY_NONEXISTENT",
+                "strategy_config": {
+                    "follow_stream": {
+                        "stall_check_period": "0"
+                    }
+                }
+            }
+        },
+    }
+
+    for partially_bad_conf in replace_each_key(good_conf, bad_conf):
+        with pytest.raises(ConfigurationError):
+            MainConfig(config_from_dict(partially_bad_conf))
 
 
 @slow_test

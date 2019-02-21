@@ -1,11 +1,8 @@
-import asyncio
-from asyncio.locks import Event
 from contextlib import contextmanager
 
 from replayserver.common import CanStopServingConnsMixin
-from replayserver.send.stream import DelayedReplayStream
-from replayserver.errors import MalformedDataError, \
-    CannotAcceptConnectionError
+from replayserver.send.sendstrategy import SendStrategy
+from replayserver.errors import CannotAcceptConnectionError
 from replayserver import config
 
 
@@ -21,7 +18,7 @@ class SenderConfig(config.Config):
             "parser": config.positive_float,
             "doc": ("Frequency, in seconds, of checking for new data to send "
                     "to listeners. This affects frequency of calling send() "
-                    "of isteners' sockets, as the server sets high/low buffer "
+                    "of listener sockets, as the server sets high/low buffer "
                     "water marks to 0 in order to prevent unwanted latency. "
                     "Setting this value higher might improve performance.")
         }
@@ -29,16 +26,14 @@ class SenderConfig(config.Config):
 
 
 class Sender(CanStopServingConnsMixin):
-    def __init__(self, delayed_stream):
+    def __init__(self, send_strategy):
         CanStopServingConnsMixin.__init__(self)
-        self._stream = delayed_stream
-        self._ended = Event()
-        asyncio.ensure_future(self._lifetime())
+        self._strategy = send_strategy
 
     @classmethod
     def build(cls, stream, config):
-        delayed_stream = DelayedReplayStream.build(stream, config)
-        return cls(delayed_stream)
+        strategy = SendStrategy.build(stream, config)
+        return cls(strategy)
 
     @contextmanager
     def _track_connection(self):
@@ -53,29 +48,7 @@ class Sender(CanStopServingConnsMixin):
             raise CannotAcceptConnectionError(
                 "Reader connection arrived after replay ended")
         with self._track_connection():
-            await self._write_header(connection)
-            await self._write_replay(connection)
-
-    async def _write_header(self, connection):
-        header = await self._stream.wait_for_header()
-        if header is None:
-            raise MalformedDataError("Malformed replay header")
-        await connection.write(header.data)
-
-    async def _write_replay(self, connection):
-        position = 0
-        while True:
-            data = await self._stream.wait_for_data(position)
-            if not data:
-                break
-            position += len(data)
-            conn_open = await connection.write(data)
-            if not conn_open:
-                break
-
-    async def _lifetime(self):
-        await self._wait_until_all_connections_end()
-        self._ended.set()
+            await self._strategy.send_to(connection)
 
     async def wait_for_ended(self):
-        await self._ended.wait()
+        await self._wait_until_all_connections_end()

@@ -28,8 +28,8 @@ faf-db, run the setup\_db.py script to populate it with test data:
 
 `python3 setup/db_setup.py`
 
-For python packages, just install dependencies in requirements.txt and
-requirements-test.txt in a virtualenv. Note that asynctest 0.12.2 throws errors
+For python packages, just install dependencies in requirements/main.txt and
+requirements/test.txt in a virtualenv. Note that asynctest 0.12.2 throws errors
 in a few tests - see issue #108 in asynctest's github for a fix you can apply
 manually. Once everything is setup, you can run tests with:
 

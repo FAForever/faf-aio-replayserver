@@ -45,13 +45,8 @@ class Merger(CanStopServingConnsMixin):
     @contextmanager
     def _stream_tracking(self, connection):
         stream = self._stream_builder(connection)
-        self._merge_strategy.stream_added(stream)
-        self._connection_count.inc()
-        try:
+        with self._count_connection(), self._merge_strategy.use_stream(stream):
             yield stream
-        finally:
-            self._merge_strategy.stream_removed(stream)
-            self._connection_count.dec()
 
     async def handle_connection(self, connection):
         if not self._accepts_connections():

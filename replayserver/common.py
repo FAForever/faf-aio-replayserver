@@ -1,5 +1,6 @@
 from asyncio.locks import Event
 from replayserver.collections import AsyncCounter
+from contextlib import contextmanager
 
 
 class CanStopServingConnsMixin:
@@ -21,3 +22,11 @@ class CanStopServingConnsMixin:
     async def _wait_until_all_connections_end(self):
         await self._denies_connections.wait()
         await self._connection_count.wait_until_empty()
+
+    @contextmanager
+    def _count_connection(self):
+        self._connection_count.inc()
+        try:
+            yield
+        finally:
+            self._connection_count.dec()

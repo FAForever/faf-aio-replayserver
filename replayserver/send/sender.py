@@ -35,19 +35,11 @@ class Sender(CanStopServingConnsMixin):
         strategy = SendStrategy.build(stream, config)
         return cls(strategy)
 
-    @contextmanager
-    def _track_connection(self):
-        self._connection_count.inc()
-        try:
-            yield
-        finally:
-            self._connection_count.dec()
-
     async def handle_connection(self, connection):
         if not self._accepts_connections():
             raise CannotAcceptConnectionError(
                 "Reader connection arrived after replay ended")
-        with self._track_connection():
+        with self._count_connection():
             await self._strategy.send_to(connection)
 
     async def wait_for_ended(self):

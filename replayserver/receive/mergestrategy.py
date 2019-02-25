@@ -1,4 +1,5 @@
 from enum import Enum
+from contextlib import contextmanager
 import asyncio
 from replayserver.logging import logger
 from replayserver import config
@@ -41,6 +42,15 @@ class MergeStrategy:
 
     def stream_removed(self, stream):
         raise NotImplementedError
+
+    # Convenience stuff.
+    @contextmanager
+    def use_stream(self, stream):
+        self.stream_added(stream)
+        try:
+            yield
+        finally:
+            self.stream_removed(stream)
 
 
 class GreedyMergeStrategyConfig(config.Config):

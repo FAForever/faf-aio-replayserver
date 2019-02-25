@@ -4,29 +4,24 @@ from tests import timeout, skip_if_needs_asynctest_107
 from asynctest.helpers import exhaust_callbacks
 
 from replayserver.receive.merger import Merger
+from replayserver.receive.mergestrategy import MergeStrategy
 from replayserver.errors import CannotAcceptConnectionError, \
     BadConnectionError
 
 
 @pytest.fixture
 def mock_merge_strategy(mocker):
-    class S:
-        def stream_added():
-            pass
+    # MergeStrategy is (almost) just an interface, so it's okay to use it here
+    class MockStrategy(MergeStrategy):
+        def __init__(self, stream):
+            MergeStrategy.__init__(self, stream)
+            self.new_header = mocker.Mock()
+            self.new_data = mocker.Mock()
+            self.finalize = mocker.Mock()
+            self.stream_added = mocker.Mock()
+            self.stream_removed = mocker.Mock()
 
-        def stream_removed():
-            pass
-
-        def new_header():
-            pass
-
-        def new_data():
-            pass
-
-        def finalize():
-            pass
-
-    return mocker.Mock(spec=S)
+    return MockStrategy(None)
 
 
 @pytest.fixture

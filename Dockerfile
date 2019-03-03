@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.6-slim
 
 LABEL maintainer="ikotrasinsk@gmail.com"
 LABEL description="Forged Alliance Forever replay server"

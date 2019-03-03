@@ -1,5 +1,3 @@
-from contextlib import contextmanager
-
 from replayserver.common import CanStopServingConnsMixin
 from replayserver.send.sendstrategy import SendStrategy
 from replayserver.errors import CannotAcceptConnectionError

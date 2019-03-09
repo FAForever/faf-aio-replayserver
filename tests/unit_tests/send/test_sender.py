@@ -14,6 +14,9 @@ def mock_send_strategy(locked_mock_coroutines):
         async def send_to():
             pass
 
+        async def wait_for_stream():
+            pass
+
     sent_wait, sent_to = locked_mock_coroutines()
     return asynctest.Mock(spec=S,
                           _end_send=sent_wait,
@@ -46,6 +49,7 @@ async def test_sender_ends_when_refusing_conns_and_no_connections(
     sender = Sender(mock_send_strategy)
     sender.stop_accepting_connections()
     await sender.wait_for_ended()
+    mock_send_strategy.wait_for_stream.assert_awaited()
 
 
 @pytest.mark.asyncio

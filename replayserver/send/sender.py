@@ -42,3 +42,4 @@ class Sender(CanStopServingConnsMixin):
 
     async def wait_for_ended(self):
         await self._wait_until_all_connections_end()
+        await self._strategy.wait_for_stream()

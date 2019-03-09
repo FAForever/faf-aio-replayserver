@@ -40,3 +40,6 @@ class SendStrategy:
             conn_open = await connection.write(data)
             if not conn_open:
                 break
+
+    async def wait_for_stream(self):
+        await self._stream.wait_for_ended()

@@ -54,7 +54,7 @@ class Connection:
         # FIXME: waiting for py 3.7 wait_closed()
         try:
             await self.writer.drain()
-        except ConnectionResetError:
+        except ConnectionError:
             pass
         await asyncio.sleep(0)  # IIRC socket gets closed at NEXT loop run
 

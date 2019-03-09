@@ -1,5 +1,7 @@
 from asyncio.locks import Event
 import prometheus_client
+import logging
+from enum import Enum
 
 from replayserver.server.connectionproducer import ConnectionProducer
 from replayserver.bookkeeping.database import Database, DatabaseConfig
@@ -39,10 +41,29 @@ class ServerConfig(config.Config):
     }
 
 
+class LogLevel(Enum):
+    CRITICAL = logging.CRITICAL
+    ERROR = logging.ERROR
+    WARNING = logging.WARNING
+    INFO = logging.INFO
+    DEBUG = logging.DEBUG
+
+    @classmethod
+    def from_config(cls, value):
+        try:
+            return cls[value]
+        except KeyError:
+            try:
+                return cls(int(value))
+            except (ValueError, TypeError):
+                raise ValueError(
+                    f"Expected log level name or numeric value, got {value}")
+
+
 class MainConfig(config.Config):
     _options = {
         "log_level": {
-            "parser": int,
+            "parser": LogLevel.from_config,
             "doc": ("Server log level. Numeric value corresponding to "
                     "Python's logging module value.")
         }

@@ -11,7 +11,7 @@ from replayserver.server.server import MainConfig
 
 
 config_dict = {
-    "log_level": 20,
+    "log_level": "INFO",
     "server": {
         "port": 15000,
         "prometheus_port": "None",
@@ -111,6 +111,14 @@ def replace_each_key(d, repld):
             return ActorReplace(self._repld.get(k))
 
     return act_on_each_key(d, ActorReplace(repld))
+
+
+def test_server_good_config(tmpdir):
+    good_conf = copy.deepcopy(config_dict)
+    good_conf["storage"]["vault_path"] = str(tmpdir)
+    MainConfig(config_from_dict(good_conf))
+    good_conf["log_level"] = 20
+    MainConfig(config_from_dict(good_conf))
 
 
 def test_server_bad_config(tmpdir):

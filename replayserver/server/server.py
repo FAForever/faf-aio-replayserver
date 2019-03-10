@@ -51,10 +51,10 @@ class LogLevel(Enum):
     @classmethod
     def from_config(cls, value):
         try:
-            return cls[value]
+            return cls[value].value
         except KeyError:
             try:
-                return cls(int(value))
+                return cls(int(value)).value
             except (ValueError, TypeError):
                 raise ValueError(
                     f"Expected log level name or numeric value, got {value}")

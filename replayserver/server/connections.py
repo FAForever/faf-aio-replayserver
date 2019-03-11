@@ -24,10 +24,10 @@ class Connections:
             header = await self._handle_initial_data(connection)
             await self._pass_control_to_replays(connection, header)
             metrics.successful_conns.inc()
+        # Ignore empty connections, these happen often and are not errors
+        except EmptyConnectionError as e:
+            pass
         except BadConnectionError as e:
-            # Ignore empty connections, these happen often and are not errors
-            if isinstance(e, EmptyConnectionError):
-                return
             logger.info((f"Connection was dropped: {connection}\n"
                          f"Reason: {e.__class__.__name__}, {str(e)}"))
             metrics.failed_conns(e).inc()

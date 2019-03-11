@@ -28,7 +28,8 @@ class Connections:
             # Ignore empty connections, these happen often and are not errors
             if isinstance(e, EmptyConnectionError):
                 return
-            logger.info(f"Bad connection was dropped; {e.__class__.__name__}: {str(e)}")
+            logger.info((f"Connection was dropped: {connection}\n"
+                         f"Reason: {e.__class__.__name__}, {str(e)}"))
             metrics.failed_conns(e).inc()
         finally:
             connection.close()

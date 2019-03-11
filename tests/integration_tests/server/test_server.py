@@ -168,17 +168,19 @@ def test_server_bad_config(tmpdir):
 @slow_test
 @pytest.mark.asyncio
 @timeout(3)
-async def test_server_single_connection(mock_database, tmpdir):
+async def test_server_single_connection(mock_database, tmpdir,
+                                        unused_tcp_port_factory):
+    s_port, p_port = [unused_tcp_port_factory() for i in range(2)]
     conf = copy.deepcopy(config_dict)
-    conf["server"]["port"] = 15001
-    conf["server"]["prometheus_port"] = 16001
+    conf["server"]["port"] = s_port
+    conf["server"]["prometheus_port"] = p_port
     conf["storage"]["vault_path"] = str(tmpdir)
 
     await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
     server = Server.build(dep_database=lambda _: mock_database,
                           config=server_config(conf))
     await server.start()
-    r, w = await asyncio.open_connection('127.0.0.1', 15001)
+    r, w = await asyncio.open_connection('127.0.0.1', s_port)
 
     w.write(b"P/1/foo\0")
     w.write(example_replay.data)
@@ -195,9 +197,10 @@ async def test_server_single_connection(mock_database, tmpdir):
 @slow_test
 @pytest.mark.asyncio
 @timeout(5)
-async def test_server_replay_force_end(mock_database, tmpdir):
+async def test_server_replay_force_end(mock_database, tmpdir, unused_tcp_port):
+    s_port = unused_tcp_port
     conf = copy.deepcopy(config_dict)
-    conf["server"]["port"] = 15002
+    conf["server"]["port"] = s_port
     conf["storage"]["vault_path"] = str(tmpdir)
     conf["replay"]["forced_end_time"] = 1
     conf["replay"]["send"]["replay_delay"] = 0.5
@@ -206,7 +209,7 @@ async def test_server_replay_force_end(mock_database, tmpdir):
     server = Server.build(dep_database=lambda _: mock_database,
                           config=server_config(conf))
     await server.start()
-    r, w = await asyncio.open_connection('127.0.0.1', 15002)
+    r, w = await asyncio.open_connection('127.0.0.1', s_port)
 
     async def write_forever():
         w.write(b"P/1/foo\0")
@@ -228,16 +231,18 @@ async def test_server_replay_force_end(mock_database, tmpdir):
 @slow_test
 @pytest.mark.asyncio
 @timeout(3)
-async def test_server_force_close_server(mock_database, tmpdir):
+async def test_server_force_close_server(mock_database, tmpdir,
+                                         unused_tcp_port):
+    s_port = unused_tcp_port
     conf = copy.deepcopy(config_dict)
-    conf["server"]["port"] = 15003
+    conf["server"]["port"] = s_port
     conf["storage"]["vault_path"] = str(tmpdir)
 
     await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
     server = Server.build(dep_database=lambda _: mock_database,
                           config=server_config(conf))
     await server.start()
-    r, w = await asyncio.open_connection('127.0.0.1', 15003)
+    r, w = await asyncio.open_connection('127.0.0.1', s_port)
 
     async def write_forever():
         w.write(b"P/1/foo\0")
@@ -251,7 +256,7 @@ async def test_server_force_close_server(mock_database, tmpdir):
     await server.stop()
     writing.cancel()
     with pytest.raises(ConnectionRefusedError):
-        await asyncio.open_connection('127.0.0.1', 15003)
+        await asyncio.open_connection('127.0.0.1', s_port)
 
     await assert_connection_closed(r, w)
     rfile = list(tmpdir.visit('1.fafreplay'))
@@ -261,18 +266,20 @@ async def test_server_force_close_server(mock_database, tmpdir):
 @slow_test
 @pytest.mark.asyncio
 @timeout(5)
-async def test_server_reader_is_delayed(mock_database, tmpdir):
+async def test_server_reader_is_delayed(mock_database, tmpdir,
+                                        unused_tcp_port):
+    s_port = unused_tcp_port
     conf = copy.deepcopy(config_dict)
     conf["replay"]["send"]["replay_delay"] = 0.5
-    conf["server"]["port"] = 15004
+    conf["server"]["port"] = s_port
     conf["storage"]["vault_path"] = str(tmpdir)
 
     await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
     server = Server.build(dep_database=lambda _: mock_database,
                           config=server_config(conf))
     await server.start()
-    r, w = await asyncio.open_connection('127.0.0.1', 15004)
-    r2, w2 = await asyncio.open_connection('127.0.0.1', 15004)
+    r, w = await asyncio.open_connection('127.0.0.1', s_port)
+    r2, w2 = await asyncio.open_connection('127.0.0.1', s_port)
     read_data = bytearray()
     written_data = bytearray()
     # Use large chunk so buffering doesn't affect read data length
@@ -314,10 +321,12 @@ async def test_server_reader_is_delayed(mock_database, tmpdir):
 @skip_stress_test
 @pytest.mark.asyncio
 @timeout(10)
-async def test_server_stress_test(mock_database, tmpdir):
+async def test_server_stress_test(mock_database, tmpdir,
+                                  unused_tcp_port_factory):
+    s_port, p_port = [unused_tcp_port_factory() for i in range(2)]
     conf = copy.deepcopy(config_dict)
-    conf["server"]["port"] = 15005
-    conf["server"]["prometheus_port"] = 16005
+    conf["server"]["port"] = s_port
+    conf["server"]["prometheus_port"] = p_port
     conf["storage"]["vault_path"] = str(tmpdir)
     conf["replay"]["send"]["replay_delay"] = 0.5
 
@@ -345,10 +354,10 @@ async def test_server_stress_test(mock_database, tmpdir):
 
     for i in range(1, 50):
         for j in range(5):
-            r, w = await asyncio.open_connection('127.0.0.1', 15005)
+            r, w = await asyncio.open_connection('127.0.0.1', s_port)
             asyncio.ensure_future(do_write(r, w, i))
         for j in range(5):
-            r, w = await asyncio.open_connection('127.0.0.1', 15005)
+            r, w = await asyncio.open_connection('127.0.0.1', s_port)
             asyncio.ensure_future(do_read(r, w, i))
 
     await asyncio.sleep(0.5)

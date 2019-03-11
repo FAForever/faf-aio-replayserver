@@ -41,6 +41,8 @@ class Connection:
         try:
             self.writer.write(data)
             await self.writer.drain()
+        except ConnectionResetError:
+            return False
         except ConnectionError as e:
             raise MalformedDataError("Connection error") from e
         return True

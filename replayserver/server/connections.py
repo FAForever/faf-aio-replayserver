@@ -34,6 +34,7 @@ class Connections:
         finally:
             connection.close()
             await connection.wait_closed()
+            logger.debug(f"Finished serving connection: {connection}")
             self._connections.remove(connection)
 
     async def _handle_initial_data(self, connection):

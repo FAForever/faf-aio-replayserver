@@ -38,7 +38,13 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
             data = self._leftovers
             self._leftovers = b""
         else:
-            data = await self._connection.read(4096)
+            try:
+                data = await self._connection.read(4096)
+            except MalformedDataError:
+                # Connection might be unusable now, but stream's data so far is
+                # still valid and useful. End safely and let future code errors
+                # if it tries to use the connection.
+                data = b""
             if not data:
                 self._end()
         self._data += data

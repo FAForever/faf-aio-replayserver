@@ -1,3 +1,8 @@
+from replayserver.stream import ReplayStream, ConcreteDataMixin
+
+__all__ = ["OfflineReplayMerger"]
+
+
 def memprefix(b1, b2, start=0):
     """
     Returns length of longest common prefix of b1 and b2.
@@ -26,8 +31,9 @@ def memprefix(b1, b2, start=0):
 
 
 class MergeInfo:
-    def __init__(self, data, idx):
+    def __init__(self, data, tag, idx):
         self.data = data
+        self.tag = tag
         self.view = memoryview(data)    # Release that later!
         self.idx = idx
         self.confirmations = 0
@@ -55,8 +61,8 @@ class DataMerger:
     def get_common(self, d1, d2):
         return self.prefix[d1.idx][d2.idx]
 
-    def add_replay(self, data):
-        new = MergeInfo(data, len(self.replays))
+    def add_data(self, data, tag):
+        new = MergeInfo(data, tag, len(self.replays))
 
         # Get the empty case out of the way
         if not self.replays:
@@ -97,8 +103,45 @@ class DataMerger:
             max(self.replays, key=lambda x: x.confirmations))
         self.replays[0], self.replays[mc] = self.replays[mc], self.replays[0]
 
-    def get_best_replay(self):
+    def get_best_data(self):
+        if not self.replays:
+            return None
         best = max(self.replays, key=lambda x: x.confirmations)
         for data in self.replays:
             data.view.release()
-        return best
+        return best.tag
+
+
+class PreparedReplayStream(ReplayStream, ConcreteDataMixin):
+    def __init__(self, header, data):
+        ReplayStream.__init__(self)
+        ConcreteDataMixin.__init__(self)
+        self._header = header
+        self._data = data
+
+
+class OfflineReplayMerger:
+    def __init__(self, data_merger, header_merger):
+        self._data_merger = data_merger
+        self._header_merger = header_merger
+
+    @classmethod
+    def build(cls):
+        return cls(DataMerger(), DataMerger())
+
+    def add_replay(self, replay):
+        header = replay.header
+        data = replay.data.bytes()
+        if header is None or data == b"":
+            return
+        self._header_merger.add_data(header.data, replay)
+        self._data_merger.add_data(data, replay)
+
+    def get_best_replay(self, replay):
+        header_replay = self._header_merger.get_best_data()
+        data_replay = self._data_merger.get_best_data()
+        # FIXME - we're stealing header and data from existing replays here,
+        # there isn't a requirement in replaystream interface for it to work
+        header = header_replay.header
+        data = data_replay.data.bytes()
+        return PreparedReplayStream(header, data)

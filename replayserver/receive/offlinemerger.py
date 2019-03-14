@@ -1,6 +1,6 @@
 from replayserver.stream import ReplayStream, ConcreteDataMixin
 
-__all__ = ["OfflineReplayMerger"]
+__all__ = ["memprefix", "DataMerger", "OfflineReplayMerger"]
 
 
 def memprefix(b1, b2, start=0):
@@ -16,7 +16,7 @@ def memprefix(b1, b2, start=0):
         return start
 
     while end - start > 16:
-        while end - start > chunk:
+        while chunk >= end - start:
             chunk //= 8
         if b1[start:start + chunk] == b2[start:start + chunk]:
             start += chunk
@@ -26,6 +26,8 @@ def memprefix(b1, b2, start=0):
     for c1, c2 in zip(b1[start:end], b2[start:end]):
         if c1 == c2:
             start += 1
+        else:
+            break
 
     return start
 

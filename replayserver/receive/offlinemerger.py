@@ -92,9 +92,9 @@ class DataMerger:
         # Update confirmation numbers
         for old in self.replays:
             common = self.get_common(old, new)
-            if common == len(old):
+            if common == len(old.data):
                 new.confirmations += 1
-            if common == len(new):
+            if common == len(new.data):
                 old.confirmations += 1
         self.replays.append(new)
 

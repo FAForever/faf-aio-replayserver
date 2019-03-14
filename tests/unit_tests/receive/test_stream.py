@@ -64,6 +64,19 @@ async def test_replay_stream_read(
 
 
 @pytest.mark.asyncio
+@timeout(1)
+async def test_replay_stream_recovers_from_connection_error(
+        mock_header_read, mock_connections):
+    mock_conn = mock_connections()
+    stream = ConnectionReplayStream(mock_header_read, mock_conn)
+    mock_conn.read.side_effect = [b"Lorem ", MalformedDataError, b"ipsum"]
+    await stream.read()
+    await stream.read()
+    assert stream.data.bytes() == b"Lorem "
+    assert stream.ended()
+
+
+@pytest.mark.asyncio
 @timeout(0.1)
 async def test_outside_source_stream_read_header():
     stream = OutsideSourceReplayStream()

@@ -58,6 +58,24 @@ def mock_sender(locked_mock_coroutines):
                           handle_connection=handled_wait)
 
 
+@pytest.fixture
+def mock_offline_merger(mocker):
+    class M:
+        def add_replay():
+            pass
+
+        def get_best_replay():
+            pass
+
+    return mocker.Mock(spec=M)
+
+
+@pytest.fixture
+def replay_deps(mock_merger, mock_sender, mock_offline_merger,
+                mock_bookkeeper):
+    return (mock_merger, mock_sender, mock_offline_merger, mock_bookkeeper)
+
+
 class MockReplayConfig:
     def __init__(self, forced_end_time, grace_period):
         self.forced_end_time = forced_end_time
@@ -68,10 +86,10 @@ class MockReplayConfig:
 @fast_forward_time(1, 40)
 @timeout(30)
 async def test_replay_closes_after_timeout(
-        event_loop, mock_merger, mock_sender, mock_bookkeeper,
-        mock_conn_plus_head):
+        event_loop, replay_deps, mock_conn_plus_head):
+    mock_merger, mock_sender, _, _ = replay_deps
     conf = MockReplayConfig(15, 100)
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, conf, 1)
+    replay = Replay(*replay_deps, conf, 1)
     mock_merger.stop_accepting_connections.assert_not_called()
     mock_sender.stop_accepting_connections.assert_not_called()
 
@@ -94,10 +112,10 @@ async def test_replay_closes_after_timeout(
 @pytest.mark.asyncio
 @fast_forward_time(1, 40)
 @timeout(30)
-async def test_replay_ending_cancels_timeouts(
-        event_loop, mock_merger, mock_sender, mock_bookkeeper):
+async def test_replay_ending_cancels_timeouts(event_loop, replay_deps):
+    mock_merger, mock_sender, _, _ = replay_deps
     conf = MockReplayConfig(15, 100)
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, conf, 1)
+    replay = Replay(*replay_deps, conf, 1)
     exhaust_callbacks(event_loop)
     replay.close()
     mock_merger.stop_accepting_connections.assert_called()
@@ -125,9 +143,10 @@ async def test_replay_ending_cancels_timeouts(
 @fast_forward_time(1, 40)
 @timeout(30)
 async def test_replay_timeouts_while_ending_dont_explode(
-        event_loop, mock_merger, mock_sender, mock_bookkeeper):
+        event_loop, replay_deps):
+    mock_merger, mock_sender, _, _ = replay_deps
     conf = MockReplayConfig(15, 100)
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, conf, 1)
+    replay = Replay(*replay_deps, conf, 1)
     exhaust_callbacks(event_loop)
 
     # Won't finish until we tell mock merger & sender to end
@@ -147,14 +166,14 @@ async def test_replay_timeouts_while_ending_dont_explode(
 @pytest.mark.asyncio
 @fast_forward_time(1, 40)
 @timeout(30)
-async def test_replay_forwarding_connections(event_loop, mock_merger,
-                                             mock_sender, mock_bookkeeper,
+async def test_replay_forwarding_connections(event_loop, replay_deps,
                                              mock_conn_plus_head):
+    mock_merger, mock_sender, _, _ = replay_deps
     reader = mock_conn_plus_head(ConnectionHeader.Type.READER, 1)
     writer = mock_conn_plus_head(ConnectionHeader.Type.WRITER, 1)
     invalid = mock_conn_plus_head(17, 1)
     conf = MockReplayConfig(15, 100)
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, conf, 1)
+    replay = Replay(*replay_deps, conf, 1)
 
     mock_sender._manual_handle_conn.set()
     mock_merger._manual_handle_conn.set()
@@ -182,21 +201,25 @@ async def test_replay_forwarding_connections(event_loop, mock_merger,
 @pytest.mark.asyncio
 @timeout(1)
 async def test_replay_keeps_proper_event_order(
-        event_loop, mock_merger, mock_sender, mock_bookkeeper):
+        event_loop, mocker, replay_deps):
+    merger, sender, offline_merger, bookkeeper = replay_deps
+    mock_best_replay = mocker.Mock()
+    offline_merger.get_best_replay.return_value = mock_best_replay
 
-    async def bookkeeper_check(*args, **kwargs):
+    async def bookkeeper_check(game_id, stream):
+        assert stream is mock_best_replay
         # Merging has to end before bookkeeping starts
-        mock_merger.wait_for_ended.assert_awaited()
+        merger.wait_for_ended.assert_awaited()
         # We shall not wait for stream sending to end before bookkeeping
-        mock_sender.wait_for_ended.assert_not_awaited()
+        sender.wait_for_ended.assert_not_awaited()
         return
 
-    mock_bookkeeper.save_replay.side_effect = bookkeeper_check
+    bookkeeper.save_replay.side_effect = bookkeeper_check
 
     conf = MockReplayConfig(0.1, 100)
-    replay = Replay(mock_merger, mock_sender, mock_bookkeeper, conf, 1)
+    replay = Replay(*replay_deps, conf, 1)
     await exhaust_callbacks(event_loop)
-    mock_merger._manual_end.set()
+    merger._manual_end.set()
     await exhaust_callbacks(event_loop)
-    mock_sender._manual_end.set()
+    sender._manual_end.set()
     await replay.wait_for_ended()

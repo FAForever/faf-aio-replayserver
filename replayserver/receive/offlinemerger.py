@@ -114,7 +114,7 @@ class DataMerger:
         return best.tag
 
 
-class PreparedReplayStream(ReplayStream, ConcreteDataMixin):
+class PreparedReplayStream(ConcreteDataMixin, ReplayStream):
     def __init__(self, header, data):
         ReplayStream.__init__(self)
         ConcreteDataMixin.__init__(self)
@@ -136,12 +136,15 @@ class OfflineReplayMerger:
         data = replay.data.bytes()
         if header is None or data == b"":
             return
+
         self._header_merger.add_data(header.data, replay)
         self._data_merger.add_data(data, replay)
 
-    def get_best_replay(self, replay):
+    def get_best_replay(self):
         header_replay = self._header_merger.get_best_data()
         data_replay = self._data_merger.get_best_data()
+        if header_replay is None or data_replay is None:
+            return None
         # FIXME - we're stealing header and data from existing replays here,
         # there isn't a requirement in replaystream interface for it to work
         header = header_replay.header

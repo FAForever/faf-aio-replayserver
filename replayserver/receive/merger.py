@@ -58,6 +58,7 @@ class Merger(CanStopServingConnsMixin):
             while not stream.ended():
                 await stream.read()
                 self._merge_strategy.new_data(stream)
+            return stream
 
     async def no_connections_for(self, grace_period):
         await self._connection_count.wait_until_empty_for(grace_period)

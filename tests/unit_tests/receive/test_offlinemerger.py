@@ -1,4 +1,5 @@
-from replayserver.receive.offlinemerger import memprefix, DataMerger
+from replayserver.receive.offlinemerger import memprefix, DataMerger, \
+    OfflineReplayMerger
 
 
 def test_memprefix_sanity_check():
@@ -42,6 +43,30 @@ def test_datamerger_same_data():
     assert best in [0, 1]
 
 
+def test_datamerger_improving_strings():
+    merger = DataMerger()
+    datas = [
+        b"aabb",
+        b"aabb",
+        b"aabbb",
+        b"acccc",
+        b"acccc",
+        b"acccc",
+        b"acccc"]
+    for i, data in enumerate(datas):
+        merger.add_data(data, i)
+
+    best = merger.get_best_data()
+    assert best in range(3, 7)
+
+
 def test_datamerger_no_data():
     merger = DataMerger()
     assert merger.get_best_data() is None
+
+
+def test_replaymerger_no_replays():
+    # I guess it's not a unit test? But the only dep of merger is DataMerger,
+    # so I don't care much
+    merger = OfflineReplayMerger.build()
+    assert merger.get_best_replay() is None

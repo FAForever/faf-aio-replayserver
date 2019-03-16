@@ -63,6 +63,9 @@ class DataMerger:
     def get_common(self, d1, d2):
         return self.prefix[d1.idx][d2.idx]
 
+    def _best_data(self):
+        return max(self.replays, key=lambda x: (x.confirmations, len(x.data)))
+
     def add_data(self, data, tag):
         new = MergeInfo(data, tag, len(self.replays))
 
@@ -101,14 +104,13 @@ class DataMerger:
         # Move the replay with most confirmations to the front so we memcmp
         # with it first; most of the time it will save us the effort jumping
         # between replays
-        mc = self.replays.index(
-            max(self.replays, key=lambda x: x.confirmations))
+        mc = self.replays.index(self._best_data())
         self.replays[0], self.replays[mc] = self.replays[mc], self.replays[0]
 
     def get_best_data(self):
         if not self.replays:
             return None
-        best = max(self.replays, key=lambda x: x.confirmations)
+        best = self._best_data()
         for data in self.replays:
             data.view.release()
         return best.tag

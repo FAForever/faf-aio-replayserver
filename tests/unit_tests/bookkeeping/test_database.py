@@ -157,3 +157,10 @@ async def test_queries_get_mod_versions(mock_database):
         '9': 1,
         '10': 1,
     }
+
+
+@pytest.mark.asyncio
+async def test_queries_ladder1v1_mod_query_error_is_swallowed(mock_database):
+    queries = ReplayDatabaseQueries(mock_database)
+    mod = await queries.get_mod_versions("ladder1v1")
+    assert mod == {}

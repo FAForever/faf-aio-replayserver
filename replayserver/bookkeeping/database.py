@@ -158,6 +158,21 @@ class ReplayDatabaseQueries:
             GROUP BY `updates_{mod}_files`.`fileId`
         """.format(mod=mod)
         logger.debug(f"Performing query: {query}")
-        featured_mods = await self._db.execute(query)
+
+        # This is a fix for FAF db updates_* tables shindig. Mod updates should
+        # be kept in just a single set of tables, but instead each mod has its
+        # own set - and some don't have any, like ladder1v1!
+        # As a stopgap, we'll swallow all errors that happen to this query and
+        # just return an empty dict. I can't be bothered to make some sort of
+        # subquery to check if the table exists, or parse exception string for
+        # that - we'll live with that until we make a new replay format.
+        try:
+            featured_mods = await self._db.execute(query)
+        except BookkeepingError as e:
+            if mod != "ladder1v1":
+                logger.warning((f"Failed to query mod versions for {mod}: {e}"
+                                f", not saving them in replay"))
+            return {}
+
         return {str(mod['file_id']): mod['version']
                 for mod in featured_mods}

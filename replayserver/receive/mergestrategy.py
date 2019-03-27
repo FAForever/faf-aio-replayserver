@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 import asyncio
 from replayserver.logging import logger
 
@@ -24,13 +23,16 @@ class MergeStrategy:
         raise NotImplementedError
 
     # Convenience stuff.
-    @contextmanager
-    def use_stream(self, stream):
+    async def track_stream(self, stream):
         self.stream_added(stream)
-        try:
-            yield
-        finally:
-            self.stream_removed(stream)
+        header = await stream.wait_for_header()
+        if header is not None:
+            self.new_header(stream)
+        while not stream.ended():
+            data = await stream.wait_for_data()
+            if data != b"":
+                self.new_data(stream)
+        self.stream_removed(stream)
 
 
 class DivergenceTracking:

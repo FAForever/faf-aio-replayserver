@@ -4,7 +4,7 @@ import asyncio
 from tests import timeout
 from asynctest.helpers import exhaust_callbacks
 
-from replayserver.receive.stream import ConnectionReplayStream, \
+from replayserver.receive.stream import ReplayStreamReader, \
     OutsideSourceReplayStream
 from replayserver.errors import MalformedDataError
 
@@ -12,68 +12,6 @@ from replayserver.errors import MalformedDataError
 @pytest.fixture
 def mock_header_read():
     return asynctest.CoroutineMock(spec=[])
-
-
-@pytest.mark.asyncio
-@timeout(1)
-async def test_replay_stream_read_header(mock_header_read,
-                                         controlled_connections):
-    mock_conn = controlled_connections(b"Lorem ipsum")
-    stream = ConnectionReplayStream(mock_header_read, mock_conn)
-
-    mock_header_read.return_value = "Header", b"Leftover"
-
-    await stream.read_header()
-    assert stream.header == "Header"
-
-    # Replay stream should withhold data until we call read()
-    assert stream.data.bytes() == b""
-    await stream.read()
-    assert stream.data.bytes().startswith(b"Leftover")
-
-
-@pytest.mark.asyncio
-@timeout(1)
-async def test_replay_stream_invalid_header(
-        mock_header_read, mock_connections):
-    mock_conn = mock_connections()
-    stream = ConnectionReplayStream(mock_header_read, mock_conn)
-    mock_header_read.side_effect = MalformedDataError
-    with pytest.raises(MalformedDataError):
-        await stream.read_header()
-    assert stream.ended()
-
-
-@pytest.mark.asyncio
-@timeout(1)
-async def test_replay_stream_read(
-        mock_header_read, mock_connections):
-    mock_conn = mock_connections()
-    stream = ConnectionReplayStream(mock_header_read, mock_conn)
-
-    mock_conn.read.side_effect = [b"Lorem ", b"ipsum", b""]
-    await stream.read()
-    assert stream.data.bytes() == b"Lorem "
-    assert not stream.ended()
-    await stream.read()
-    assert stream.data.bytes() == b"Lorem ipsum"
-    assert not stream.ended()
-    await stream.read()
-    assert stream.data.bytes() == b"Lorem ipsum"
-    assert stream.ended()
-
-
-@pytest.mark.asyncio
-@timeout(1)
-async def test_replay_stream_recovers_from_connection_error(
-        mock_header_read, mock_connections):
-    mock_conn = mock_connections()
-    stream = ConnectionReplayStream(mock_header_read, mock_conn)
-    mock_conn.read.side_effect = [b"Lorem ", MalformedDataError, b"ipsum"]
-    await stream.read()
-    await stream.read()
-    assert stream.data.bytes() == b"Lorem "
-    assert stream.ended()
 
 
 @pytest.mark.asyncio
@@ -117,3 +55,52 @@ async def test_outside_source_stream_finish():
     stream.finish()
     await f
     assert stream.ended()
+
+
+# We're using OutsideSourceStream here, but who cares, its mock would look
+# exactly the same
+@pytest.mark.asyncio
+@timeout(1)
+async def test_reader_normal_read(mock_header_read,
+                                  mock_connections,
+                                  outside_source_stream):
+    mock_conn = mock_connections()
+    reader = ReplayStreamReader(mock_header_read, outside_source_stream,
+                                mock_conn)
+
+    mock_header_read.return_value = "Header", b"Leftover"
+    mock_conn.read.side_effect = [b"Lorem ", b"ipsum", b""]
+
+    f = asyncio.ensure_future(reader.read())
+    assert (await outside_source_stream.wait_for_header()) == "Header"
+    await outside_source_stream.wait_for_ended()
+    assert outside_source_stream.data.bytes() == b"LeftoverLorem ipsum"
+    await f
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_reader_invalid_header(
+        mock_header_read, outside_source_stream, mock_connections):
+    mock_conn = mock_connections()
+    reader = ReplayStreamReader(mock_header_read, outside_source_stream,
+                                mock_conn)
+    mock_header_read.side_effect = MalformedDataError
+    with pytest.raises(MalformedDataError):
+        await reader.read()
+    assert outside_source_stream.ended()
+    assert outside_source_stream.header is None
+
+
+@pytest.mark.asyncio
+@timeout(1)
+async def test_reader_recovers_from_connection_error(
+        mock_header_read, outside_source_stream, mock_connections):
+    mock_conn = mock_connections()
+    reader = ReplayStreamReader(mock_header_read, outside_source_stream,
+                                mock_conn)
+    mock_conn.read.side_effect = [b"Lorem ", MalformedDataError, b"ipsum"]
+    mock_header_read.return_value = "Header", b""
+    await reader.read()
+    assert outside_source_stream.data.bytes() == b"Lorem "
+    assert outside_source_stream.ended()

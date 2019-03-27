@@ -1,10 +1,9 @@
 import asyncio
 from asyncio.locks import Event
-from contextlib import contextmanager
 
 from replayserver.common import CanStopServingConnsMixin
 from replayserver.errors import CannotAcceptConnectionError
-from replayserver.receive.stream import ConnectionReplayStream, \
+from replayserver.receive.stream import ReplayStreamReader, \
     OutsideSourceReplayStream
 from replayserver.receive.mergestrategy import FollowStreamMergeStrategy
 from replayserver import config
@@ -21,9 +20,9 @@ class MergerConfig(config.Config):
 
 
 class Merger(CanStopServingConnsMixin):
-    def __init__(self, stream_builder, merge_strategy, canonical_stream):
+    def __init__(self, reader_builder, merge_strategy, canonical_stream):
         CanStopServingConnsMixin.__init__(self)
-        self._stream_builder = stream_builder
+        self._reader_builder = reader_builder
         self._merge_strategy = merge_strategy
         self.canonical_stream = canonical_stream
         self._ended = Event()
@@ -34,26 +33,22 @@ class Merger(CanStopServingConnsMixin):
         canonical_replay = OutsideSourceReplayStream()
         merge_strategy = FollowStreamMergeStrategy.build(canonical_replay,
                                                          config)
-        stream_builder = ConnectionReplayStream.build
+        stream_builder = ReplayStreamReader.build
         return cls(stream_builder, merge_strategy, canonical_replay)
-
-    @contextmanager
-    def _stream_tracking(self, connection):
-        stream = self._stream_builder(connection)
-        with self._count_connection(), self._merge_strategy.use_stream(stream):
-            yield stream
 
     async def handle_connection(self, connection):
         if not self._accepts_connections():
             raise CannotAcceptConnectionError(
                 "Merger no longer accepts connections")
-        with self._stream_tracking(connection) as stream:
-            await stream.read_header()
-            self._merge_strategy.new_header(stream)
-            while not stream.ended():
-                await stream.read()
-                self._merge_strategy.new_data(stream)
-            return stream
+        with self._count_connection():
+            reader = self._reader_builder(connection)
+            strategy_callbacks = asyncio.ensure_future(
+                self._merge_strategy.track_stream(reader.stream))
+            try:
+                await reader.read()
+            finally:
+                await strategy_callbacks
+        return reader.stream
 
     async def no_connections_for(self, grace_period):
         await self._connection_count.wait_until_empty_for(grace_period)

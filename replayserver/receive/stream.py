@@ -4,36 +4,32 @@ from replayserver.struct.header import ReplayHeader
 from replayserver.errors import MalformedDataError
 
 
-class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
-                             HeaderEventMixin, EndedEventMixin, ReplayStream):
-    def __init__(self, header_reader, connection):
-        ConcreteDataMixin.__init__(self)
-        DataEventMixin.__init__(self)
-        HeaderEventMixin.__init__(self)
-        EndedEventMixin.__init__(self)
-        ReplayStream.__init__(self)
-
+class ReplayStreamReader:
+    def __init__(self, header_reader, stream, connection):
         self._header_reader = header_reader
         self._connection = connection
         self._leftovers = b""
 
+        # This is public - you can use it even after you discard the reader.
+        self.stream = stream
+
     @classmethod
     def build(cls, connection):
         header_reader = ReplayHeader.from_connection
-        return cls(header_reader, connection)
+        stream = OutsideSourceReplayStream()
+        return cls(header_reader, stream, connection)
 
-    async def read_header(self):
+    async def _read_header(self):
         try:
             result = await self._header_reader(self._connection)
             # Don't add leftover data right away, caller doesn't expect that
-            self._header, self._leftovers = result
+            header, self._leftovers = result
+            self.stream.set_header(header)
         except MalformedDataError:
-            self._end()
+            self.stream.finish()
             raise
-        finally:
-            self._signal_header_read_or_ended()
 
-    async def read(self):
+    async def _read_data(self):
         if self._leftovers:
             data = self._leftovers
             self._leftovers = b""
@@ -42,16 +38,19 @@ class ConnectionReplayStream(ConcreteDataMixin, DataEventMixin,
                 data = await self._connection.read(4096)
             except MalformedDataError:
                 # Connection might be unusable now, but stream's data so far is
-                # still valid and useful. End safely and let future code errors
+                # still valid and useful. End safely and let future code throw
                 # if it tries to use the connection.
                 data = b""
             if not data:
-                self._end()
-        self._data += data
-        self._signal_new_data_or_ended()
+                self.stream.finish()
+                return
+        self.stream.feed_data(data)
 
-    def __str__(self):
-        return f"{self._connection}"
+    async def read(self):
+        "Guarantees to finish the stream, no matter if it throws."
+        await self._read_header()
+        while not self.stream.ended():
+            await self._read_data()
 
 
 class OutsideSourceReplayStream(ConcreteDataMixin, DataEventMixin,

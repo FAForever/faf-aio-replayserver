@@ -1,57 +1,52 @@
 import pytest
 import asyncio
-from tests import timeout, skip_if_needs_asynctest_107
+import asynctest
 from asynctest.helpers import exhaust_callbacks
+from tests import timeout, skip_if_needs_asynctest_107
 
 from replayserver.receive.merger import Merger
-from replayserver.receive.mergestrategy import MergeStrategy
 from replayserver.errors import CannotAcceptConnectionError, \
     BadConnectionError
 
 
 @pytest.fixture
 def mock_merge_strategy(mocker):
-    # MergeStrategy is (almost) just an interface, so it's okay to use it here
-    class MockStrategy(MergeStrategy):
-        def __init__(self, stream):
-            MergeStrategy.__init__(self, stream)
-            self.new_header = mocker.Mock()
-            self.new_data = mocker.Mock()
-            self.finalize = mocker.Mock()
-            self.stream_added = mocker.Mock()
-            self.stream_removed = mocker.Mock()
+    # A little unspoken assumption that merger only uses these methods.
+    class S:
+        async def track_stream():
+            pass
 
-    return MockStrategy(None)
+        def finalize():
+            pass
+
+    return asynctest.Mock(spec=S)
 
 
 @pytest.fixture
-def mock_connection_streams(mock_replay_streams):
-    class CS:
-        async def read_header():
-            pass
+def mock_readers():
+    class R:
+        stream = None
 
         async def read():
             pass
 
     def build():
-        stream = mock_replay_streams()
-        stream.mock_add_spec(CS)
-        return stream
+        return asynctest.Mock(spec=R)
 
     return build
 
 
 @pytest.fixture
-def mock_stream_builder(mocker):
+def mock_reader_builder(mocker):
     return mocker.Mock(spec=[])
 
 
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_ends_when_refusing_conns_and_no_connections(
-        outside_source_stream, mock_merge_strategy, mock_stream_builder):
+        outside_source_stream, mock_merge_strategy, mock_reader_builder):
     canonical_stream = outside_source_stream
-    merger = Merger(mock_stream_builder, mock_merge_strategy, canonical_stream)
+    merger = Merger(mock_reader_builder, mock_merge_strategy, canonical_stream)
     merger.stop_accepting_connections()
     await merger.wait_for_ended()
     mock_merge_strategy.finalize.assert_called()
@@ -62,16 +57,16 @@ async def test_merger_ends_when_refusing_conns_and_no_connections(
 @timeout(0.1)
 async def test_merger_rejects_writers_when_asked(outside_source_stream,
                                                  mock_merge_strategy,
-                                                 mock_stream_builder,
+                                                 mock_reader_builder,
                                                  mock_connections):
     connection = mock_connections()
     canonical_stream = outside_source_stream
 
-    merger = Merger(mock_stream_builder, mock_merge_strategy, canonical_stream)
+    merger = Merger(mock_reader_builder, mock_merge_strategy, canonical_stream)
     merger.stop_accepting_connections()
     with pytest.raises(CannotAcceptConnectionError):
         await merger.handle_connection(connection)
-    mock_stream_builder.assert_not_called()
+    mock_reader_builder.assert_not_called()
     await merger.wait_for_ended()
 
 
@@ -80,65 +75,20 @@ async def test_merger_rejects_writers_when_asked(outside_source_stream,
 @timeout(0.1)
 async def test_merger_one_connection_lifetime(outside_source_stream,
                                               mock_merge_strategy,
-                                              mock_stream_builder,
-                                              mock_connection_streams,
+                                              mock_reader_builder,
+                                              mock_readers,
                                               mock_connections):
     connection = mock_connections()
-    connection_stream = mock_connection_streams()
-    mock_stream_builder.side_effect = [connection_stream]
+    reader = mock_readers()
+    mock_reader_builder.side_effect = [reader]
     canonical_stream = outside_source_stream
 
-    conn_data = b""
-
-    async def mock_read():
-        nonlocal conn_data
-        conn_data = b"foo"
-
-    def mock_ended():
-        return conn_data == b"foo"
-
-    connection_stream.read_header.return_value = "Header"
-    connection_stream.read.side_effect = mock_read
-    connection_stream.ended.side_effect = mock_ended
-
-    merger = Merger(mock_stream_builder, mock_merge_strategy, canonical_stream)
+    merger = Merger(mock_reader_builder, mock_merge_strategy, canonical_stream)
     await merger.handle_connection(connection)
 
-    connection_stream.read_header.assert_called()
-    connection_stream.read.assert_called()
+    reader.read.assert_awaited()
+    mock_merge_strategy.track_stream.assert_awaited_with(reader.stream)
 
-    mock_merge_strategy.stream_added.assert_called_with(connection_stream)
-    mock_merge_strategy.stream_removed.assert_called_with(connection_stream)
-    mock_merge_strategy.new_header.assert_called_with(connection_stream)
-    mock_merge_strategy.new_data.assert_called_with(connection_stream)
-
-    merger.stop_accepting_connections()
-    await merger.wait_for_ended()
-    mock_merge_strategy.finalize.assert_called()
-
-
-@skip_if_needs_asynctest_107
-@pytest.mark.asyncio
-@timeout(0.1)
-async def test_merger_read_header_exception(outside_source_stream,
-                                            mock_merge_strategy,
-                                            mock_stream_builder,
-                                            mock_connection_streams,
-                                            mock_connections):
-    connection = mock_connections()
-    connection_stream = mock_connection_streams()
-    mock_stream_builder.side_effect = [connection_stream]
-    canonical_stream = outside_source_stream
-
-    connection_stream.read_header.side_effect = BadConnectionError
-
-    merger = Merger(mock_stream_builder, mock_merge_strategy, canonical_stream)
-    with pytest.raises(BadConnectionError):
-        await merger.handle_connection(connection)
-
-    mock_merge_strategy.stream_added.assert_called_with(connection_stream)
-    mock_merge_strategy.stream_removed.assert_called_with(connection_stream)
-    mock_merge_strategy.new_header.assert_not_called()
     merger.stop_accepting_connections()
     await merger.wait_for_ended()
 
@@ -146,28 +96,22 @@ async def test_merger_read_header_exception(outside_source_stream,
 @skip_if_needs_asynctest_107
 @pytest.mark.asyncio
 @timeout(0.1)
-async def test_merger_read_data_exception(outside_source_stream,
-                                          mock_merge_strategy,
-                                          mock_stream_builder,
-                                          mock_connection_streams,
-                                          mock_connections):
+async def test_merger_read_exception(outside_source_stream,
+                                     mock_merge_strategy,
+                                     mock_reader_builder,
+                                     mock_readers,
+                                     mock_connections):
     connection = mock_connections()
-    connection_stream = mock_connection_streams()
-    mock_stream_builder.side_effect = [connection_stream]
     canonical_stream = outside_source_stream
+    reader = mock_readers()
+    mock_reader_builder.side_effect = [reader]
+    reader.read.side_effect = BadConnectionError
 
-    connection_stream.read_header.return_value = "Header"
-    connection_stream.read.side_effect = BadConnectionError
-    connection_stream.ended.return_value = False
-
-    merger = Merger(mock_stream_builder, mock_merge_strategy, canonical_stream)
+    merger = Merger(mock_reader_builder, mock_merge_strategy, canonical_stream)
     with pytest.raises(BadConnectionError):
         await merger.handle_connection(connection)
 
-    mock_merge_strategy.stream_added.assert_called_with(connection_stream)
-    mock_merge_strategy.stream_removed.assert_called_with(connection_stream)
-    mock_merge_strategy.new_header.assert_called()
-    mock_merge_strategy.new_data.assert_not_called()
+    mock_merge_strategy.track_stream.assert_awaited_with(reader.stream)
     merger.stop_accepting_connections()
     await merger.wait_for_ended()
 
@@ -175,10 +119,10 @@ async def test_merger_read_data_exception(outside_source_stream,
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_no_connections_wait_empty(
-        outside_source_stream, mock_merge_strategy, mock_stream_builder,
+        outside_source_stream, mock_merge_strategy, mock_reader_builder,
         event_loop):
     canonical_stream = outside_source_stream
-    merger = Merger(mock_stream_builder, mock_merge_strategy, canonical_stream)
+    merger = Merger(mock_reader_builder, mock_merge_strategy, canonical_stream)
     f = asyncio.ensure_future(merger.no_connections_for(0.01))
     exhaust_callbacks(event_loop)
     assert not f.done()
@@ -195,16 +139,14 @@ async def test_merger_no_connections_wait_empty(
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_no_connection_wait_extends(
-        outside_source_stream, mock_merge_strategy, mock_stream_builder,
-        mock_connection_streams, mock_connections, event_loop):
+        outside_source_stream, mock_merge_strategy, mock_reader_builder,
+        mock_readers, mock_connections, event_loop):
     connection = mock_connections()
-    connection_stream = mock_connection_streams()
-    mock_stream_builder.side_effect = [connection_stream]
+    reader = mock_readers()
+    mock_reader_builder.side_effect = [reader]
     canonical_stream = outside_source_stream
 
-    connection_stream.ended.return_value = True
-
-    merger = Merger(mock_stream_builder, mock_merge_strategy, canonical_stream)
+    merger = Merger(mock_reader_builder, mock_merge_strategy, canonical_stream)
     f = asyncio.ensure_future(merger.no_connections_for(0.03))
     await asyncio.sleep(0.02)
     assert not f.done()
@@ -222,21 +164,20 @@ async def test_merger_no_connection_wait_extends(
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_no_connection_wait_active_connection(
-        outside_source_stream, mock_merge_strategy, mock_stream_builder,
-        mock_connection_streams, mock_connections, event_loop):
+        outside_source_stream, mock_merge_strategy, mock_reader_builder,
+        mock_readers, mock_connections, event_loop):
     connection = mock_connections()
-    connection_stream = mock_connection_streams()
-    mock_stream_builder.side_effect = [connection_stream]
+    reader = mock_readers()
+    mock_reader_builder.side_effect = [reader]
     canonical_stream = outside_source_stream
 
     async def long_read():
         await asyncio.sleep(0.05)
-        return b""
+        return
 
-    connection_stream.read.side_effect = long_read
-    connection_stream.ended.side_effect = lambda: connection_stream.read.called
+    reader.read.side_effect = long_read
 
-    merger = Merger(mock_stream_builder, mock_merge_strategy, canonical_stream)
+    merger = Merger(mock_reader_builder, mock_merge_strategy, canonical_stream)
     f = asyncio.ensure_future(merger.no_connections_for(0.01))
     h = asyncio.ensure_future(merger.handle_connection(connection))
 

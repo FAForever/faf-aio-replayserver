@@ -37,6 +37,10 @@ async def test_connection_init(event_loop, mock_stream_writers):
     connection = Connection(r, w)
     assert connection.reader is r
     assert connection.writer is w
+    # Did we screw up __str__?
+    str(connection)
+    connection.add_header("foo")
+    str(connection)
 
 
 @pytest.mark.asyncio

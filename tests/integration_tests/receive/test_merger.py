@@ -8,12 +8,7 @@ from replayserver.errors import MalformedDataError, CannotAcceptConnectionError
 
 
 config_dict = {
-    "strategy": "FOLLOW_STREAM",
-    "strategy_config": {
-        "follow_stream": {
-            "stall_check_period": 60
-        }
-    }
+    "stall_check_period": 60
 }
 
 

@@ -1,26 +1,6 @@
-from enum import Enum
 from contextlib import contextmanager
 import asyncio
 from replayserver.logging import logger
-from replayserver import config
-
-
-class MergeStrategies(Enum):
-    GREEDY = "GREEDY"
-    FOLLOW_STREAM = "FOLLOW_STREAM"
-
-    def build(self, sink_stream, config):
-        if self == MergeStrategies.GREEDY:
-            return GreedyMergeStrategy.build(sink_stream, config)
-        elif self == MergeStrategies.FOLLOW_STREAM:
-            return FollowStreamMergeStrategy.build(sink_stream, config)
-
-    def config(self, config):
-        if self == MergeStrategies.GREEDY:
-            return GreedyMergeStrategyConfig(config.with_namespace("greedy"))
-        elif self == MergeStrategies.FOLLOW_STREAM:
-            return FollowStreamMergeStrategyConfig(
-                config.with_namespace("follow_stream"))
 
 
 class MergeStrategy:
@@ -53,41 +33,6 @@ class MergeStrategy:
             self.stream_removed(stream)
 
 
-class GreedyMergeStrategyConfig(config.Config):
-    pass
-
-
-class GreedyMergeStrategy(MergeStrategy):
-    """
-    Greedily takes data from the first stream that has it.
-    """
-    def __init__(self, sink_stream):
-        MergeStrategy.__init__(self, sink_stream)
-
-    @classmethod
-    def build(cls, sink_stream, config):
-        return cls(sink_stream)
-
-    def stream_added(self, stream):
-        pass
-
-    def stream_removed(self, stream):
-        pass
-
-    def new_header(self, stream):
-        if self.sink_stream.header is None:
-            self.sink_stream.set_header(stream.header)
-
-    def new_data(self, stream):
-        canon_len = len(self.sink_stream.data)
-        if len(stream.data) <= canon_len:
-            return
-        self.sink_stream.feed_data(stream.data[canon_len:])
-
-    def finalize(self):
-        self.sink_stream.finish()
-
-
 class DivergenceTracking:
     """
     Allows us to compare stream with sink for divergence. Ensures that we never
@@ -111,16 +56,6 @@ class DivergenceTracking:
                 memoryview(self._sink.data.bytes()) as view2:
             self.diverges = view1[start:end] != view2[start:end]
         self._compared_num = end
-
-
-class FollowStreamMergeStrategyConfig(config.Config):
-    _options = {
-        "stall_check_period": {
-            "parser": config.positive_float,
-            "doc": ("Time in seconds after which, if the followed connection "
-                    "did not produce data, another connection is selected.")
-        }
-    }
 
 
 class FollowStreamMergeStrategy(MergeStrategy):

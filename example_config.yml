@@ -20,6 +20,4 @@ rs:
         merge: 
             strategy: FOLLOW_STREAM
             grace_period: "1"
-            strategy_config: 
-                follow_stream: 
-                    stall_check_period: "60"
+            stall_check_period: "60"

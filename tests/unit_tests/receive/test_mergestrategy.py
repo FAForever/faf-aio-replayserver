@@ -2,7 +2,7 @@ import pytest
 import asyncio
 
 from tests import fast_forward_time
-from replayserver.receive.mergestrategy import MergeStrategies
+from replayserver.receive.mergestrategy import FollowStreamMergeStrategy
 from replayserver.stream import ReplayStream, ConcreteDataMixin
 
 
@@ -25,7 +25,7 @@ class MockStrategyConfig:
         self.stall_check_period = 60
 
 
-general_test_strats = [MergeStrategies.GREEDY, MergeStrategies.FOLLOW_STREAM]
+general_test_strats = [FollowStreamMergeStrategy]
 
 
 @pytest.mark.parametrize("strategy", general_test_strats)
@@ -103,7 +103,7 @@ def test_strategy_gets_common_prefix_of_all(strategy, outside_source_stream):
     assert outside_source_stream.data.bytes().startswith(b"Best ")
 
 
-@pytest.mark.parametrize("strategy", [MergeStrategies.FOLLOW_STREAM])
+@pytest.mark.parametrize("strategy", [FollowStreamMergeStrategy])
 def test_strategy_follow_stream_later_has_more_data(strategy,
                                                     outside_source_stream):
     strat = strategy.build(outside_source_stream, MockStrategyConfig())
@@ -126,7 +126,7 @@ def test_strategy_follow_stream_later_has_more_data(strategy,
     assert outside_source_stream.data.bytes() == b"Data and stuff"
 
 
-@pytest.mark.parametrize("strategy", [MergeStrategies.FOLLOW_STREAM])
+@pytest.mark.parametrize("strategy", [FollowStreamMergeStrategy])
 def test_strategy_follow_stream_new_tracked_stream_diverges(
         strategy, outside_source_stream):
     strat = strategy.build(outside_source_stream, MockStrategyConfig())
@@ -150,7 +150,7 @@ def test_strategy_follow_stream_new_tracked_stream_diverges(
 
 @fast_forward_time(10, 0.1)
 @pytest.mark.asyncio
-@pytest.mark.parametrize("strategy", [MergeStrategies.FOLLOW_STREAM])
+@pytest.mark.parametrize("strategy", [FollowStreamMergeStrategy])
 async def test_strategy_follow_stream_deals_with_stalled_connections(
         event_loop, strategy, outside_source_stream):
 
@@ -194,7 +194,7 @@ async def test_strategy_follow_stream_deals_with_stalled_connections(
     strat.finalize()
 
 
-@pytest.mark.parametrize("strategy", [MergeStrategies.FOLLOW_STREAM])
+@pytest.mark.parametrize("strategy", [FollowStreamMergeStrategy])
 def test_strategy_follow_stream_new_data_of_diverged_stream(
         strategy, outside_source_stream):
     strat = strategy.build(outside_source_stream, MockStrategyConfig())

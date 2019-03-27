@@ -35,12 +35,7 @@ config_dict = {
             "update_interval": 0.1,
         },
         "merge": {
-            "strategy": "FOLLOW_STREAM",
-            "strategy_config": {
-                "follow_stream": {
-                    "stall_check_period": 60
-                }
-            }
+            "stall_check_period": 60
         }
     },
 }

@@ -6,23 +6,18 @@ from replayserver.common import CanStopServingConnsMixin
 from replayserver.errors import CannotAcceptConnectionError
 from replayserver.receive.stream import ConnectionReplayStream, \
     OutsideSourceReplayStream
-from replayserver.receive.mergestrategy import MergeStrategies
+from replayserver.receive.mergestrategy import FollowStreamMergeStrategy
 from replayserver import config
 
 
 class MergerConfig(config.Config):
     _options = {
-        "strategy": {
-            "parser": MergeStrategies,
-            "doc": ("Replay merge strategy to use. Available strategies are "
-                    "GREEDY and FOLLOW_STREAM (recommended).")
+        "stall_check_period": {
+            "parser": config.positive_float,
+            "doc": ("Time in seconds after which, if the followed connection "
+                    "did not produce data, another connection is selected.")
         }
     }
-
-    def __init__(self, config):
-        super().__init__(config)
-        strat_config = config.with_namespace("strategy_config")
-        self.strategy_config = self.strategy.config(strat_config)
 
 
 class Merger(CanStopServingConnsMixin):
@@ -37,8 +32,8 @@ class Merger(CanStopServingConnsMixin):
     @classmethod
     def build(cls, config):
         canonical_replay = OutsideSourceReplayStream()
-        merge_strategy = config.strategy.build(canonical_replay,
-                                               config.strategy_config)
+        merge_strategy = FollowStreamMergeStrategy.build(canonical_replay,
+                                                         config)
         stream_builder = ConnectionReplayStream.build
         return cls(stream_builder, merge_strategy, canonical_replay)
 

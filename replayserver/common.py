@@ -3,7 +3,7 @@ from replayserver.collections import AsyncCounter
 from contextlib import contextmanager
 
 
-class CanStopServingConnsMixin:
+class ServesConnections:
     """
     Allows to count active connections, stop accepting new ones at some point,
     then wait until all connections are served (therefore no new ones will ever

@@ -1,4 +1,4 @@
-from replayserver.common import CanStopServingConnsMixin
+from replayserver.common import ServesConnections
 from replayserver.send.sendstrategy import SendStrategy
 from replayserver.errors import CannotAcceptConnectionError
 from replayserver import config
@@ -23,9 +23,9 @@ class SenderConfig(config.Config):
     }
 
 
-class Sender(CanStopServingConnsMixin):
+class Sender(ServesConnections):
     def __init__(self, send_strategy):
-        CanStopServingConnsMixin.__init__(self)
+        ServesConnections.__init__(self)
         self._strategy = send_strategy
 
     @classmethod

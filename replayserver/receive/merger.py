@@ -1,7 +1,7 @@
 import asyncio
 from asyncio.locks import Event
 
-from replayserver.common import CanStopServingConnsMixin
+from replayserver.common import ServesConnections
 from replayserver.errors import CannotAcceptConnectionError
 from replayserver.receive.stream import ReplayStreamReader, \
     OutsideSourceReplayStream
@@ -19,9 +19,9 @@ class MergerConfig(config.Config):
     }
 
 
-class Merger(CanStopServingConnsMixin):
+class Merger(ServesConnections):
     def __init__(self, reader_builder, merge_strategy, canonical_stream):
-        CanStopServingConnsMixin.__init__(self)
+        ServesConnections.__init__(self)
         self._reader_builder = reader_builder
         self._merge_strategy = merge_strategy
         self.canonical_stream = canonical_stream

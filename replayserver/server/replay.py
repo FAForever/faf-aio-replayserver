@@ -54,16 +54,17 @@ class Replay:
         return cls(merger, sender, offline_merger, bookkeeper, config, game_id)
 
     @contextmanager
-    def _track_connection(self, connection, conn_type):
+    def _track_connection(self, connection):
+        logger.debug(f"{self} - new connection, {connection}")
         self._connections.add(connection)
         try:
             yield
         finally:
             self._connections.remove(connection)
+            logger.debug(f"{self} - connection over, {connection}")
 
     async def handle_connection(self, header, connection):
-        with self._track_connection(connection, header.type):
-            logger.debug(f"{self} - new connection, {connection}")
+        with self._track_connection(connection):
             if header.type == ConnectionHeader.Type.WRITER:
                 replay = await self.merger.handle_connection(connection)
                 self.offline_merger.add_replay(replay)
@@ -71,7 +72,6 @@ class Replay:
                 await self.sender.handle_connection(connection)
             else:
                 raise MalformedDataError("Invalid connection type")
-            logger.debug(f"{self} - connection over, {connection}")
 
     def close(self):
         self.merger.stop_accepting_connections()

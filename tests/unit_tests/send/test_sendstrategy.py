@@ -5,7 +5,6 @@ from asynctest.helpers import exhaust_callbacks
 from tests import timeout
 
 from replayserver.send.sendstrategy import SendStrategy
-from replayserver.errors import MalformedDataError
 
 
 @pytest.mark.asyncio
@@ -36,8 +35,7 @@ async def test_sendstrategy_no_header(mock_connections, outside_source_stream,
     f = asyncio.ensure_future(sender.send_to(connection))
     await exhaust_callbacks(event_loop)
     outside_source_stream.finish()
-    with pytest.raises(MalformedDataError):
-        await f
+    await f     # We expect no errors
     connection.write.assert_not_called()
 
 

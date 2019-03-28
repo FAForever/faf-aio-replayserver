@@ -1,5 +1,4 @@
 from replayserver.send.stream import DelayedReplayStream
-from replayserver.errors import MalformedDataError
 
 
 class SendStrategy:
@@ -22,13 +21,14 @@ class SendStrategy:
 
     async def send_to(self, connection):
         await self._write_header(connection)
+        if self._stream.header is None:
+            return
         await self._write_replay(connection)
 
     async def _write_header(self, connection):
         header = await self._stream.wait_for_header()
-        if header is None:
-            raise MalformedDataError("Malformed replay header")
-        await connection.write(header.data)
+        if header is not None:
+            await connection.write(header.data)
 
     async def _write_replay(self, connection):
         position = 0

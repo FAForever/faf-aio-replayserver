@@ -19,9 +19,6 @@ def mock_replays(locked_mock_coroutines):
             def close():
                 pass
 
-            def do_not_wait_for_more_connections():
-                pass
-
             async def wait_for_ended():
                 pass
 

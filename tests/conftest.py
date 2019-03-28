@@ -43,8 +43,3 @@ def mock_replay_headers(mocker):
         return m
 
     return build
-
-
-@pytest.fixture
-def time_skipper(event_loop):
-    return TimeSkipper(event_loop)

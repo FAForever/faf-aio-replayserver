@@ -348,10 +348,10 @@ async def test_server_stress_test(mock_database, tmpdir,
                 break
 
     for i in range(1, 50):
-        for j in range(5):
+        for _ in range(5):
             r, w = await asyncio.open_connection('127.0.0.1', s_port)
             asyncio.ensure_future(do_write(r, w, i))
-        for j in range(5):
+        for _ in range(5):
             r, w = await asyncio.open_connection('127.0.0.1', s_port)
             asyncio.ensure_future(do_read(r, w, i))
 

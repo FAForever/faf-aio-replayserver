@@ -40,8 +40,6 @@ options. Config file structure without leaf nodes is shown below:
               <replay sending options>
           merge:
               <replay receiving options>
-              strategy_config:
-                  <configuration of specific merge strategies>
 
 Configuration leaf nodes
 ------------------------
@@ -88,15 +86,3 @@ Replay receiving options
 
 .. autocomponent:: replayserver.receive.merger.MergerConfig
     :hide-classname:
-
-Merge strategy configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Each strategy's configuration should be provided under a separate key. You only
-need to provide configuration for a strategy you use.
-
-.. autocomponent:: replayserver.receive.mergestrategy.GreedyMergeStrategyConfig
-
-No configuration available.
-
-.. autocomponent:: replayserver.receive.mergestrategy.FollowStreamMergeStrategyConfig

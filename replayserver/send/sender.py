@@ -33,13 +33,11 @@ class Sender(ServesConnections):
         strategy = SendStrategy.build(stream, config)
         return cls(strategy)
 
-    async def handle_connection(self, connection):
-        if not self._accepts_connections():
-            raise CannotAcceptConnectionError(
-                "Reader connection arrived after replay ended")
-        with self._count_connection():
-            await self._strategy.send_to(connection)
+    async def _handle_connection(self, connection):
+        await self._strategy.send_to(connection)
 
-    async def wait_for_ended(self):
-        await self._wait_until_all_connections_end()
+    async def _after_connections_end(self):
         await self._strategy.wait_for_stream()
+
+    def __str__(self):
+        return "Sender"

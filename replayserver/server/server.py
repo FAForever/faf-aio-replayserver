@@ -64,8 +64,8 @@ class MainConfig(config.Config):
     _options = {
         "log_level": {
             "parser": LogLevel.from_config,
-            "doc": ("Server log level. Numeric value corresponding to "
-                    "Python's logging module value.")
+            "doc": ("Server log level. Either name or numeric value "
+                    "corresponding to Python's logging module value.")
         }
     }
 

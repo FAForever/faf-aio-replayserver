@@ -1,6 +1,5 @@
 from replayserver.common import ServesConnections
-from replayserver.send.sendstrategy import SendStrategy
-from replayserver.errors import CannotAcceptConnectionError
+from replayserver.send.stream import DelayedReplayStream, ReplayStreamWriter
 from replayserver import config
 
 
@@ -24,20 +23,22 @@ class SenderConfig(config.Config):
 
 
 class Sender(ServesConnections):
-    def __init__(self, send_strategy):
+    def __init__(self, stream, writer):
         ServesConnections.__init__(self)
-        self._strategy = send_strategy
+        self._stream = stream
+        self._writer = writer
 
     @classmethod
     def build(cls, stream, config):
-        strategy = SendStrategy.build(stream, config)
-        return cls(strategy)
+        delayed_stream = DelayedReplayStream.build(stream, config)
+        writer = ReplayStreamWriter(delayed_stream)
+        return cls(delayed_stream, writer)
 
     async def _handle_connection(self, connection):
-        await self._strategy.send_to(connection)
+        await self._writer.send_to(connection)
 
     async def _after_connections_end(self):
-        await self._strategy.wait_for_stream()
+        await self._stream.wait_for_ended()
 
     def __str__(self):
         return "Sender"

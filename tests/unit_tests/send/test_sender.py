@@ -9,15 +9,14 @@ from replayserver.errors import CannotAcceptConnectionError
 
 
 @pytest.fixture
-def mock_writer(locked_mock_coroutines):
+def mock_writer(blockable_coroutines):
     class S:
         async def send_to():
             pass
 
-    sent_wait, sent_to = locked_mock_coroutines()
+    blockable = blockable_coroutines()
     return asynctest.Mock(spec=S,
-                          _end_send=sent_wait,
-                          send_to=sent_to)
+                          send_to=blockable)
 
 
 @pytest.fixture
@@ -39,7 +38,7 @@ async def test_sender_doesnt_end_while_connection_runs(
     await exhaust_callbacks(event_loop)
     assert not w.done()
 
-    mock_writer._end_send.set()
+    mock_writer.send_to._lock.set()
     await h
     await w
 

@@ -74,8 +74,8 @@ async def test_stream_writer_empty_data(mock_connections,
 
 
 @pytest.fixture
-def mock_timestamp(locked_mock_coroutines):
-    end, wait = locked_mock_coroutines()
+def mock_timestamp(blockable_coroutines):
+    wait = blockable_coroutines()
     stamp_list = []
 
     async def mock_stamps():
@@ -89,14 +89,14 @@ def mock_timestamp(locked_mock_coroutines):
 
     def next_stamp(pos):
         stamp_list.append(pos)
-        end.set()
-        end.clear()
+        wait._lock.set()
+        wait._lock.clear()
 
     def end_stamps():
-        end.set()
+        wait._lock.set()
 
     mock_stamp = asynctest.Mock(spec=["timestamps"], _stamps=stamp_list,
-                                _resume_stamps=end, _next_stamp=next_stamp,
+                                _resume_stamps=wait, _next_stamp=next_stamp,
                                 _end_stamps=end_stamps)
     mock_stamp.timestamps.side_effect = mock_stamps
     return mock_stamp
@@ -186,7 +186,7 @@ async def test_stamps_ending_end_stream(outside_source_stream, mock_timestamp,
     await exhaust_callbacks(event_loop)
     assert len(stream.data) == 5
 
-    mock_timestamp._resume_stamps.set()
+    mock_timestamp._end_stamps()
     await exhaust_callbacks(event_loop)
     assert stream.ended()
     d = await stream.wait_for_data()

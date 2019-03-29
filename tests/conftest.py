@@ -1,7 +1,6 @@
 import pytest
 import asynctest
 from asyncio.locks import Event
-from tests import TimeSkipper
 
 
 pytest_plugins = ['tests.fixtures.connection', 'tests.fixtures.stream',
@@ -9,15 +8,16 @@ pytest_plugins = ['tests.fixtures.connection', 'tests.fixtures.stream',
 
 
 @pytest.fixture
-def locked_mock_coroutines(event_loop):
+def blockable_coroutines(event_loop):
     def get():
         manual_end = Event(loop=event_loop)
 
         async def manual_wait(*args, **kwargs):
             await manual_end.wait()
 
-        ended_wait_mock = asynctest.CoroutineMock(side_effect=manual_wait)
-        return (manual_end, ended_wait_mock)
+        blockable = asynctest.CoroutineMock(side_effect=manual_wait,
+                                            _lock=manual_end)
+        return blockable
 
     return get
 

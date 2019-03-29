@@ -10,7 +10,7 @@ from replayserver.errors import CannotAcceptConnectionError
 
 
 @pytest.fixture
-def mock_replays(locked_mock_coroutines):
+def mock_replays(blockable_coroutines):
     def build():
         class R:
             async def handle_connection():
@@ -22,9 +22,8 @@ def mock_replays(locked_mock_coroutines):
             async def wait_for_ended():
                 pass
 
-        replay_end, ended_wait = locked_mock_coroutines()
-        return asynctest.Mock(spec=R, _manual_end=replay_end,
-                              wait_for_ended=ended_wait)
+        ended_wait = blockable_coroutines()
+        return asynctest.Mock(spec=R, wait_for_ended=ended_wait)
     return build
 
 
@@ -67,7 +66,7 @@ async def test_readers_successful_connection(
     mock_replay.handle_connection.reset_mock()
     mock_replay_builder.reset_mock()
 
-    mock_replay._manual_end.set()
+    mock_replay.wait_for_ended._lock.set()
     await replays.stop_all()
 
 
@@ -82,7 +81,7 @@ async def test_replays_closing(
 
     await replays.handle_connection(*writer)
     assert 1 in replays
-    mock_replay._manual_end.set()
+    mock_replay.wait_for_ended._lock.set()
     await replays.stop_all()
     mock_replay.close.assert_called()
     mock_replay.wait_for_ended.assert_awaited()     # Only true if await ended
@@ -102,7 +101,7 @@ async def test_replays_closing_waits_for_replay(
     f = asyncio.ensure_future(replays.stop_all())
     await exhaust_callbacks(event_loop)
     assert not f.done()
-    mock_replay._manual_end.set()
+    mock_replay.wait_for_ended._lock.set()
     await f
 
 
@@ -117,7 +116,7 @@ async def test_replay_ending_is_tracked(
     replays = Replays(mock_replay_builder)
 
     await replays.handle_connection(*writer)
-    mock_replay._manual_end.set()
+    mock_replay.wait_for_ended._lock.set()
     await exhaust_callbacks(event_loop)
     assert 1 not in replays
 
@@ -140,5 +139,5 @@ async def test_connections_are_not_accepted_when_closing(
     with pytest.raises(CannotAcceptConnectionError):
         await replays.handle_connection(*writer_2)
 
-    mock_replay._manual_end.set()
+    mock_replay.wait_for_ended._lock.set()
     await f

@@ -10,7 +10,7 @@ from replayserver.errors import MalformedDataError
 
 
 @pytest.fixture
-def mock_merger(locked_mock_coroutines):
+def mock_merger(blockable_coroutines):
     class M:
         canonical_stream = None
 
@@ -26,20 +26,17 @@ def mock_merger(locked_mock_coroutines):
         async def wait_for_ended():
             pass
 
-    replay_end, ended_wait = locked_mock_coroutines()
-    no_conns, conns_wait = locked_mock_coroutines()
-    conn_handled, handled_wait = locked_mock_coroutines()
+    ended_wait = blockable_coroutines()
+    conns_wait = blockable_coroutines()
+    handled_wait = blockable_coroutines()
     return asynctest.Mock(spec=M,
-                          _manual_end=replay_end,
                           wait_for_ended=ended_wait,
-                          _manual_no_conns=no_conns,
                           no_connections_for=conns_wait,
-                          _manual_handle_conn=conn_handled,
                           handle_connection=handled_wait)
 
 
 @pytest.fixture
-def mock_sender(locked_mock_coroutines):
+def mock_sender(blockable_coroutines):
     class S:
         async def handle_connection():
             pass
@@ -50,11 +47,10 @@ def mock_sender(locked_mock_coroutines):
         async def wait_for_ended():
             pass
 
-    replay_end, ended_wait = locked_mock_coroutines()
-    conn_handled, handled_wait = locked_mock_coroutines()
-    return asynctest.Mock(spec=S, _manual_end=replay_end,
+    ended_wait = blockable_coroutines()
+    handled_wait = blockable_coroutines()
+    return asynctest.Mock(spec=S,
                           wait_for_ended=ended_wait,
-                          _manual_handle_conn=conn_handled,
                           handle_connection=handled_wait)
 
 
@@ -102,9 +98,9 @@ async def test_replay_closes_after_timeout(
     mock_sender.stop_accepting_connections.assert_called()
     writer[1].close.assert_called()
 
-    mock_merger._manual_handle_conn.set()
-    mock_merger._manual_end.set()
-    mock_sender._manual_end.set()
+    mock_merger.handle_connection._lock.set()
+    mock_merger.wait_for_ended._lock.set()
+    mock_sender.wait_for_ended._lock.set()
     await wf
     await replay.wait_for_ended()
 
@@ -124,13 +120,13 @@ async def test_replay_ending_cancels_timeouts(event_loop, replay_deps):
     mock_sender.stop_accepting_connections.reset_mock()
 
     # Replay expects these to end after calling close
-    mock_merger._manual_end.set()
-    mock_sender._manual_end.set()
+    mock_merger.wait_for_ended._lock.set()
+    mock_sender.wait_for_ended._lock.set()
     await replay.wait_for_ended()
 
     # Did replay stop waiting until merger says there aren't more connections?
     await asyncio.sleep(1)
-    mock_merger._manual_no_conns.set()
+    mock_merger.no_connections_for._lock.set()
 
     # Did replay stop waiting for its own timeout?
     await asyncio.sleep(19)
@@ -153,13 +149,13 @@ async def test_replay_timeouts_while_ending_dont_explode(
     f = asyncio.ensure_future(replay.wait_for_ended())
 
     await asyncio.sleep(1)
-    mock_merger._manual_no_conns.set()
+    mock_merger.no_connections_for._lock.set()
 
     await asyncio.sleep(19)
     exhaust_callbacks(event_loop)
 
-    mock_merger._manual_end.set()
-    mock_sender._manual_end.set()
+    mock_merger.wait_for_ended._lock.set()
+    mock_sender.wait_for_ended._lock.set()
     await f
 
 
@@ -175,8 +171,8 @@ async def test_replay_forwarding_connections(event_loop, replay_deps,
     conf = MockReplayConfig(15, 100)
     replay = Replay(*replay_deps, conf, 1)
 
-    mock_sender._manual_handle_conn.set()
-    mock_merger._manual_handle_conn.set()
+    mock_sender.handle_connection._lock.set()
+    mock_merger.handle_connection._lock.set()
 
     await replay.handle_connection(*reader)
     mock_merger.handle_connection.assert_not_awaited()
@@ -193,8 +189,8 @@ async def test_replay_forwarding_connections(event_loop, replay_deps,
     mock_sender.handle_connection.assert_not_awaited()
     mock_merger.handle_connection.assert_not_awaited()
 
-    mock_merger._manual_end.set()
-    mock_sender._manual_end.set()
+    mock_merger.wait_for_ended._lock.set()
+    mock_sender.wait_for_ended._lock.set()
     await replay.wait_for_ended()
 
 
@@ -219,7 +215,7 @@ async def test_replay_keeps_proper_event_order(
     conf = MockReplayConfig(0.1, 100)
     replay = Replay(*replay_deps, conf, 1)
     await exhaust_callbacks(event_loop)
-    merger._manual_end.set()
+    merger.wait_for_ended._lock.set()
     await exhaust_callbacks(event_loop)
-    sender._manual_end.set()
+    sender.wait_for_ended._lock.set()
     await replay.wait_for_ended()

@@ -44,6 +44,9 @@ class ReplayStream:
 
     def __init__(self):
         self.data = ReplayStreamData(self)
+        self._ended = Event()
+        self._header_read_or_ended = Event()
+        self._new_data_or_ended = Event()
 
     @property
     def header(self):
@@ -53,10 +56,6 @@ class ReplayStream:
         If set, MUST be a ReplayHeader instance.
         """
         pass
-
-    async def wait_for_header(self):
-        "Wait until either the header was read or the stream ended."
-        raise NotImplementedError
 
     def _data_length(self):
         "Current data length."
@@ -74,52 +73,32 @@ class ReplayStream:
         """
         raise NotImplementedError
 
-    async def wait_for_data(self, position=None):
-        """
-        Wait until there is data after current position (or 'position', if
-        specified). Return the new data, or bytes() if the stream ended and
-        there is no data past position.
-
-        Be aware that this should also work if it's run via ensure_future()!
-        Make sure you note down current position immediately when called or
-        you can end up missing appended data!
-        """
-        raise NotImplementedError
-
-    def ended(self):
-        """
-        Whether the stream is finished processing. MUST return True if there
-        was an error reading the stream (e.g. while reading the header).
-        """
-        raise NotImplementedError
-
-    async def wait_for_ended(self):
-        raise NotImplementedError
-
-
-class HeaderEventMixin:
-    "Mixin with a convenient ``wait_for_header`` implementation."
-    def __init__(self):
-        self._header_read_or_ended = Event()
-
-    def _signal_header_read_or_ended(self):
+    def _header_available(self):
+        "Called by implementation once header is available."
         self._header_read_or_ended.set()
 
+    def _data_available(self):
+        "Called by implementation when more data is available."
+        self._new_data_or_ended.set()
+        self._new_data_or_ended.clear()
+
+    def _end(self):
+        "Called by implementation when the replay is over."
+        self._ended.set()
+        self._header_read_or_ended.set()
+        self._new_data_or_ended.set()
+
+    # Public-facing part of interface starts here.
     async def wait_for_header(self):
         await self._header_read_or_ended.wait()
         return self.header
 
-
-class DataEventMixin:
-    "Mixin with a convenient ``wait_for_data`` implementation."
-    def __init__(self):
-        self._new_data_or_ended = Event()
-
-    def _signal_new_data_or_ended(self):
-        self._new_data_or_ended.set()
-        self._new_data_or_ended.clear()
-
     def wait_for_data(self, position=None):
+        """
+        Wait until there is data after current position (or 'position', if
+        specified). Return the new data, or bytes() if the stream ended and
+        there is no data past position.
+        """
         if position is None:
             position = len(self.data)
         return self._wait_for_data(position)
@@ -129,18 +108,14 @@ class DataEventMixin:
             await self._new_data_or_ended.wait()
         if position < len(self.data):
             return self.data[position:]
-        return b""
-
-
-class EndedEventMixin:
-    "Mixin with a convenient ``ended`` implementation."
-    def __init__(self):
-        self._ended = Event()
-
-    def _end(self):
-        self._ended.set()
+        else:
+            return b""
 
     def ended(self):
+        """
+        Whether the stream is finished processing. MUST return True if there
+        was an error reading the stream (e.g. while reading the header).
+        """
         return self._ended.is_set()
 
     async def wait_for_ended(self):

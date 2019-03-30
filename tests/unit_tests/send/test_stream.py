@@ -139,6 +139,7 @@ async def test_delayed_stream_data(outside_source_stream, mock_timestamp,
                                    event_loop):
     stream = DelayedReplayStream(outside_source_stream, mock_timestamp)
 
+    outside_source_stream.set_header("Header")
     outside_source_stream.feed_data(b"abcde")
     await exhaust_callbacks(event_loop)
     assert len(stream.data) == 0
@@ -181,6 +182,7 @@ async def test_stamps_ending_end_stream(outside_source_stream, mock_timestamp,
                                         event_loop):
     stream = DelayedReplayStream(outside_source_stream, mock_timestamp)
 
+    outside_source_stream.set_header("Header")
     outside_source_stream.feed_data(b"abcde")
     mock_timestamp._next_stamp(5)
     await exhaust_callbacks(event_loop)
@@ -203,6 +205,7 @@ async def test_delayed_stream_data_methods(outside_source_stream,
                                            event_loop):
     stream = DelayedReplayStream(outside_source_stream, mock_timestamp)
 
+    outside_source_stream.set_header("Header")
     outside_source_stream.feed_data(b"abcde")
     mock_timestamp._next_stamp(3)
     await exhaust_callbacks(event_loop)

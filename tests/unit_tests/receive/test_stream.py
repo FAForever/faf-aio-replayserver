@@ -16,13 +16,36 @@ def mock_header_read():
 
 @pytest.mark.asyncio
 @timeout(0.1)
-async def test_outside_source_stream_read_header():
+async def test_outside_source_stream_immediate_end(event_loop):
+    stream = OutsideSourceReplayStream()
+    f1 = asyncio.ensure_future(stream.wait_for_header())
+    f2 = asyncio.ensure_future(stream.wait_for_data())
+    f3 = asyncio.ensure_future(stream.wait_for_ended())
+    exhaust_callbacks(event_loop)
+    assert not any(x.done() for x in [f1, f2, f3])
+    stream.finish()
+
+    assert await f1 is None
+    assert await f2 == b""
+    assert stream.header is None
+    assert stream.data.bytes() == b""
+    await f3
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_outside_source_stream_read_header(event_loop):
     stream = OutsideSourceReplayStream()
     f = asyncio.ensure_future(stream.wait_for_header())
-    header = "header"
-    stream.set_header(header)
-    got_header = await f
-    assert got_header is header
+    exhaust_callbacks(event_loop)
+    assert not f.done()
+    stream.set_header("header")
+    assert await f == "header"
+    assert stream.header == "header"
+
+    stream.finish()
+    await stream.wait_for_ended()
+    assert stream.data.bytes() == b""
 
 
 @pytest.mark.asyncio
@@ -30,20 +53,28 @@ async def test_outside_source_stream_read_header():
 async def test_outside_source_stream_read(event_loop):
     stream = OutsideSourceReplayStream()
     f = asyncio.ensure_future(stream.wait_for_data())
+    stream.set_header("header")
     await exhaust_callbacks(event_loop)
     assert not f.done()
     stream.feed_data(b"Lorem")
-    await f
+    assert await f == b"Lorem"
     assert stream.data.bytes() == b"Lorem"
+
+    stream.finish()
+    await stream.wait_for_ended()
 
 
 @pytest.mark.asyncio
 @timeout(0.1)
-async def test_outside_source_stream_immediate_feed():
+async def test_outside_source_stream_immediate_data():
     stream = OutsideSourceReplayStream()
-    f = asyncio.ensure_future(stream.wait_for_data())
+    f1 = asyncio.ensure_future(stream.wait_for_header())
+    f2 = asyncio.ensure_future(stream.wait_for_data())
+    stream.set_header("header")
     stream.feed_data(b"Lorem")
-    await f
+    assert await f1 == "header"
+    assert await f2 == b"Lorem"
+    assert stream.header == "header"
     assert stream.data.bytes() == b"Lorem"
 
 
@@ -55,6 +86,22 @@ async def test_outside_source_stream_finish():
     stream.finish()
     await f
     assert stream.ended()
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_outside_source_stream_wait_until_position(event_loop):
+    stream = OutsideSourceReplayStream()
+    f = asyncio.ensure_future(stream.wait_for_data(3))
+    stream.set_header("header")
+    stream.feed_data(b"a")
+    exhaust_callbacks(event_loop)
+    assert not f.done()
+    stream.feed_data(b"aa")
+    exhaust_callbacks(event_loop)
+    assert not f.done()
+    stream.feed_data(b"ccc")
+    assert await f == b"ccc"
 
 
 # We're using OutsideSourceStream here, but who cares, its mock would look

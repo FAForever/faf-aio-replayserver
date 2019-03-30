@@ -1,7 +1,6 @@
 import pytest
 import asyncio
 from asyncio.locks import Event
-from asynctest.helpers import exhaust_callbacks
 from tests import timeout
 
 from replayserver.server.connectionproducer import ConnectionProducer

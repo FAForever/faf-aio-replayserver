@@ -4,8 +4,8 @@ import asyncio
 from tests import timeout
 from asynctest.helpers import exhaust_callbacks
 
-from replayserver.receive.stream import ReplayStreamReader, \
-    OutsideSourceReplayStream
+from replayserver.receive.stream import ReplayStreamReader
+from replayserver.stream import OutsideSourceReplayStream
 from replayserver.errors import MalformedDataError
 
 

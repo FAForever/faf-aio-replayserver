@@ -1,8 +1,7 @@
 import pytest
 import asynctest
 
-from replayserver.stream import ReplayStream
-from replayserver.receive.stream import OutsideSourceReplayStream
+from replayserver.stream import ReplayStream, OutsideSourceReplayStream
 
 
 @pytest.fixture
@@ -17,10 +16,6 @@ def mock_replay_streams():
 # rule of not involving other units. In practice for testing purposes we'd
 # basically have to reimplement OutsideSourceReplayStream, so let's just use it
 # - at least it's unit-tested itself.
-#
-# Yes, OutsideSourceReplayStream can change in the future so it's not useful
-# for unit testing anymore. We'll just haul the current implementation here
-# when that happens.
 @pytest.fixture
 def outside_source_stream(event_loop):
     # We use event_loop fixture so that stream uses the same loop as all tests

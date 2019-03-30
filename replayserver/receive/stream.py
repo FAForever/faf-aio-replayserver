@@ -1,4 +1,4 @@
-from replayserver.stream import ReplayStream, ConcreteDataMixin
+from replayserver.stream import OutsideSourceReplayStream
 from replayserver.struct.header import ReplayHeader
 from replayserver.errors import MalformedDataError
 
@@ -50,20 +50,3 @@ class ReplayStreamReader:
         await self._read_header()
         while not self.stream.ended():
             await self._read_data()
-
-
-class OutsideSourceReplayStream(ConcreteDataMixin, ReplayStream):
-    def __init__(self):
-        ConcreteDataMixin.__init__(self)
-        ReplayStream.__init__(self)
-
-    def set_header(self, header):
-        self._header = header
-        self._header_available()
-
-    def feed_data(self, data):
-        self._data += data
-        self._data_available()
-
-    def finish(self):
-        self._end()

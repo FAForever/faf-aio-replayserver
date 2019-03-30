@@ -1,10 +1,8 @@
 import asyncio
-from asyncio.locks import Event
 
 from replayserver.common import ServesConnections
-from replayserver.errors import CannotAcceptConnectionError
-from replayserver.receive.stream import ReplayStreamReader, \
-    OutsideSourceReplayStream
+from replayserver.receive.stream import ReplayStreamReader
+from replayserver.stream import OutsideSourceReplayStream
 from replayserver.receive.mergestrategy import FollowStreamMergeStrategy
 from replayserver import config
 

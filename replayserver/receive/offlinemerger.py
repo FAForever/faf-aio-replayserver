@@ -1,5 +1,3 @@
-from replayserver.stream import ReplayStream, ConcreteDataMixin
-
 __all__ = ["memprefix", "DataMerger", "OfflineReplayMerger"]
 
 
@@ -116,39 +114,24 @@ class DataMerger:
         return best.tag
 
 
-class PreparedReplayStream(ConcreteDataMixin, ReplayStream):
-    def __init__(self, header, data):
-        ReplayStream.__init__(self)
-        ConcreteDataMixin.__init__(self)
-        self._header = header
-        self._data = data
-
-
 class OfflineReplayMerger:
-    def __init__(self, data_merger, header_merger):
-        self._data_merger = data_merger
-        self._header_merger = header_merger
+    def __init__(self, merger):
+        self._merger = merger
 
     @classmethod
     def build(cls):
-        return cls(DataMerger(), DataMerger())
+        return cls(DataMerger())
 
     def add_replay(self, replay):
-        header = replay.header
         data = replay.data.bytes()
-        if header is None or data == b"":
+        if data == b"":
             return
 
-        self._header_merger.add_data(header.data, replay)
-        self._data_merger.add_data(data, replay)
+        # NOTE: Dicts in FA replay headers are serialized in random order. That
+        # makes trying to merge headers useless unless we parse them in
+        # entirety, and that's not really worth the trouble. "Best replay" will
+        # probably have the correct header 99,9% of the time anyway.
+        self._merger.add_data(data, replay)
 
     def get_best_replay(self):
-        header_replay = self._header_merger.get_best_data()
-        data_replay = self._data_merger.get_best_data()
-        if header_replay is None or data_replay is None:
-            return None
-        # FIXME - we're stealing header and data from existing replays here,
-        # there isn't a requirement in replaystream interface for it to work
-        header = header_replay.header
-        data = data_replay.data.bytes()
-        return PreparedReplayStream(header, data)
+        return self._merger.get_best_data()

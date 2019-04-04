@@ -31,7 +31,7 @@ class Sender(ServesConnections):
     @classmethod
     def build(cls, stream, config):
         delayed_stream = DelayedReplayStream.build(stream, config)
-        writer = ReplayStreamWriter(delayed_stream)
+        writer = ReplayStreamWriter.build(delayed_stream)
         return cls(delayed_stream, writer)
 
     async def _handle_connection(self, connection):

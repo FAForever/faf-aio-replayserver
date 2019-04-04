@@ -3,6 +3,7 @@ import json
 import base64
 import zlib
 import copy
+import sys
 
 
 __all__ = ["load_replay", "example_replay"]
@@ -44,3 +45,9 @@ def unpack_replay(replay):
 
 
 example_replay = load_replay("example", 1966)
+
+
+if __name__ == "__main__":
+    data = open(sys.argv[1], "rb").read()
+    h, r = unpack_replay(data)
+    open(sys.argv[2], "wb").write(r)

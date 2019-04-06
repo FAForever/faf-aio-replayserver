@@ -1,13 +1,4 @@
 import pytest
-import asynctest
-
-
-@pytest.fixture
-def mock_connection_headers():
-    def build(type_, game_id):
-        return asynctest.Mock(type=type_, game_id=game_id, name="")
-
-    return build
 
 
 @pytest.fixture

@@ -2,8 +2,8 @@ import pytest
 import asynctest
 import asyncio
 from asynctest.helpers import exhaust_callbacks
-
 from tests import timeout, fast_forward_time
+
 from replayserver.server.replay import Replay
 from replayserver.server.connection import ConnectionHeader
 from replayserver.errors import MalformedDataError

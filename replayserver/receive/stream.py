@@ -35,6 +35,7 @@ class ReplayStreamReader:
         if self._leftovers:
             data = self._leftovers
             self._leftovers = b""
+            data = self._demangler.demangle(data)
             self.stream.feed_data(data)
             return
 

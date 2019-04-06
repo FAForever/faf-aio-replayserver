@@ -37,7 +37,7 @@ def mock_demangler(mocker):
 async def test_outside_source_stream_immediate_end(event_loop):
     stream = OutsideSourceReplayStream()
     f1 = asyncio.ensure_future(stream.wait_for_header())
-    f2 = asyncio.ensure_future(stream.wait_for_data())
+    f2 = asyncio.ensure_future(stream.wait_for_data(0))
     f3 = asyncio.ensure_future(stream.wait_for_ended())
     exhaust_callbacks(event_loop)
     assert not any(x.done() for x in [f1, f2, f3])
@@ -70,7 +70,7 @@ async def test_outside_source_stream_read_header(event_loop):
 @timeout(0.1)
 async def test_outside_source_stream_read(event_loop):
     stream = OutsideSourceReplayStream()
-    f = asyncio.ensure_future(stream.wait_for_data())
+    f = asyncio.ensure_future(stream.wait_for_data(0))
     stream.set_header("header")
     await exhaust_callbacks(event_loop)
     assert not f.done()
@@ -87,7 +87,7 @@ async def test_outside_source_stream_read(event_loop):
 async def test_outside_source_stream_immediate_data():
     stream = OutsideSourceReplayStream()
     f1 = asyncio.ensure_future(stream.wait_for_header())
-    f2 = asyncio.ensure_future(stream.wait_for_data())
+    f2 = asyncio.ensure_future(stream.wait_for_data(0))
     stream.set_header("header")
     stream.feed_data(b"Lorem")
     assert await f1 == "header"
@@ -100,7 +100,7 @@ async def test_outside_source_stream_immediate_data():
 @timeout(0.1)
 async def test_outside_source_stream_finish():
     stream = OutsideSourceReplayStream()
-    f = asyncio.ensure_future(stream.wait_for_data())
+    f = asyncio.ensure_future(stream.wait_for_data(0))
     stream.finish()
     await f
     assert stream.ended()

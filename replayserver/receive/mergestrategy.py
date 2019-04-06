@@ -28,10 +28,14 @@ class MergeStrategy:
         header = await stream.wait_for_header()
         if header is not None:
             self.new_header(stream)
-        while not stream.ended():
-            data = await stream.wait_for_data()
+        position = 0
+        while True:
+            data = await stream.wait_for_data(position)
+            position += len(data)
             if data != b"":
                 self.new_data(stream)
+            else:
+                break
         self.stream_removed(stream)
 
 

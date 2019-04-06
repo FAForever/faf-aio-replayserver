@@ -278,7 +278,9 @@ def test_load_example_header():
 
 @pytest.mark.asyncio
 async def test_replayheader_coroutine(controlled_connections):
-    conn = controlled_connections(example_replay.data)
+    conn = controlled_connections()
+    conn._feed_data(example_replay.data)
+    conn._feed_eof()
     head, leftovers = await header.ReplayHeader.from_connection(conn)
     assert head.struct == PARSED_HEADER
     assert example_replay.data.startswith(head.data + leftovers)
@@ -286,6 +288,8 @@ async def test_replayheader_coroutine(controlled_connections):
 
 @pytest.mark.asyncio
 async def test_replayheader_coroutine_invalid_header(controlled_connections):
-    conn = controlled_connections(b"\0" * 100)
+    conn = controlled_connections()
+    conn._feed_data(b"\0" * 100)
+    conn._feed_eof()
     with pytest.raises(MalformedDataError):
         await header.ReplayHeader.from_connection(conn)

@@ -30,7 +30,7 @@ def mock_mangler(mocker):
 async def test_stream_writer_respects_mangler(
         controlled_connections, outside_source_stream, mock_replay_headers,
         mock_mangler, event_loop):
-    connection = controlled_connections(b"")
+    connection = controlled_connections()
     mock_header = mock_replay_headers()
     mock_header.data = b"Header"
     outside_source_stream.set_header(mock_header)
@@ -41,7 +41,7 @@ async def test_stream_writer_respects_mangler(
 
     sender = ReplayStreamWriter(outside_source_stream, lambda: mock_mangler)
     await sender.send_to(connection)
-    assert connection.get_mock_write_data() == b"Headerbbbbbc"
+    assert connection._get_mock_write_data() == b"Headerbbbbbc"
 
 
 @pytest.mark.asyncio

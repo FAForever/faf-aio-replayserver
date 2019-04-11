@@ -13,6 +13,7 @@ class ControlledConnection:
         self._reader = StreamReader(limit)
         self._mock_write_data = b""
         self._closed = False
+        self._closed_by_us = False
 
     def _feed_data(self, data):
         self._reader.feed_data(data)
@@ -60,17 +61,23 @@ class ControlledConnection:
 
     def close(self):
         self._closed = True
+        self._closed_by_us = True
 
     async def wait_closed(self):
         while not self._closed:
             await asyncio.sleep(1)
+
+    def closed_by_us(self):
+        return self._closed_by_us
 
 
 @pytest.fixture
 def mock_connections():
     def build():
         conn = ControlledConnection(1000000000)
-        return asynctest.Mock(spec=conn)
+        m = asynctest.Mock(spec=conn)
+        m.closed_by_us.return_value = False
+        return m
 
     return build
 

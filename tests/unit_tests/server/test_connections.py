@@ -77,12 +77,14 @@ async def test_connections_close_all(mock_replays, mock_header_read,
     await conns.wait_until_empty()
 
 
+@pytest.mark.parametrize("closed_by_us", [True, False])
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_connections_error_closes_connection(
-        mock_replays, mock_header_read, mock_connections):
+        mock_replays, mock_header_read, mock_connections, closed_by_us):
 
     connection = mock_connections()
+    connection.closed_by_us.return_value = closed_by_us
 
     async def at_header_read(conn):
         raise BadConnectionError

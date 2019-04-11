@@ -28,9 +28,16 @@ class Connections:
         except EmptyConnectionError as e:
             pass
         except BadConnectionError as e:
-            logger.info((f"Connection was dropped: {connection}\n"
-                         f"Reason: {e.__class__.__name__}, {str(e)}"))
-            metrics.failed_conns(e).inc()
+            if not connection.closed_by_us():
+                logger.info((f"Connection was dropped: {connection}\n"
+                             f"Reason: {e.__class__.__name__}, {str(e)}"))
+                metrics.failed_conns(e).inc()
+            else:
+                # If we chose to close a connections, errors don't matter.
+                # FIXME: unless we closed a connection, then processed buffered
+                # data that was malformed, but it doesn't happen 99.9% of the
+                # time?
+                metrics.successful_conns.inc()
         finally:
             connection.close()
             await connection.wait_closed()

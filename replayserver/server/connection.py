@@ -10,6 +10,7 @@ class Connection:
         self.writer = writer
         self._closed = False
         self._header = None
+        self._closed_by_us = False
 
     async def read(self, size):
         try:
@@ -49,6 +50,7 @@ class Connection:
 
     def close(self):
         self._closed = True
+        self._closed_by_us = True
         self.writer.close()
         # Reader and writer share a transport, so no need to close reader.
 
@@ -59,6 +61,9 @@ class Connection:
         except ConnectionError:
             pass
         await asyncio.sleep(0)  # IIRC socket gets closed at NEXT loop run
+
+    def closed_by_us(self):
+        return self._closed_by_us
 
     def add_header(self, header):
         self._header = header

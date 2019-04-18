@@ -1,7 +1,7 @@
 import pytest
 import asynctest
 
-from replayserver.stream import ReplayStream, OutsideSourceReplayStream
+from replayserver.streams import ReplayStream, OutsideSourceReplayStream
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@ import asyncio
 import pytest
 from tests import fast_forward_time, timeout
 
-from replayserver.send.timestamp import Timestamp
+from replayserver.streams.delayed import Timestamp
 
 
 @pytest.mark.asyncio

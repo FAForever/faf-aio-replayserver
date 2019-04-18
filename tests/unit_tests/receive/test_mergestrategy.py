@@ -3,7 +3,7 @@ import asyncio
 
 from tests import fast_forward_time
 from replayserver.receive.mergestrategy import FollowStreamMergeStrategy
-from replayserver.stream import ReplayStream, ConcreteDataMixin
+from replayserver.streams import ReplayStream, ConcreteDataMixin
 
 
 # Technically we shouldn't rely on abstract classes being good, and should use

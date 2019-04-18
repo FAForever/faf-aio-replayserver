@@ -1,37 +1,43 @@
 import asyncio
-from replayserver.stream import ReplayStream
-from replayserver.send.timestamp import Timestamp
+from asyncio.locks import Event
+import math
+from collections import deque
+from replayserver.streams.base import ReplayStream
 
 
-class ReplayStreamWriter:
-    def __init__(self, stream):
+class Timestamp:
+    def __init__(self, stream, interval, delay):
         self._stream = stream
+        self._interval = interval
+        self._delay = delay
 
-    @classmethod
-    def build(cls, stream):
-        return cls(stream)
+        # Last item in deque size n+1 is from n intervals ago
+        stamp_number = math.ceil(self._delay / self._interval) + 1
+        self._stamps = deque([0], maxlen=stamp_number)
+        self._new_stamp = Event()
+        self._stamp_coro = asyncio.ensure_future(self._periodic_stamp())
+        asyncio.ensure_future(self._wait_for_stream_end())
 
-    async def send_to(self, connection):
-        await self._write_header(connection)
-        if self._stream.header is None:
-            return
-        await self._write_replay(connection)
+    def _stamp(self, pos):
+        self._stamps.append(pos)
+        self._new_stamp.set()
+        self._new_stamp.clear()
 
-    async def _write_header(self, connection):
-        header = await self._stream.wait_for_header()
-        if header is not None:
-            await connection.write(header.data)
-
-    async def _write_replay(self, connection):
-        position = 0
+    async def _periodic_stamp(self):
         while True:
-            data = await self._stream.wait_for_data(position)
-            if not data:
-                break
-            position += len(data)
-            conn_open = await connection.write(data)
-            if not conn_open:
-                break
+            self._stamp(len(self._stream.data))
+            await asyncio.sleep(self._interval)
+
+    async def _wait_for_stream_end(self):
+        await self._stream.wait_for_ended()
+        self._stamp_coro.cancel()
+        self._stamps.clear()
+        self._stamp(len(self._stream.data))
+
+    async def timestamps(self):
+        while not self._stream.ended():
+            await self._new_stamp.wait()
+            yield self._stamps[0]
 
 
 class DelayedReplayStream(ReplayStream):

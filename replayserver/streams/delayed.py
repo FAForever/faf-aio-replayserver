@@ -72,6 +72,21 @@ class DelayedReplayStream(ReplayStream):
     def _data_bytes(self):
         return self._stream.data[:self._current_position]
 
+    def _data_view(self):
+        return self._stream.data.view()[:self._current_position]
+
+    def _future_data_length(self):
+        return len(self._stream.future_data)
+
+    def _future_data_slice(self, v):
+        return self._stream.future_data[v]
+
+    def _future_data_bytes(self):
+        return self._stream.future_data.bytes()
+
+    def _future_data_view(self):
+        return self._stream.future_data.view()
+
     async def _track_delayed_stream(self):
         await self._stream.wait_for_header()
         self._header_available()

@@ -9,19 +9,24 @@ class ReplayStreamData:
     """
     Data buffer wrapper that allows to avoid unnecessary copies.
     """
-    def __init__(self, stream):
-        self._stream = stream
+    def __init__(self, length, slice_, bytes_, view):
+        self._length = length
+        self._slice = slice_
+        self._bytes = bytes_
 
     def __len__(self):
-        return self._stream._data_length()
+        return self._length()
 
     def __getitem__(self, val):
         if not isinstance(val, slice):
             raise ValueError
-        return self._stream._data_slice(val)
+        return self._slice(val)
 
     def bytes(self):
-        return self._stream._data_bytes()
+        return self._bytes()
+
+    def view(self):
+        return self._view()
 
 
 class ReplayStream:
@@ -37,13 +42,24 @@ class ReplayStream:
 
     The data is available as a "data" member. Since some implementations could
     want to withhold some data from the underlying buffer without keeping a
-    copy, it's not a raw bytes object, but a proxy you can slice and convert to
-    bytes to get the whole underlying buffer. This way we can avoid copying the
-    whole proxied buffer every time we need a small slice.
+    copy, it's not accessed directly as a bytes object, but through stream
+    methods. Methods supported are len, slicing, accessing all data via a
+    bytes() method (possibly resulting in making a copy every time) and taking
+    a memoryview with a view() method (which shouldn't result in any copies,
+    but has to be released before awaiting on anything).
+
+    For those users that want to peek at future data that was withheld (e.g.
+    merge strategies), a future_data member is a available that supports the
+    same methods as data and should give access to all received data.
     """
 
     def __init__(self):
-        self.data = ReplayStreamData(self)
+        self.data = ReplayStreamData(self._data_length, self._data_slice,
+                                     self._data_bytes, self._data_view)
+        self.future_data = ReplayStreamData(self._future_data_length,
+                                            self._future_data_slice,
+                                            self._future_data_bytes,
+                                            self._future_data_view)
         self._ended = Event()
         self._header_read_or_ended = Event()
         self._new_data_or_ended = Event()
@@ -68,10 +84,28 @@ class ReplayStream:
     def _data_bytes(self):
         """
         Returns byte buffer with entire stream data. For some subclasses it may
-        create a new buffer each time, for these you should avoid calling this
-        too often.
+        create a new buffer each time.
         """
         raise NotImplementedError
+
+    def _data_view(self):
+        """
+        Returns a memoryview of current data. Should not create any copies,
+        MUST be released before awaiting on anything.
+        """
+        raise NotImplementedError
+
+    def _future_data_length(self):
+        return self._data_length()
+
+    def _future_data_slice(self, s):
+        return self._data_slice(s)
+
+    def _future_data_bytes(self):
+        return self._data_bytes()
+
+    def _future_data_view(self):
+        return self._data_view()
 
     def _header_available(self):
         "Called by implementation once header is available."
@@ -133,6 +167,9 @@ class ConcreteDataMixin:
 
     def _data_bytes(self):
         return self._data
+
+    def _data_view(self):
+        return memoryview(self._data)
 
 
 class OutsideSourceReplayStream(ConcreteDataMixin, ReplayStream):

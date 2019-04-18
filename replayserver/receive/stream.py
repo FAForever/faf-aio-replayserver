@@ -1,13 +1,11 @@
 from replayserver.stream import OutsideSourceReplayStream
 from replayserver.struct.header import ReplayHeader
-from replayserver.struct.mangling import StreamDemangler
 from replayserver.errors import MalformedDataError
 
 
 class ReplayStreamReader:
-    def __init__(self, header_reader, demangler, stream, connection):
+    def __init__(self, header_reader, stream, connection):
         self._header_reader = header_reader
-        self._demangler = demangler
         self._connection = connection
         self._leftovers = b""
 
@@ -17,9 +15,8 @@ class ReplayStreamReader:
     @classmethod
     def build(cls, connection):
         header_reader = ReplayHeader.from_connection
-        demangler = StreamDemangler()
         stream = OutsideSourceReplayStream()
-        return cls(header_reader, demangler, stream, connection)
+        return cls(header_reader, stream, connection)
 
     async def _read_header(self):
         try:
@@ -35,7 +32,6 @@ class ReplayStreamReader:
         if self._leftovers:
             data = self._leftovers
             self._leftovers = b""
-            data = self._demangler.demangle(data)
             self.stream.feed_data(data)
             return
 
@@ -48,11 +44,8 @@ class ReplayStreamReader:
             data = b""
 
         if not data:
-            data = self._demangler.drain()
-            self.stream.feed_data(data)
             self.stream.finish()
         else:
-            data = self._demangler.demangle(data)
             self.stream.feed_data(data)
 
     async def read(self):

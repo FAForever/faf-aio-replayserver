@@ -4,7 +4,7 @@ from asyncio.locks import Event
 
 
 pytest_plugins = ['tests.fixtures.connection', 'tests.fixtures.stream',
-                  'tests.fixtures.database', 'tests.fixtures.mangler']
+                  'tests.fixtures.database']
 
 
 @pytest.fixture

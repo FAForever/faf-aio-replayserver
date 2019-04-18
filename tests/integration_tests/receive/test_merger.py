@@ -59,7 +59,7 @@ async def test_merger_successful_connection(event_loop, mock_connections,
 
     merger = Merger.build(merger_config(config_dict))
     await merger.handle_connection(conn)
-    await verify_merger_ending_with_data(merger, example_replay.demangled_data)
+    await verify_merger_ending_with_data(merger, example_replay.data)
 
 
 @pytest.mark.asyncio
@@ -94,7 +94,7 @@ async def test_merger_incomplete_header_then_data(event_loop,
         await merger.handle_connection(conn_1)
     await merger.handle_connection(conn_2)
 
-    await verify_merger_ending_with_data(merger, example_replay.demangled_data)
+    await verify_merger_ending_with_data(merger, example_replay.data)
 
 
 @pytest.mark.asyncio
@@ -115,7 +115,7 @@ async def test_merger_two_connections(event_loop, mock_connections,
     f_2 = asyncio.ensure_future(merger.handle_connection(conn_2))
     await f_1
     await f_2
-    await verify_merger_ending_with_data(merger, example_replay.demangled_data)
+    await verify_merger_ending_with_data(merger, example_replay.data)
 
 
 @pytest.mark.asyncio
@@ -135,7 +135,7 @@ async def test_merger_sequential_connections(event_loop, mock_connections,
     await merger.handle_connection(conn_1)
     await asyncio.sleep(15)
     await merger.handle_connection(conn_2)
-    await verify_merger_ending_with_data(merger, example_replay.demangled_data)
+    await verify_merger_ending_with_data(merger, example_replay.data)
 
 
 @pytest.mark.asyncio
@@ -155,7 +155,7 @@ async def test_merger_refuses_conns(event_loop, mock_connections,
     merger.stop_accepting_connections()
     with pytest.raises(CannotAcceptConnectionError):
         await merger.handle_connection(conn_2)
-    await verify_merger_ending_with_data(merger, example_replay.demangled_data)
+    await verify_merger_ending_with_data(merger, example_replay.data)
 
 
 @pytest.mark.asyncio

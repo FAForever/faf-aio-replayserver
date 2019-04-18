@@ -14,24 +14,6 @@ def mock_header_read():
     return asynctest.CoroutineMock(spec=[])
 
 
-class TestDemangler:
-    def demangle(self, data):
-        return data
-
-    def drain(self):
-        return b""
-
-
-@pytest.fixture
-def id_demangler():
-    return TestDemangler()
-
-
-@pytest.fixture
-def mock_demangler(mocker):
-    return mocker.Mock(spec=TestDemangler)
-
-
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_outside_source_stream_immediate_end(event_loop):
@@ -127,12 +109,11 @@ async def test_outside_source_stream_wait_until_position(event_loop):
 @pytest.mark.asyncio
 @timeout(1)
 async def test_reader_normal_read(mock_header_read,
-                                  id_demangler,
                                   mock_connections,
                                   outside_source_stream):
     mock_conn = mock_connections()
-    reader = ReplayStreamReader(mock_header_read, id_demangler,
-                                outside_source_stream, mock_conn)
+    reader = ReplayStreamReader(mock_header_read, outside_source_stream,
+                                mock_conn)
 
     mock_header_read.return_value = "Header", b"Leftover"
     mock_conn.read.side_effect = [b"Lorem ", b"ipsum", b""]
@@ -146,26 +127,11 @@ async def test_reader_normal_read(mock_header_read,
 
 @pytest.mark.asyncio
 @timeout(1)
-async def test_reader_uses_demangler(mock_header_read, mock_demangler,
-                                     mock_connections, outside_source_stream):
-    mock_conn = mock_connections()
-    mock_demangler.demangle.side_effect = [b"aaa", b"bbb"]
-    mock_demangler.drain.return_value = b"ccc"
-    mock_header_read.return_value = "Header", b""
-    mock_conn.read.side_effect = [b"Lorem ", b"ipsum", b""]
-    reader = ReplayStreamReader(mock_header_read, mock_demangler,
-                                outside_source_stream, mock_conn)
-    await reader.read()
-    assert outside_source_stream.data.bytes() == b"aaabbbccc"
-
-
-@pytest.mark.asyncio
-@timeout(1)
 async def test_reader_invalid_header(mock_header_read, outside_source_stream,
-                                     id_demangler, mock_connections):
+                                     mock_connections):
     mock_conn = mock_connections()
-    reader = ReplayStreamReader(mock_header_read, id_demangler,
-                                outside_source_stream, mock_conn)
+    reader = ReplayStreamReader(mock_header_read, outside_source_stream,
+                                mock_conn)
     mock_header_read.side_effect = MalformedDataError
     with pytest.raises(MalformedDataError):
         await reader.read()
@@ -176,11 +142,10 @@ async def test_reader_invalid_header(mock_header_read, outside_source_stream,
 @pytest.mark.asyncio
 @timeout(1)
 async def test_reader_recovers_from_connection_error(
-        mock_header_read, outside_source_stream,
-        id_demangler, mock_connections):
+        mock_header_read, outside_source_stream, mock_connections):
     mock_conn = mock_connections()
-    reader = ReplayStreamReader(mock_header_read, id_demangler,
-                                outside_source_stream, mock_conn)
+    reader = ReplayStreamReader(mock_header_read, outside_source_stream,
+                                mock_conn)
     mock_conn.read.side_effect = [b"Lorem ", MalformedDataError, b"ipsum"]
     mock_header_read.return_value = "Header", b""
     await reader.read()

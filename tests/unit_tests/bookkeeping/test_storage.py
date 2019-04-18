@@ -96,15 +96,14 @@ def_mod_versions = {'1': 1}
 
 
 @pytest.fixture
-def standard_saver_args(mock_replay_paths, mock_database_queries,
-                        id_mangler, tmpdir):
+def standard_saver_args(mock_replay_paths, mock_database_queries, tmpdir):
     rfile = str(tmpdir.join("replay"))
     open(rfile, "a").close()
     mock_replay_paths.get.return_value = rfile
     mock_database_queries.get_teams_in_game.return_value = def_teams_in_game
     mock_database_queries.get_game_stats.return_value = def_game_stats
     mock_database_queries.get_mod_versions.return_value = def_mod_versions
-    return mock_replay_paths, mock_database_queries, id_mangler
+    return mock_replay_paths, mock_database_queries
 
 
 def set_example_stream_data(outside_source_stream, mock_replay_headers):

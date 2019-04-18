@@ -11,9 +11,8 @@ replay_directory = path.join(path.dirname(path.realpath(__file__)), "data")
 
 
 class RawReplay:
-    def __init__(self, data, demangled_data, header, header_size):
+    def __init__(self, data, header, header_size):
         self.data = bytearray(data)
-        self.demangled_data = bytearray(demangled_data)
         self.header = header
         self.header_size = header_size
 
@@ -30,12 +29,11 @@ class RawReplay:
                          self.header_size)
 
 
-def load_replay(name, header_size, demangle=True):
+def load_replay(name, header_size):
     data = open(path.join(replay_directory, name), "rb").read()
     header = json.loads(
         open(path.join(replay_directory, f"{name}.header"), "rb").read())
-    demangled_data = data[:-3 if demangle else len(data)]
-    return RawReplay(data, demangled_data, header, header_size)
+    return RawReplay(data, header, header_size)
 
 
 def unpack_replay(replay):
@@ -46,7 +44,7 @@ def unpack_replay(replay):
     return head, raw_replay_data
 
 
-example_replay = load_replay("example", 1966, True)
+example_replay = load_replay("example", 1966)
 
 
 if __name__ == "__main__":

@@ -1,17 +1,15 @@
 import asyncio
 from replayserver.stream import ReplayStream
 from replayserver.send.timestamp import Timestamp
-from replayserver.struct.mangling import StreamMangler
 
 
 class ReplayStreamWriter:
-    def __init__(self, stream, mangler_builder):
-        self._mangler_builder = mangler_builder
+    def __init__(self, stream):
         self._stream = stream
 
     @classmethod
     def build(cls, stream):
-        return cls(stream, StreamMangler)
+        return cls(stream)
 
     async def send_to(self, connection):
         await self._write_header(connection)
@@ -26,14 +24,11 @@ class ReplayStreamWriter:
 
     async def _write_replay(self, connection):
         position = 0
-        mangler = self._mangler_builder()
         while True:
             data = await self._stream.wait_for_data(position)
-            position += len(data)
             if not data:
-                await connection.write(mangler.drain())
                 break
-            data = mangler.mangle(data)
+            position += len(data)
             conn_open = await connection.write(data)
             if not conn_open:
                 break

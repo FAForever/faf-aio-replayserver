@@ -5,6 +5,7 @@ import struct
 import zlib
 import asyncio
 
+from replayserver.struct.mangling import StreamMangler
 from replayserver.errors import BookkeepingError
 
 
@@ -38,24 +39,31 @@ class ReplayFilePaths:
 
 
 class ReplaySaver:
-    def __init__(self, paths, database):
+    def __init__(self, paths, database, mangler_builder):
         self._paths = paths
         self._database = database
+        self._mangler_builder = mangler_builder
 
     @classmethod
     def build(cls, database, config):
         paths = ReplayFilePaths.build(config.vault_path)
-        return cls(paths, database)
+        return cls(paths, database, StreamMangler)
 
     async def save_replay(self, game_id, stream):
         if stream.header is None:
             raise BookkeepingError("Saved replay has no header")
         info = await self._get_replay_info(game_id, stream.header.struct)
         rfile = self._paths.get(game_id)
+
+        data = stream.data.bytes()
+        mangler = self._mangler_builder()
+        data = mangler.mangle(data)
+        data += mangler.drain()
+
         try:
             with open(rfile, "wb") as f:
                 await self._write_replay_in_thread(
-                    f, info, stream.header.data + stream.data.bytes())
+                    f, info, stream.header.data + data)
         except IOError as e:
             raise BookkeepingError("Could not write to replay file") from e
 

@@ -7,24 +7,6 @@ from tests import timeout
 from replayserver.send.stream import DelayedReplayStream, ReplayStreamWriter
 
 
-class TestMangler:
-    def mangle(self, data):
-        return data
-
-    def drain(self):
-        return b""
-
-
-@pytest.fixture
-def id_mangler():
-    return TestMangler
-
-
-@pytest.fixture
-def mock_mangler(mocker):
-    return mocker.Mock(spec=TestMangler)
-
-
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_stream_writer_respects_mangler(

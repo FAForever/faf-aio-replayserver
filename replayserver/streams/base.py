@@ -13,13 +13,12 @@ class ReplayStreamData:
         self._length = length
         self._slice = slice_
         self._bytes = bytes_
+        self._view = view
 
     def __len__(self):
         return self._length()
 
     def __getitem__(self, val):
-        if not isinstance(val, slice):
-            raise ValueError
         return self._slice(val)
 
     def bytes(self):

@@ -1,7 +1,5 @@
 import pytest
-import asyncio
 
-from tests import fast_forward_time
 from replayserver.receive.mergestrategy import QuorumMergeStrategy
 from replayserver.streams import ReplayStream, ConcreteDataMixin
 
@@ -116,18 +114,23 @@ def test_strategy_follow_stream_later_has_more_data(strategy,
     strat.new_header(stream2)
 
     stream1._data += b"Data"
+    print("S1 new data")
     strat.new_data(stream1)
     stream2._data += b"Data and stuff"
+    print("S2 new data")
     strat.new_data(stream2)
 
+    print("S2 removed")
     strat.stream_removed(stream2)
+    print("S1 removed")
     strat.stream_removed(stream1)
     strat.finalize()
     assert outside_source_stream.data.bytes() == b"Data and stuff"
 
 
+# TODO - extend this one
 @pytest.mark.parametrize("strategy", [QuorumMergeStrategy])
-def test_strategy_follow_stream_new_tracked_stream_diverges(
+def test_strategy_tracked_stream_diverges(
         strategy, outside_source_stream):
     strat = strategy.build(outside_source_stream, MockStrategyConfig())
     stream1 = MockStream()
@@ -145,74 +148,39 @@ def test_strategy_follow_stream_new_tracked_stream_diverges(
     strat.new_data(stream2)
     strat.stream_removed(stream2)
     strat.finalize()
-    assert outside_source_stream.data.bytes() == b"Data and stuff"
+    assert outside_source_stream.data.bytes() in [
+        b"Data and stuff",
+        b"Data and smeg and blahblah"
+    ]
 
 
-@fast_forward_time(10, 0.1)
-@pytest.mark.asyncio
-@pytest.mark.parametrize("strategy", [QuorumMergeStrategy])
-async def test_strategy_follow_stream_deals_with_stalled_connections(
-        event_loop, strategy, outside_source_stream):
-
-    config = MockStrategyConfig()
-    config.stall_check_period = 3
-    strat = strategy.build(outside_source_stream, config)
-    stalled_stream = MockStream()
-    ahead_stream = MockStream()
-
-    stalled_stream._header = "Header"
-    stalled_stream._data += b"a" * 10
-    strat.stream_added(stalled_stream)
-    strat.new_header(stalled_stream)
-    strat.new_data(stalled_stream)
-
-    # Check that we're tracking the stalled stream
-    assert outside_source_stream.data.bytes() == b"a" * 10
-
-    ahead_stream._header = "Header"
-    strat.stream_added(ahead_stream)
-    strat.new_header(ahead_stream)
-
-    for i in range(20):
-        await asyncio.sleep(0.1)
-        ahead_stream._data += b"a"
-        strat.new_data(ahead_stream)
-
-    # We should still be tracking the stalled stream
-    assert outside_source_stream.data.bytes() == b"a" * 10
-
-    for i in range(40):
-        await asyncio.sleep(0.1)
-        ahead_stream._data += b"a"
-        strat.new_data(ahead_stream)
-
-    # By now we should've switched
-    assert outside_source_stream.data.bytes() == b"a" * 60
-
-    strat.stream_removed(stalled_stream)
-    strat.stream_removed(ahead_stream)
-    strat.finalize()
-
+# TODO - add tests with stalling connections
 
 @pytest.mark.parametrize("strategy", [QuorumMergeStrategy])
-def test_strategy_follow_stream_new_data_of_diverged_stream(
+def test_strategy_quorum_newly_arrived_quorum(
         strategy, outside_source_stream):
     strat = strategy.build(outside_source_stream, MockStrategyConfig())
     stream1 = MockStream()
     stream2 = MockStream()
+    stream3 = MockStream()
+    stream1._header = "Header"
     stream2._header = "Header"
+    stream3._header = "Header"
 
     strat.stream_added(stream1)
     strat.stream_added(stream2)
-    strat.new_header(stream2)
+    strat.stream_added(stream3)
 
+    strat.new_header(stream1)
     stream1._data += b"Data and stuff"
     strat.new_data(stream1)
     strat.stream_removed(stream1)
+
     stream2._data += b"Data and smeg and blahblah"
     strat.new_data(stream2)
-    stream2._data += b"this should not cause an exception"
-    strat.new_data(stream2)
+    stream3._data += b"Data and smeg and blahblah"
+    strat.new_data(stream3)
     strat.stream_removed(stream2)
+    strat.stream_removed(stream3)
     strat.finalize()
-    assert outside_source_stream.data.bytes() == b"Data and stuff"
+    assert outside_source_stream.data.bytes() == b"Data and smeg and blahblah"

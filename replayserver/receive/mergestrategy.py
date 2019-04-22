@@ -186,6 +186,7 @@ class QuorumMergeStrategy(MergeStrategy):
       - Quorum point equals sink stream length.
     - If we are in a QUORUM state between calls, we observe:
       - Each stream is exactly one of diverged, candidate, quorum.
+      - Quorum is not empty.
       - All streams in quorum agree up to quorum point.
       - Quorum point is no smaller than sink stream length.
     - For both between calls, we observe:
@@ -206,7 +207,7 @@ class QuorumMergeStrategy(MergeStrategy):
     """
     def __init__(self, sink):
         self.sink_stream = sink
-        self.sets = QuorumSets()
+        self.sets = QuorumSets(sink)
         self._state = QuorumState.STALEMATE
         self._quorum_point = 0
         self._desired_quorum = 2
@@ -230,7 +231,7 @@ class QuorumMergeStrategy(MergeStrategy):
             return True
         # Otherwise just check if we have a quorum.
         cands = self.sets.stalemate_candidates
-        if max(len(i) for i in cands.values()) >= self.desired_quorum:
+        if max(len(i) for i in cands.values()) >= self._desired_quorum:
             return True
         return False
 
@@ -265,7 +266,7 @@ class QuorumMergeStrategy(MergeStrategy):
     def _resolve_stalemate(self):
         quorum_byte = self._get_best_stalemate_candidates()
         cands = self.sets.stalemate_candidates
-        quorum = set(cands[quorum_byte])
+        quorum = cands[quorum_byte].copy()
         rest = {s for alt in cands.values() for s in alt}
         for qs in rest:
             self.sets.make_qs_diverged(qs)
@@ -277,9 +278,9 @@ class QuorumMergeStrategy(MergeStrategy):
 
     def _get_best_stalemate_candidates(self):
         cands = self.sets.stalemate_candidates
-        for cand in cands.values():
+        for byte, cand in cands.items():
             if len(cand) >= self._desired_quorum:
-                return cand
+                return byte
 
         def cand_rank(byte):
             cand = cands[byte]
@@ -290,13 +291,12 @@ class QuorumMergeStrategy(MergeStrategy):
     def _find_new_quorum_point(self):
         assert len(self.sink_stream.data) == self._quorum_point
 
-        for qs in set(self.sets.quorum):
+        for qs in self.sets.quorum.copy():
             if len(qs.stream.future_data) <= len(self.sink_stream.data):
                 self.sets.make_qs_candidate(qs)
 
         self._fill_up_quorum()
-        if (len(self.sets.quorum) < self._desired_quorum
-                and self.sets.candidates):
+        if not self._sufficient_quorum():
             self._begin_stalemate()
             return
 
@@ -306,6 +306,16 @@ class QuorumMergeStrategy(MergeStrategy):
             return
         self._quorum_point = new_quorum_point
         self._send_new_quorum_data()
+
+    def _sufficient_quorum(self):
+        # If there's no one in the quorum, we must find a new one.
+        if not self.sets.quorum:
+            return False
+        # If there are no more candidates, accept what we have.
+        if not self.sets.candidates:
+            return True
+        # Otherwise, wait if the quorum is too small.
+        return len(self.sets.quorum) >= self._desired_quorum
 
     # We might compare data multiple times here sometimes, but it'll never
     # happen if quorum size <= 2.
@@ -323,23 +333,23 @@ class QuorumMergeStrategy(MergeStrategy):
             qs_view = qs.stream.future_data.view()
             new_point = memprefix(sq_view, qs_view, old_point, new_point)
             qs_view.release()
-        qs_view.release()
+        sq_view.release()
         return new_point
 
     def _fill_up_quorum(self):
-        for qs in set(self.sets.candidates):
+        for qs in self.sets.candidates.copy():
             self._vet_for_quorum(qs)
             if len(self.sets.quorum) >= self._desired_quorum:
                 break
 
     def _begin_stalemate(self):
-        for qs in set(self.sets.quorum):
+        for qs in self.sets.quorum.copy():
             data = qs.stream.future_data
             assert len(data) > self._quorum_point
             self.sets.make_qs_stalemate_candidate(qs, data[self._quorum_point])
-        self._state = QuorumRole.STALEMATE
+        self._state = QuorumState.STALEMATE
 
-        for qs in set(self.sets.candidates):
+        for qs in self.sets.candidates.copy():
             if self._can_resolve_stalemate():
                 break
             self._vet_for_stalemate(qs)
@@ -347,32 +357,32 @@ class QuorumMergeStrategy(MergeStrategy):
     def _send_new_quorum_data(self):
         assert self._quorum_point > len(self.sink_stream.data)
         quorum = self.sets.quorum
-        best_qs = quorum.max(key=lambda x: len(x.stream.data))
+        best_qs = max(quorum, key=lambda x: len(x.stream.data))
         self._add_quorum_data(best_qs)
 
     def _vet_for_quorum(self, qs):
         assert self._state is QuorumState.QUORUM
         assert qs.role is QuorumRole.CANDIDATE
-        self._check_if_is_no_longer_candidate(qs)
-        if self._stream_diverged(qs):
+        self._check_if_diverged(qs)
+        if qs.diverges or not self._candidate_has_enough_data(qs):
             return
         self.sets.make_qs_quorum(qs)
 
     def _vet_for_stalemate(self, qs):
         assert self._state is QuorumState.STALEMATE
         assert qs.role is QuorumRole.CANDIDATE
-        self._check_if_is_no_longer_candidate(qs)
-        if self._stream_diverged(qs):
+        self._check_if_diverged(qs)
+        if qs.diverges or not self._candidate_has_enough_data(qs):
             return
         stalemate_byte = qs.stream.future_data[len(self.sink_stream.data)]
         self.sets.make_qs_stalemate_candidate(qs, stalemate_byte)
 
-    def _check_if_is_no_longer_candidate(self, qs):
+    def _check_if_diverged(self, qs):
         assert qs.role is QuorumRole.CANDIDATE
         # Should only be needed at stalemate or when finding new quorum point
         assert len(self.sink_stream.data) == self._quorum_point
 
-        if len(qs.stream.future_data) <= len(self.sink_stream.data):
+        if not self._candidate_has_enough_data(qs):
             if qs.ended:
                 self.sets.make_qs_diverged(qs)
             return
@@ -380,8 +390,8 @@ class QuorumMergeStrategy(MergeStrategy):
         if qs.diverges:
             self.sets.make_qs_diverged(qs)
 
-    def _stream_diverged(self, qs):
-        return qs in self.sets.diverged
+    def _candidate_has_enough_data(self, qs):
+        return len(qs.stream.future_data) > len(self.sink_stream.data)
 
     def stream_added(self, stream):
         self.sets.add_stream(stream)
@@ -393,24 +403,28 @@ class QuorumMergeStrategy(MergeStrategy):
             return
         if self._state == QuorumState.STALEMATE:
             self._vet_for_stalemate(qs)
+            self._check_for_work()
 
     def new_header(self, stream):
         if self.sink_stream.header is None:
             self.sink_stream.set_header(stream.header)
 
     def new_data(self, stream):
-        if self._state == QuorumState.QUORUM:
-            if stream not in self.sets.quorum:
+        qs = self.sets.get_qs(stream)
+        if self._state is QuorumState.QUORUM:
+            if qs.role is not QuorumRole.QUORUM:
                 return
-            self._add_quorum_data(self.sets.get_qs(stream))
+            self._add_quorum_data(qs)
             self._check_for_work()
-        elif self._state == QuorumState.STALEMATE:
-            self._vet_for_stalemate(self.sets.get_qs(stream))
+        elif self._state is QuorumState.STALEMATE:
+            if qs.role is not QuorumRole.CANDIDATE:
+                return
+            self._vet_for_stalemate(qs)
             self._check_for_work()
 
     def _add_quorum_data(self, qs):
         send_from = len(self.sink_stream.data)
-        send_to = min(len(qs.stream.data), self._desired_quorum)
+        send_to = min(len(qs.stream.data), self._quorum_point)
         self.sink_stream.feed_data(qs.stream.data[send_from:send_to])
 
     def finalize(self):
@@ -425,3 +439,4 @@ class QuorumMergeStrategy(MergeStrategy):
         # stalemate candidates.
         assert not self.sets.stalemate_candidates
         # Therefore, all streams are considered diverged.
+        self.sink_stream.finish()

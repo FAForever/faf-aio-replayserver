@@ -206,7 +206,7 @@ class QuorumMergeStrategy(MergeStrategy):
       comments for state changing function below.
     """
     def __init__(self, sink):
-        self.sink_stream = sink
+        MergeStrategy.__init__(self, sink)
         self.sets = QuorumSets(sink)
         self._state = QuorumState.STALEMATE
         self._quorum_point = 0

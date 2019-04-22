@@ -44,14 +44,17 @@ class MergeInfo:
         self.tag = tag
         self.view = memoryview(data)    # Release that later!
         self.idx = idx
-        self.confirmations = 0
+        self.rank = 0
 
 
 class DataMerger:
     """
-    Given a bunch of byte arrays, picks the "best" one. For two arrays A and B
-    we say that A confirms B if A is a prefix of B. We choose to save an array
-    with the highest number of other arrays confirming it.
+    Given a bunch of byte arrays, picks the "best" one. FA replays that end
+    short tend to differ on the last couple hundred bytes, so we need some
+    simple metric as to what "best" means. The heuristic here is just to sum
+    all common prefix lengths of a given stream and all others - it eliminates
+    streams that diverged alone or ended early, and in all other cases any
+    choice is good.
 
     For that purpose we build a matrix M such that M[i][j] holds the length of
     the longest common prefix of arrays i and j. It's pretty easy to add arrays
@@ -70,7 +73,7 @@ class DataMerger:
         return self.prefix[d1.idx][d2.idx]
 
     def _best_data(self):
-        return max(self.replays, key=lambda x: (x.confirmations, len(x.data)))
+        return max(self.replays, key=lambda x: (x.rank, len(x.data)))
 
     def add_data(self, data, tag):
         new = MergeInfo(data, tag, len(self.replays))
@@ -101,15 +104,13 @@ class DataMerger:
         # Update confirmation numbers
         for old in self.replays:
             common = self.get_common(old, new)
-            if common == len(old.data):
-                new.confirmations += 1
-            if common == len(new.data):
-                old.confirmations += 1
+            new.rank += common
+            old.rank += common
         self.replays.append(new)
 
-        # Move the replay with most confirmations to the front so we memcmp
-        # with it first; most of the time it will save us the effort jumping
-        # between replays
+        # Move the replay with highest rank to the front so we memcmp with it
+        # first; most of the time it will save us the effort jumping between
+        # replays
         mc = self.replays.index(self._best_data())
         self.replays[0], self.replays[mc] = self.replays[mc], self.replays[0]
 

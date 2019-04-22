@@ -4,7 +4,7 @@ from replayserver.struct.header import ReplayHeader
 from replayserver.errors import MalformedDataError
 from replayserver.common import ServesConnections
 from replayserver.streams import OutsideSourceReplayStream
-from replayserver.receive.mergestrategy import FollowStreamMergeStrategy
+from replayserver.receive.mergestrategy import QuorumMergeStrategy
 from replayserver import config
 
 
@@ -80,8 +80,8 @@ class Merger(ServesConnections):
     @classmethod
     def build(cls, config):
         canonical_replay = OutsideSourceReplayStream()
-        merge_strategy = FollowStreamMergeStrategy.build(canonical_replay,
-                                                         config)
+        merge_strategy = QuorumMergeStrategy.build(canonical_replay,
+                                                   config)
         stream_builder = ReplayStreamReader.build
         return cls(stream_builder, merge_strategy, canonical_replay)
 

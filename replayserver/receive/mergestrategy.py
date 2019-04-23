@@ -92,11 +92,6 @@ class QuorumSets:
         self._s2q[stream] = qs
         self.candidates.add(qs)
 
-    def remove_stream(self, stream):
-        qs = self._s2q[stream]
-        self.make_qs_free(qs)
-        del self._s2q[stream]
-
     def get_qs(self, stream):
         return self._s2q[stream]
 

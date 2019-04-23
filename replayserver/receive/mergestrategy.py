@@ -205,16 +205,16 @@ class QuorumMergeStrategy(MergeStrategy):
       never on a state boundary between calls. We will never loop, either, see
       comments for state changing function below.
     """
-    def __init__(self, sink):
+    def __init__(self, sink, desired_quorum):
         MergeStrategy.__init__(self, sink)
         self.sets = QuorumSets(sink)
         self._state = QuorumState.STALEMATE
         self._quorum_point = 0
-        self._desired_quorum = 2
+        self._desired_quorum = desired_quorum
 
     @classmethod
     def build(cls, sink, config):
-        return cls(sink)
+        return cls(sink, config.desired_quorum)
 
     def _should_find_new_quorum_point(self):
         return (self._state == QuorumState.QUORUM and

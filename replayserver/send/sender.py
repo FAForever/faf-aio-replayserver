@@ -37,10 +37,14 @@ class ReplayStreamWriter:
 class SenderConfig(config.Config):
     _options = {
         "replay_delay": {
-            "parser": config.nonnegative_float,
+            "parser": config.positive_float,
             "doc": ("Delay in seconds between receiving replay data and "
                     "sending it to readers. Used to prevent cheating via "
-                    "playing and observing at the same time.")
+                    "playing and observing at the same time.\n\n"
+                    "Note that current replay stream merging strategy relies "
+                    "on having a buffer of future data in can compare "
+                    "between streams! It's highly recommended to set this to "
+                    "a reasonably high value (e.g. five minutes).")
         },
         "update_interval": {
             "parser": config.positive_float,

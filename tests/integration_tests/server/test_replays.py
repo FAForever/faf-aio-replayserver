@@ -11,7 +11,7 @@ config_dict = {
         "update_interval": 1,
     },
     "merge": {
-        "stall_check_period": 60
+        "desired_quorum": 2
     }
 }
 

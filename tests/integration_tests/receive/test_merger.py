@@ -8,7 +8,7 @@ from replayserver.errors import MalformedDataError, CannotAcceptConnectionError
 
 
 config_dict = {
-    "stall_check_period": 60
+    "desired_quorum": 2
 }
 
 

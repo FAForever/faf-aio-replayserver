@@ -62,10 +62,13 @@ class ReplayStreamReader:
 
 class MergerConfig(config.Config):
     _options = {
-        "stall_check_period": {
-            "parser": config.positive_float,
-            "doc": ("Time in seconds after which, if the followed connection "
-                    "did not produce data, another connection is selected.")
+        "desired_quorum": {
+            "parser": config.positive_int,
+            "doc": ("The number of writers that have to agree on a piece of"
+                    "data before it's sent to readers. HIGHLY recommended to"
+                    "set this to 2. Setting it to 3 or higher might prevent"
+                    "cutting a replay short in a marginal number of cases"
+                    ", but can cost more time comparing stream data.")
         }
     }
 

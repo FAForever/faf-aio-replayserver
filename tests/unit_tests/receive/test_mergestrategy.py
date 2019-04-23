@@ -16,11 +16,9 @@ class MockStream(ConcreteDataMixin, ReplayStream):
         return self._ended
 
 
-# We shouldn't keep all config values in one object since they're separate in
-# reality, but for sake of simplicity...
 class MockStrategyConfig:
     def __init__(self):
-        self.stall_check_period = 60
+        self.desired_quorum = 2
 
 
 general_test_strats = [QuorumMergeStrategy]

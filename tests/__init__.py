@@ -9,8 +9,7 @@ from everett.manager import ConfigManager, ConfigDictEnv
 # FIXME - there's all kinds of utility stuff here, we should tidy it up
 
 __all__ = ["timeout", "fast_forward_time", "TimeSkipper",
-           "skip_if_needs_asynctest_107", "slow_test",
-           "docker_faf_db_config"]
+           "slow_test", "docker_faf_db_config"]
 
 
 def timeout(time):
@@ -35,10 +34,6 @@ def fast_forward_time(step, amount):
             await f
         return decorator.decorator(wrapper_function, coro)
     return deco
-
-
-def skip_if_needs_asynctest_107(fn):
-    return skip_for_travis(fn, "Needs asynctest issue #107 resolved to work")
 
 
 def skip_stress_test(fn):

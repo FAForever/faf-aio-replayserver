@@ -1,7 +1,7 @@
 decorator
 pytest-asyncio
 pytest-mock
-asynctest
+asynctest>=0.12.4
 coveralls
 pytest-cov
 sphinx

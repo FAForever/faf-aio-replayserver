@@ -2,7 +2,7 @@ import pytest
 import asyncio
 import asynctest
 from asynctest.helpers import exhaust_callbacks
-from tests import timeout, skip_if_needs_asynctest_107
+from tests import timeout
 
 from replayserver.receive.merger import Merger
 from replayserver.errors import CannotAcceptConnectionError, \
@@ -70,7 +70,6 @@ async def test_merger_rejects_writers_when_asked(outside_source_stream,
     await merger.wait_for_ended()
 
 
-@skip_if_needs_asynctest_107
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_one_connection_lifetime(outside_source_stream,
@@ -93,7 +92,6 @@ async def test_merger_one_connection_lifetime(outside_source_stream,
     await merger.wait_for_ended()
 
 
-@skip_if_needs_asynctest_107
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_read_exception(outside_source_stream,
@@ -135,7 +133,6 @@ async def test_merger_no_connections_wait_empty(
     await merger.wait_for_ended()
 
 
-@skip_if_needs_asynctest_107
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_no_connection_wait_extends(
@@ -160,7 +157,6 @@ async def test_merger_no_connection_wait_extends(
     await merger.wait_for_ended()
 
 
-@skip_if_needs_asynctest_107
 @pytest.mark.asyncio
 @timeout(0.1)
 async def test_merger_no_connection_wait_active_connection(

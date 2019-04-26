@@ -7,13 +7,30 @@ from replayserver.streams import ReplayStream, ConcreteDataMixin
 # Technically we shouldn't rely on abstract classes being good, and should use
 # mocks, yadda yadda. This way is way less bothersome.
 class MockStream(ConcreteDataMixin, ReplayStream):
-    def __init__(self):
+    def __init__(self, set_future=False):
         ConcreteDataMixin.__init__(self)
         ReplayStream.__init__(self)
         self._ended = False
+        self._future_data = bytearray() if set_future else None
 
     def ended(self):
         return self._ended
+
+    def _maybe_future_data(self):
+        return (self._future_data if self._future_data is not None
+                else self._data)
+
+    def _future_data_length(self):
+        return len(self._maybe_future_data())
+
+    def _future_data_slice(self, s):
+        return self._maybe_future_data()[s]
+
+    def _future_data_bytes(self):
+        return self._maybe_future_data()
+
+    def _future_data_view(self):
+        return memoryview(self._maybe_future_data())
 
 
 class MockStrategyConfig:
@@ -100,8 +117,8 @@ def test_strategy_gets_common_prefix_of_all(strategy, outside_source_stream):
 
 
 @pytest.mark.parametrize("strategy", [QuorumMergeStrategy])
-def test_strategy_follow_stream_later_has_more_data(strategy,
-                                                    outside_source_stream):
+def test_strategy_later_has_more_data(strategy,
+                                      outside_source_stream):
     strat = strategy.build(outside_source_stream, MockStrategyConfig())
     stream1 = MockStream()
     stream2 = MockStream()
@@ -182,3 +199,48 @@ def test_strategy_quorum_newly_arrived_quorum(
     strat.stream_removed(stream3)
     strat.finalize()
     assert outside_source_stream.data.bytes() == b"Data and smeg and blahblah"
+
+
+def test_quorum_strategy_uses_future_data(outside_source_stream):
+    strat = QuorumMergeStrategy.build(outside_source_stream,
+                                      MockStrategyConfig())
+    stream1 = MockStream(True)
+    stream2 = MockStream(True)
+    stream3 = MockStream(True)
+    stream1._header = "Header"
+    stream2._header = "Header"
+    stream3._header = "Header"
+
+    strat.stream_added(stream1)
+    strat.stream_added(stream2)
+    strat.stream_added(stream3)
+
+    stream1._future_data += b"foo"
+    stream2._future_data += b"foo"
+    stream1._data += b"f"
+    stream2._data += b"fo"
+
+    # First check calculating quorum point.
+    # We expect to send f, since 2 future data items confirm it.
+    # Note that we only react to streams when new_data is called, future_data
+    # is strictly for comparison purposes.
+    strat.new_data(stream1)
+    strat.new_data(stream2)
+    assert outside_source_stream.data.bytes() == b"fo"
+    stream1._data += b"oo"
+    strat.new_data(stream1)
+    assert outside_source_stream.data.bytes() == b"foo"
+
+    # And now stalemate resolution.
+    # After resolution, we should have confirmed "foo aaaaa", so sending some
+    # "a"s should come through.
+    stream3._future_data += b"foo aaaaa"
+    stream1._future_data += b" bbbbb"
+    stream2._future_data += b" aaaaa"
+    stream1._data += b" bbbbb"
+    stream2._data += b"o aaa"
+    stream3._data += b"foo"
+    strat.new_data(stream1)
+    strat.new_data(stream2)
+    strat.new_data(stream3)
+    assert outside_source_stream.data.bytes() == b"foo aaa"

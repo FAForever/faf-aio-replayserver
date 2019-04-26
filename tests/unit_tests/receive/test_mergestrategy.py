@@ -129,15 +129,11 @@ def test_strategy_later_has_more_data(strategy,
     strat.new_header(stream2)
 
     stream1._data += b"Data"
-    print("S1 new data")
     strat.new_data(stream1)
     stream2._data += b"Data and stuff"
-    print("S2 new data")
     strat.new_data(stream2)
 
-    print("S2 removed")
     strat.stream_removed(stream2)
-    print("S1 removed")
     strat.stream_removed(stream1)
     strat.finalize()
     assert outside_source_stream.data.bytes() == b"Data and stuff"
@@ -244,3 +240,44 @@ def test_quorum_strategy_uses_future_data(outside_source_stream):
     strat.new_data(stream2)
     strat.new_data(stream3)
     assert outside_source_stream.data.bytes() == b"foo aaa"
+
+
+# This one kind of relies on internals? Maybe we should allow querying what
+# role a stream has?
+def test_quorum_strategy_immediate_stalemate_resolve(outside_source_stream):
+    strat = QuorumMergeStrategy.build(outside_source_stream,
+                                      MockStrategyConfig())
+    stream1 = MockStream(True)
+    stream2 = MockStream(True)
+    stream3 = MockStream(True)
+    stream1._header = "Header"
+    stream2._header = "Header"
+    stream3._header = "Header"
+
+    strat.stream_added(stream1)
+    strat.stream_added(stream2)
+    strat.stream_added(stream3)
+
+    stream1._future_data += b"foo"
+    stream2._future_data += b"foo"
+    stream1._data += b"f"
+    stream2._data += b"f"
+
+    strat.new_data(stream1)
+    strat.new_data(stream2)
+
+    # Streams 1 and 2 should make a quorum now.
+    assert outside_source_stream.data.bytes() == b"f"
+
+    stream1._future_data += b"aaa"
+    stream2._future_data += b"bbb"
+    stream3._future_data += b"fooaaa"
+    stream1._data += b"ooaaa"
+    stream2._data += b"oobbb"
+    stream3._data += b"fooaaa"
+
+    strat.new_data(stream3)     # This one's not tracked
+    assert outside_source_stream.data.bytes() == b"f"
+    strat.new_data(stream2)
+    # Now we should've entered a stalemate, then resolved it with stream 3.
+    assert outside_source_stream.data.bytes() == b"fooaaa"

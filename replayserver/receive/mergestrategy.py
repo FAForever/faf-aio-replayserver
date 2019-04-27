@@ -39,33 +39,6 @@ class MergeStrategy:
         self.stream_removed(stream)
 
 
-class DivergenceTracking:
-    """
-    Allows us to compare stream with sink for divergence. Ensures that we never
-    compare the same data twice.
-    """
-    def __init__(self, stream, sink):
-        self._stream = stream
-        self._sink = sink
-        self.diverges = False
-        self._compared_num = 0
-
-    def check_divergence(self):
-        if self.diverges:
-            return
-        start = self._compared_num
-        end = min(len(self._stream.future_data), len(self._sink.data))
-        if start >= end:
-            return
-
-        view1 = self._stream.data.view()
-        view2 = self._sink.data.view()
-        self.diverges = view1[start:end] != view2[start:end]
-        self._compared_num = end
-        view1.release()
-        view2.release()
-
-
 class QuorumState(Enum):
     QUORUM = 1
     STALEMATE = 2   # Includes having no streams at all
@@ -146,6 +119,33 @@ class QuorumStream:
 
     def check_divergence(self):
         self._div.check_divergence()
+
+
+class DivergenceTracking:
+    """
+    Allows us to compare stream with sink for divergence. Ensures that we never
+    compare the same data twice.
+    """
+    def __init__(self, stream, sink):
+        self._stream = stream
+        self._sink = sink
+        self.diverges = False
+        self._compared_num = 0
+
+    def check_divergence(self):
+        if self.diverges:
+            return
+        start = self._compared_num
+        end = min(len(self._stream.future_data), len(self._sink.data))
+        if start >= end:
+            return
+
+        view1 = self._stream.data.view()
+        view2 = self._sink.data.view()
+        self.diverges = view1[start:end] != view2[start:end]
+        self._compared_num = end
+        view1.release()
+        view2.release()
 
 
 class QuorumMergeStrategy(MergeStrategy):

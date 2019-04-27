@@ -3,7 +3,7 @@ import asyncio
 from replayserver.struct.header import ReplayHeader
 from replayserver.errors import MalformedDataError
 from replayserver.common import ServesConnections
-from replayserver.streams import OutsideSourceReplayStream
+from replayserver.streams import OutsideSourceReplayStream, DelayedReplayStream
 from replayserver.receive.mergestrategy import QuorumMergeStrategy
 from replayserver import config
 
@@ -73,25 +73,52 @@ class MergerConfig(config.Config):
     }
 
 
+class DelayConfig(config.Config):
+    _options = {
+        "replay_delay": {
+            "parser": config.positive_float,
+            "doc": ("Delay in seconds between receiving replay data and "
+                    "sending it to readers. Used to prevent cheating via "
+                    "playing and observing at the same time.\n\n"
+                    "Note that current replay stream merging strategy relies "
+                    "on having a buffer of future data in can compare "
+                    "between streams! It's highly recommended to set this to "
+                    "a reasonably high value (e.g. five minutes).")
+        },
+        "update_interval": {
+            "parser": config.positive_float,
+            "doc": ("Frequency, in seconds, of checking for new data to send "
+                    "to listeners. This affects frequency of calling send() "
+                    "of listener sockets, as the server sets high/low buffer "
+                    "water marks to 0 in order to prevent unwanted latency. "
+                    "Setting this value higher might improve performance.")
+        }
+    }
+
+
 class Merger(ServesConnections):
-    def __init__(self, reader_builder, merge_strategy, canonical_stream):
+    def __init__(self, reader_builder, delayed_stream_builder,
+                 merge_strategy, canonical_stream):
         ServesConnections.__init__(self)
         self._reader_builder = reader_builder
+        self._delayed_stream_builder = delayed_stream_builder
         self._merge_strategy = merge_strategy
         self.canonical_stream = canonical_stream
 
     @classmethod
-    def build(cls, config):
+    def build(cls, merge_config, delay_config):
         canonical_replay = OutsideSourceReplayStream()
         merge_strategy = QuorumMergeStrategy.build(canonical_replay,
-                                                   config)
-        stream_builder = ReplayStreamReader.build
-        return cls(stream_builder, merge_strategy, canonical_replay)
+                                                   merge_config)
+        return cls(ReplayStreamReader.build,
+                   lambda s: DelayedReplayStream.build(s, delay_config),
+                   merge_strategy, canonical_replay)
 
     async def _handle_connection(self, connection):
         reader = self._reader_builder(connection)
+        delayed_stream = self._delayed_stream_builder(reader.stream)
         strategy_callbacks = asyncio.ensure_future(
-            self._merge_strategy.track_stream(reader.stream))
+            self._merge_strategy.track_stream(delayed_stream))
         try:
             await reader.read()
         finally:

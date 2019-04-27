@@ -3,17 +3,26 @@ import asyncio
 from tests.replays import example_replay
 from tests import fast_forward_time, timeout, config_from_dict
 
-from replayserver.receive.merger import Merger, MergerConfig
+from replayserver.receive.merger import Merger, MergerConfig, DelayConfig
 from replayserver.errors import MalformedDataError, CannotAcceptConnectionError
 
 
-config_dict = {
+merger_dict = {
     "desired_quorum": 2
+}
+
+delay_dict = {
+    "replay_delay": 1,
+    "update_interval": 0.1
 }
 
 
 def merger_config(d):
-    return MergerConfig(config_from_dict(config_dict))
+    return MergerConfig(config_from_dict(d))
+
+
+def delay_config(d):
+    return DelayConfig(config_from_dict(d))
 
 
 @pytest.fixture
@@ -46,7 +55,8 @@ async def verify_merger_ending_with_data(merger, data):
 
 
 def test_merger_init():
-    Merger.build(merger_config(config_dict))
+    Merger.build(merger_config(merger_dict),
+                 delay_config(delay_dict))
 
 
 @pytest.mark.asyncio
@@ -57,7 +67,8 @@ async def test_merger_successful_connection(event_loop, mock_connections,
     conn = mock_connections()
     mock_conn_read_data_mixin(conn, example_replay.data, 0.25, 200)
 
-    merger = Merger.build(merger_config(config_dict))
+    merger = Merger.build(merger_config(merger_dict),
+                          delay_config(delay_dict))
     await merger.handle_connection(conn)
     await verify_merger_ending_with_data(merger, example_replay.data)
 
@@ -71,7 +82,8 @@ async def test_merger_incomplete_header(event_loop, mock_connections,
     replay_data = example_replay.header_data[:-100]
     mock_conn_read_data_mixin(conn, replay_data, 0.25, 200)
 
-    merger = Merger.build(merger_config(config_dict))
+    merger = Merger.build(merger_config(merger_dict),
+                          delay_config(delay_dict))
     with pytest.raises(MalformedDataError):
         await merger.handle_connection(conn)
     await verify_merger_ending_with_data(merger, None)
@@ -89,7 +101,8 @@ async def test_merger_incomplete_header_then_data(event_loop,
     mock_conn_read_data_mixin(conn_1, replay_data, 0.25, 200)
     mock_conn_read_data_mixin(conn_2, example_replay.data, 0.25, 200)
 
-    merger = Merger.build(merger_config(config_dict))
+    merger = Merger.build(merger_config(merger_dict),
+                          delay_config(delay_dict))
     with pytest.raises(MalformedDataError):
         await merger.handle_connection(conn_1)
     await merger.handle_connection(conn_2)
@@ -110,7 +123,8 @@ async def test_merger_two_connections(event_loop, mock_connections,
     mock_conn_read_data_mixin(conn_1, replay_data[:-100], 0.4, 160)
     mock_conn_read_data_mixin(conn_2, replay_data, 0.6, 160)
 
-    merger = Merger.build(merger_config(config_dict))
+    merger = Merger.build(merger_config(merger_dict),
+                          delay_config(delay_dict))
     f_1 = asyncio.ensure_future(merger.handle_connection(conn_1))
     f_2 = asyncio.ensure_future(merger.handle_connection(conn_2))
     await f_1
@@ -131,7 +145,8 @@ async def test_merger_sequential_connections(event_loop, mock_connections,
     mock_conn_read_data_mixin(conn_1, replay_data[:-100], 0.4, 160)
     mock_conn_read_data_mixin(conn_2, replay_data, 0.6, 160)
 
-    merger = Merger.build(merger_config(config_dict))
+    merger = Merger.build(merger_config(merger_dict),
+                          delay_config(delay_dict))
     await merger.handle_connection(conn_1)
     await asyncio.sleep(15)
     await merger.handle_connection(conn_2)
@@ -150,7 +165,8 @@ async def test_merger_refuses_conns(event_loop, mock_connections,
     mock_conn_read_data_mixin(conn_1, replay_data, 0.6, 160)
     mock_conn_read_data_mixin(conn_2, replay_data, 0.6, 160)
 
-    merger = Merger.build(merger_config(config_dict))
+    merger = Merger.build(merger_config(merger_dict),
+                          delay_config(delay_dict))
     await merger.handle_connection(conn_1)
     merger.stop_accepting_connections()
     with pytest.raises(CannotAcceptConnectionError):
@@ -167,7 +183,8 @@ async def test_merger_closes_fast(event_loop, mock_connections,
     replay_data = example_replay.data
     mock_conn_read_data_mixin(conn, replay_data, 0.6, 160)
 
-    merger = Merger.build(merger_config(config_dict))
+    merger = Merger.build(merger_config(merger_dict),
+                          delay_config(delay_dict))
     f = asyncio.ensure_future(merger.handle_connection(conn))
     await asyncio.sleep(45)
     conn.read.side_effect = lambda _: b""   # Simulate connection.close()

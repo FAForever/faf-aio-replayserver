@@ -140,8 +140,8 @@ class DivergenceTracking:
         if start >= end:
             return
 
-        view1 = self._stream.data.view()
-        view2 = self._sink.data.view()
+        view1 = self._stream.future_data.view()
+        view2 = self._sink.future_data.view()
         self.diverges = view1[start:end] != view2[start:end]
         self._compared_num = end
         view1.release()

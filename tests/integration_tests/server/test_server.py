@@ -30,7 +30,7 @@ config_dict = {
     "replay": {
         "forced_end_time": 60,
         "grace_period": 1,
-        "send": {
+        "delay": {
             "replay_delay": 5,
             "update_interval": 0.1,
         },
@@ -140,7 +140,7 @@ def test_server_bad_config(tmpdir):
         "replay": {
             "forced_end_time": "0",
             "grace_period": "-1",
-            "send": {
+            "delay": {
                 "replay_delay": "-10",
                 "update_interval": "0",
             },
@@ -198,7 +198,7 @@ async def test_server_replay_force_end(mock_database, tmpdir, unused_tcp_port):
     conf["server"]["port"] = s_port
     conf["storage"]["vault_path"] = str(tmpdir)
     conf["replay"]["forced_end_time"] = 1
-    conf["replay"]["send"]["replay_delay"] = 0.5
+    conf["replay"]["delay"]["replay_delay"] = 0.5
 
     await mock_database.add_mock_game((1, 1, 1), [(1, 1), (2, 2)])
     server = Server.build(dep_database=lambda _: mock_database,
@@ -265,7 +265,7 @@ async def test_server_reader_is_delayed(mock_database, tmpdir,
                                         unused_tcp_port):
     s_port = unused_tcp_port
     conf = copy.deepcopy(config_dict)
-    conf["replay"]["send"]["replay_delay"] = 0.5
+    conf["replay"]["delay"]["replay_delay"] = 0.5
     conf["server"]["port"] = s_port
     conf["storage"]["vault_path"] = str(tmpdir)
 
@@ -323,7 +323,7 @@ async def test_server_stress_test(mock_database, tmpdir,
     conf["server"]["port"] = s_port
     conf["server"]["prometheus_port"] = p_port
     conf["storage"]["vault_path"] = str(tmpdir)
-    conf["replay"]["send"]["replay_delay"] = 0.5
+    conf["replay"]["delay"]["replay_delay"] = 0.5
 
     for i in range(1, 50):
         await mock_database.add_mock_game((i, 1, 1), [(1, 1), (2, 2)])

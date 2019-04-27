@@ -6,7 +6,7 @@ from tests import config_from_dict
 config_dict = {
     "forced_end_time": 5 * 60 * 60,
     "grace_period": 30,
-    "send": {
+    "delay": {
         "replay_delay": 5 * 60,
         "update_interval": 1,
     },

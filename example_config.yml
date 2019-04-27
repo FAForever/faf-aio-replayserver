@@ -1,22 +1,22 @@
 rs:
     log_level: "20"
-    server: 
+    server:
         port: "15000"
         prometheus_port: "15001"
         connection_header_read_timeout: "21600"
-    db: 
+    db:
         host: 172.19.0.2
         port: "3306"
         user: root
         password: banana
         name: faf
-    storage: 
+    storage:
         vault_path: /home/igor
-    replay: 
+    replay:
         forced_end_time: "60"
         grace_period: "1"
-        send: 
-            replay_delay: "5"
+        delay:
             update_interval: "0.1"
-        merge: 
+            replay_delay: "5"
+        merge:
             desired_quorum: "2"

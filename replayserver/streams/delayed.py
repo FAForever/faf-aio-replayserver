@@ -10,6 +10,7 @@ class Timestamp:
         self._stream = stream
         self._interval = interval
         self._delay = delay
+        self._ended = False
 
         # Last item in deque size n+1 is from n intervals ago
         stamp_number = math.ceil(self._delay / self._interval) + 1
@@ -33,11 +34,13 @@ class Timestamp:
         self._stamp_coro.cancel()
         self._stamps.clear()
         self._stamp(len(self._stream.data))
+        self._ended = True
 
     async def timestamps(self):
-        while not self._stream.ended():
+        while not self._ended:
             await self._new_stamp.wait()
             yield self._stamps[0]
+        yield self._stamps[0]
 
 
 class DelayedReplayStream(ReplayStream):

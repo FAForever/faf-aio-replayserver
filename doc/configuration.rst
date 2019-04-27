@@ -74,10 +74,10 @@ Replay options
 .. autocomponent:: replayserver.server.replay.ReplayConfig
     :hide-classname:
 
-Replay sending options
+Replay delay options
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. autocomponent:: replayserver.send.sender.SenderConfig
+.. autocomponent:: replayserver.receive.merger.DelayConfig
     :hide-classname:
 
 

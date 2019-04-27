@@ -1,47 +1,23 @@
 import pytest
 import asyncio
 from tests.replays import example_replay
-from tests import fast_forward_time, timeout, config_from_dict
+from tests import fast_forward_time, timeout
 
-from replayserver.send.sender import Sender, SenderConfig
+from replayserver.send.sender import Sender
 from replayserver.struct.header import ReplayHeader
 
 
-config_dict = {
-    "replay_delay": 5 * 60,
-    "update_interval": 1,
-}
-
-
-def sender_config(d):
-    return SenderConfig(config_from_dict(config_dict))
-
-
-@pytest.fixture
-def data_receive_mixin():
-    def build(mock_connection, sleep_time):
-        mock_connection.configure_mock(_written_data=b"")
-
-        async def write_data(data):
-            mock_connection._written_data += data
-            await asyncio.sleep(sleep_time)
-
-        mock_connection.write.side_effect = write_data
-    return build
-
-
 def test_sender_init(outside_source_stream):
-    Sender.build(outside_source_stream, sender_config(config_dict))
+    Sender.build(outside_source_stream)
 
 
 @pytest.mark.asyncio
 @fast_forward_time(0.1, 2000)
 @timeout(1000)
 async def test_sender_one_connection(event_loop, outside_source_stream,
-                                     mock_connections, data_receive_mixin):
-    sender = Sender.build(outside_source_stream, sender_config(config_dict))
-    conn = mock_connections()
-    data_receive_mixin(conn, 0.1)
+                                     controlled_connections):
+    sender = Sender.build(outside_source_stream)
+    conn = controlled_connections()
 
     f = asyncio.ensure_future(sender.handle_connection(conn))
 
@@ -55,7 +31,7 @@ async def test_sender_one_connection(event_loop, outside_source_stream,
     outside_source_stream.finish()
 
     await f
-    assert conn._written_data == b"data" + replay_data
+    assert conn._get_mock_write_data() == b"data" + replay_data
 
     sender.stop_accepting_connections()
     await sender.wait_for_ended()

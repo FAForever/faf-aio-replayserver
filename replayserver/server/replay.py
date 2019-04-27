@@ -3,8 +3,8 @@ from asyncio.locks import Event
 from contextlib import contextmanager
 
 from replayserver.server.connection import ConnectionHeader
-from replayserver.send.sender import Sender, SenderConfig
-from replayserver.receive.merger import Merger, MergerConfig
+from replayserver.send.sender import Sender
+from replayserver.receive.merger import Merger, MergerConfig, DelayConfig
 from replayserver.receive.offlinemerger import OfflineReplayMerger
 from replayserver.errors import MalformedDataError
 from replayserver.logging import logger
@@ -27,7 +27,7 @@ class ReplayConfig(config.Config):
     def __init__(self, config):
         super().__init__(config)
         self.merge = MergerConfig(config.with_namespace("merge"))
-        self.send = SenderConfig(config.with_namespace("send"))
+        self.delay = DelayConfig(config.with_namespace("delay"))
 
 
 class Replay:
@@ -48,8 +48,8 @@ class Replay:
 
     @classmethod
     def build(cls, game_id, bookkeeper, config):
-        merger = Merger.build(config.merge)
-        sender = Sender.build(merger.canonical_stream, config.send)
+        merger = Merger.build(config.merge, config.delay)
+        sender = Sender.build(merger.canonical_stream)
         offline_merger = OfflineReplayMerger.build()
         return cls(merger, sender, offline_merger, bookkeeper, config, game_id)
 

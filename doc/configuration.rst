@@ -36,8 +36,8 @@ options. Config file structure without leaf nodes is shown below:
           <storage options>
       replay:
           <replay options>
-          send:
-              <replay sending options>
+          delay:
+              <replay delay options>
           merge:
               <replay receiving options>
 

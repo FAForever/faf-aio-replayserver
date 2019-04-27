@@ -45,6 +45,17 @@ def unpack_replay(replay):
 
 
 example_replay = load_replay("example", 1966)
+# Trie of replay
+# len 0 to 0
+#  -len 7025 to 7025
+#  | -Ends: 0, len 135 to 7160
+#  | -Ends: 1, len 18499 to 25524
+#  | | -len 701 to 26225
+#  | | | -Ends: 2, len 39 to 26264
+#  | | | -Ends: 4, len 871 to 27096
+#  | | | | -Ends: 3, len 11 to 27107
+#  | | | | | -Ends: 5, len 14 to 27121
+diverging_1 = [load_replay(f"diverging_1/{i}", 3574) for i in range(6)]
 
 
 if __name__ == "__main__":

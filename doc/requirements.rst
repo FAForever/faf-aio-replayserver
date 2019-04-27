@@ -25,6 +25,9 @@ There are several important details regarding the above:
   single 'canonical replay' for the game, and use that for streaming and
   storage in the vault.
 
+* Better yet, replays that end early routinely differ on a last few hundred
+  bytes. Merging replays should be able to deal with that.
+
 * To prevent cheating, the replay sent to live watchers should be delayed by
   some time (e.g. 5 minutes).
 

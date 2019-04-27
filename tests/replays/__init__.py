@@ -6,7 +6,7 @@ import copy
 import sys
 
 
-__all__ = ["load_replay", "example_replay"]
+__all__ = ["load_replay", "example_replay", "diverging_1"]
 replay_directory = path.join(path.dirname(path.realpath(__file__)), "data")
 
 

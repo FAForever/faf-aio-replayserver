@@ -81,17 +81,17 @@ def mock_database_queries():
 
 def_teams_in_game = {1: ["user1"], 2: ["user2"]}
 def_game_stats = {
-        'featured_mod': 'faf',
-        'game_type': '0',
-        'recorder': 'user1',
-        'host': 'user1',
-        'launched_at': datetime.datetime(2001, 1, 1, 0, 0).timestamp(),
-        'game_end': datetime.datetime(2001, 1, 2, 0, 0).timestamp(),
-        'title': 'Name of the game',
-        'mapname': 'scmp_1',
-        'map_file_path': 'maps/scmp_1.zip',
-        'num_players': 2
-    }
+    'featured_mod': 'faf',
+    'game_type': '0',
+    'recorder': 'user1',
+    'host': 'user1',
+    'launched_at': datetime.datetime(2001, 1, 1, 0, 0).timestamp(),
+    'game_end': datetime.datetime(2001, 1, 2, 0, 0).timestamp(),
+    'title': 'Name of the game',
+    'mapname': 'scmp_1',
+    'map_file_path': 'maps/scmp_1.zip',
+    'num_players': 2
+}
 def_mod_versions = {'1': 1}
 
 

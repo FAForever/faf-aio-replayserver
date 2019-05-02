@@ -8,6 +8,7 @@ class BadConnectionError(Exception):
     Superclass for things a connection can do wrong. Thrown in connection
     handling code, used to clean up any resources and the connection itself.
     """
+
     def type_name(self):
         return type(self).__name__
 

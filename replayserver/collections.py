@@ -43,6 +43,7 @@ class EmptyWaitMixin:
 
 class AsyncDict(MutableMapping, EmptyWaitMixin):
     "Tiny dict wrapper that lets us await until it's empty."
+
     def __init__(self):
         EmptyWaitMixin.__init__(self)
         self._dict = {}
@@ -77,6 +78,7 @@ class AsyncDict(MutableMapping, EmptyWaitMixin):
 
 class AsyncSet(MutableSet, EmptyWaitMixin):
     "Tiny set wrapper that lets us await until it's empty."
+
     def __init__(self):
         EmptyWaitMixin.__init__(self)
         self._set = set()
@@ -105,6 +107,7 @@ class AsyncCounter(EmptyWaitMixin):
     Counter that lets us await until it's zero / non-zero. Useful when you
     don't want to keep the things you're tracking count of around.
     """
+
     def __init__(self):
         EmptyWaitMixin.__init__(self)
         self._count = 0

@@ -39,7 +39,7 @@ def mock_replay_headers(mocker):
             m.configure_mock(
                 struct=raw_replay.header,
                 data=raw_replay.header_data,
-                )
+            )
         return m
 
     return build

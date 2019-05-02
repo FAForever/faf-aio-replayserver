@@ -10,6 +10,7 @@ class ServesConnections:
     told to stop, then refuses to handle more. After that, once all connections
     are over, performs some housekeeping then reports as finished.
     """
+
     def __init__(self):
         self._denies_connections = Event()
         self._connection_count = AsyncCounter()

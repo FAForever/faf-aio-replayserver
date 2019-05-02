@@ -335,7 +335,7 @@ async def test_server_stress_test(mock_database, tmpdir,
     async def do_write(r, w, i):
         w.write(f"P/{i}/foo\0".encode())
         for pos in range(0, len(example_replay.data), 4000):
-            w.write(example_replay.data[pos:pos+4000])
+            w.write(example_replay.data[pos:pos + 4000])
             await w.drain()
             await asyncio.sleep(0.05)
         w.close()

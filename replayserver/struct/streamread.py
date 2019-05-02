@@ -3,6 +3,7 @@ class GeneratorData:
     A tiny ByteArray wrapper with support for pausing while reading data using
     generator-based coroutines.
     """
+
     def __init__(self, maxlen=None):
         self.data = bytearray()
         self.position = 0

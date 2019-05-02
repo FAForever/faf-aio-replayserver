@@ -30,7 +30,7 @@ def test_replay_init(mock_bookkeeper):
 
 async def do_write(conn, r, chunk):
     for pos in range(0, len(r.data), chunk):
-        conn._feed_data(r.data[pos:pos+chunk])
+        conn._feed_data(r.data[pos:pos + chunk])
         await asyncio.sleep(0.1)
     conn._feed_eof()
     conn.close()

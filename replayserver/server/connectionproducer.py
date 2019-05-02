@@ -10,6 +10,7 @@ class ConnectionProducer:
     here, as any unit tests boil down to 'the method does what it does'.
     Hence, no DI.
     """
+
     def __init__(self, callback, server_port):
         self._server = None
         self._server_port = server_port

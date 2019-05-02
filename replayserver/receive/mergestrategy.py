@@ -126,6 +126,7 @@ class DivergenceTracking:
     Allows us to compare stream with sink for divergence. Ensures that we never
     compare the same data twice.
     """
+
     def __init__(self, stream, sink):
         self._stream = stream
         self._sink = sink
@@ -200,6 +201,7 @@ class QuorumMergeStrategy(MergeStrategy):
       never on a state boundary between calls. We will never loop, either, see
       comments for state changing function below.
     """
+
     def __init__(self, sink, desired_quorum):
         MergeStrategy.__init__(self, sink)
         self.sets = QuorumSets(sink)

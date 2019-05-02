@@ -2,7 +2,7 @@ import asyncio
 import aiomysql
 from docker_db_config import docker_faf_db_config
 from test_db import MAP_VERSION_ID_OFFSET, MAP_ID_OFFSET, \
-                    SPECIAL_GAME_NO_END_TIME_ID
+    SPECIAL_GAME_NO_END_TIME_ID
 
 
 async def clear_db(cursor):
@@ -70,7 +70,7 @@ async def db_mock_map(cursor, nums):
     map_version_ids = [MAP_VERSION_ID_OFFSET + i for i in nums]
 
     data = [(mi, f'scmp_{i}', '?', '?', None,
-            0, 0, '2000-01-01 00:00:00', '2000-01-02 00:00:00')
+             0, 0, '2000-01-01 00:00:00', '2000-01-02 00:00:00')
             for i, mi in zip(nums, map_ids)]
     await cursor.executemany("""
         INSERT INTO `map`

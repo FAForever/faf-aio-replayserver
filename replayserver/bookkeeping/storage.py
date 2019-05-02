@@ -30,7 +30,7 @@ class ReplayFilePaths:
         # digits 3-10 from the right,
         digits = str(game_id).zfill(10)[-10:-2]
         # in 4 groups by 2 starting by most significant,
-        groups = [digits[i:i+2] for i in range(0, len(digits), 2)]
+        groups = [digits[i:i + 2] for i in range(0, len(digits), 2)]
         # NOT left-padded, so 0x -> x
         dirs = [str(int(g)) for g in groups]
         id_path = os.path.join(*dirs)

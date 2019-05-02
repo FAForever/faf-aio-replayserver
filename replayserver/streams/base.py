@@ -9,6 +9,7 @@ class ReplayStreamData:
     """
     Data buffer wrapper that allows to avoid unnecessary copies.
     """
+
     def __init__(self, length, slice_, bytes_, view):
         self._length = length
         self._slice = slice_

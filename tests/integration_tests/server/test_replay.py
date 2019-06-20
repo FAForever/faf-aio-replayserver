@@ -61,5 +61,6 @@ async def test_replay_diverging_replay(event_loop, mock_bookkeeper,
 
     await asyncio.gather(*(conn_work + r_work + w_work))
     await r.wait_for_ended()
-    # Our current strategy should find replay 5.
-    assert read_conn._get_mock_write_data() == diverging_1[5].data
+    # Our current strategy should find replay 5, ignoring header.
+    read_data = read_conn._get_mock_write_data()[diverging_1[5].header_size:]
+    assert read_data == diverging_1[5].main_data

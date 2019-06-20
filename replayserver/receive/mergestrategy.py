@@ -268,10 +268,14 @@ class QuorumMergeStrategy(MergeStrategy):
         for qs in rest:
             self.sets.make_qs_diverged(qs)
         for qs in quorum:
-            self.sets.make_qs_quorum(qs)
+            if len(self.sets.quorum) < self._desired_quorum:
+                self.sets.make_qs_quorum(qs)
+            else:
+                self.sets.make_qs_candidate(qs)
         self._state = QuorumState.QUORUM
         # Make sure we work on the new quorum
         assert len(self.sink_stream.data) == self._quorum_point
+        assert len(self.sets.quorum) <= self._desired_quorum
 
     def _get_best_stalemate_candidates(self):
         cands = self.sets.stalemate_candidates

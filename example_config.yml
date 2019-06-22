@@ -1,5 +1,5 @@
 rs:
-    log_level: "20"
+    log_level: INFO
     server:
         port: "15000"
         prometheus_port: "15001"

@@ -42,13 +42,13 @@ class Replays:
         replay = self._replay_builder(game_id)
         self._replays[game_id] = replay
         asyncio.ensure_future(self._remove_replay_when_done(game_id, replay))
-        logger.debug(f"New Replay created: id {game_id}")
+        logger.info(f"New Replay created: id {game_id}")
         metrics.running_replays.inc()
 
     async def _remove_replay_when_done(self, game_id, replay):
         await replay.wait_for_ended()
         self._replays.pop(game_id, None)
-        logger.debug(f"Replay removed: id {game_id}")
+        logger.info(f"Replay removed: id {game_id}")
         metrics.running_replays.dec()
         metrics.finished_replays.inc()
 

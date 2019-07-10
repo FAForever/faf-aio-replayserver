@@ -70,7 +70,7 @@ class Connection:
 
     def __str__(self):
         if self._header is None:
-            return f"Initial connection: {repr(self)}"
+            return f"Initial connection, id {id(self)}"
         else:
             return f"{self._header}"
 

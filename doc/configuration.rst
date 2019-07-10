@@ -13,7 +13,7 @@ setting an env var with scopes concatenated by '\_' as name, e.g. for:
 
   foo:
       bar:
-          baz="1"
+          baz: "1"
 
 The overriding variable is ``FOO_BAR_BAZ``. An example configuration is provided
 in repository root as example_config.yml.

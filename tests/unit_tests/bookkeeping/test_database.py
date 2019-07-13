@@ -113,8 +113,7 @@ async def test_queries_get_game_stats(mock_database):
         'launched_at': datetime.datetime(2001, 1, 1, 0, 0).timestamp(),
         'game_end': datetime.datetime(2001, 1, 2, 0, 0).timestamp(),
         'title': 'Name of the game',
-        'mapname': 'scmp_1',
-        'map_file_path': 'maps/scmp_1.zip',
+        'mapname': 'scmp_1_v1',
         'num_players': 2
     }
 
@@ -139,6 +138,13 @@ async def test_queries_null_game_end(mock_database):
     queries = ReplayDatabaseQueries(mock_database)
     stats = await queries.get_game_stats(test_db.SPECIAL_GAME_NO_END_TIME_ID)
     assert type(stats['game_end']) is float
+
+
+@pytest.mark.asyncio
+async def test_queries_missing_game_map(mock_database):
+    queries = ReplayDatabaseQueries(mock_database)
+    stats = await queries.get_game_stats(test_db.SPECIAL_GAME_MISSING_MAP_ID)
+    assert stats['mapname'] == "None"
 
 
 @pytest.mark.asyncio

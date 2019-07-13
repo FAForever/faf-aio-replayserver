@@ -1,3 +1,4 @@
+import os
 import time
 import aiomysql
 from aiomysql import create_pool, DatabaseError
@@ -103,7 +104,6 @@ class ReplayDatabaseQueries:
                 `login`.`login` AS host,
                 `game_stats`.`gameName` AS game_name,
                 `game_featuredMods`.`gamemod` AS game_mod,
-                `table_map`.`name` as map_name,
                 `table_map`.`filename` AS file_name
             FROM `game_stats`
             LEFT JOIN `table_map`
@@ -129,6 +129,16 @@ class ReplayDatabaseQueries:
             raise BookkeepingError(f"No players found for game {game_id}")
         start_time = game_stats[0]['start_time'].timestamp()
 
+        # 'mapname' is a filename on the content server containing the map
+        mapname = game_stats[0]['file_name']
+        if mapname is None:
+            # Legacy replay server is forgiving like this. We replicate its
+            # behaviour.
+            logger.warning(f"Map missing for game {game_id}! Saving anyway.")
+            mapname = "None"
+        else:
+            mapname = os.path.splitext(os.path.basename(mapname))[0]
+
         # We might end a replay before end_time is set in the db!
         end_time = game_stats[0]['end_time']
         if end_time is None:
@@ -143,8 +153,7 @@ class ReplayDatabaseQueries:
             'launched_at': start_time,
             'game_end': end_time,
             'title': game_stats[0]['game_name'],
-            'mapname': game_stats[0]['map_name'],
-            'map_file_path': game_stats[0]['file_name'],
+            'mapname': mapname,
             'num_players': player_count
         }
 

@@ -2,7 +2,7 @@ import asyncio
 import aiomysql
 from docker_db_config import docker_faf_db_config
 from test_db import MAP_VERSION_ID_OFFSET, MAP_ID_OFFSET, \
-    SPECIAL_GAME_NO_END_TIME_ID
+    SPECIAL_GAME_NO_END_TIME_ID, SPECIAL_GAME_MISSING_MAP_ID
 
 
 async def clear_db(cursor):
@@ -81,7 +81,7 @@ async def db_mock_map(cursor, nums):
     """, data)
 
     data = [(vi, None, 8, 100, 100, 1,
-             f'maps/scmp_{i}.zip', 1, 0, mi,
+             f'maps/scmp_{i}_v1.zip', 1, 0, mi,
              '2000-01-03 00:00:00', '2000-01-04 00:00:00')
             for i, vi, mi in zip(nums, map_version_ids, map_ids)]
     await cursor.executemany("""
@@ -130,6 +130,25 @@ async def db_mock_special_games(cursor):
              `color`, `team`, `place`, `mean`, `deviation`)
         VALUES
             (NULL, {SPECIAL_GAME_NO_END_TIME_ID}, 1, False, 1,
+             1, 1, 1, 0, 0)
+    """)
+
+    # A replay with no corresponding map should be saved with a warning.
+    await cursor.execute(f"""
+        INSERT INTO `game_stats`
+            (`id`, `starttime`, `endtime`, `gametype`,
+             `gamemod`, `host`, `mapid`, `gamename`, `validity`)
+        VALUES
+            ({SPECIAL_GAME_MISSING_MAP_ID}, '2001-01-01 00:00:00',
+             '2001-01-01 01:00:00', '0', 1, 1, 11000, "Name of the game", 1)
+    """)
+    # An otherwise valid game must have players
+    await cursor.execute(f"""
+        INSERT INTO `game_player_stats`
+            (`id`, `gameid`, `playerid`, `ai`, `faction`,
+             `color`, `team`, `place`, `mean`, `deviation`)
+        VALUES
+            (NULL, {SPECIAL_GAME_MISSING_MAP_ID}, 1, False, 1,
              1, 1, 1, 0, 0)
     """)
 

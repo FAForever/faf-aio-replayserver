@@ -2,6 +2,7 @@ from os import path
 import json
 import base64
 import zlib
+import zstandard as zstd
 import copy
 import sys
 
@@ -36,11 +37,11 @@ def load_replay(name, header_size):
     return RawReplay(data, header, header_size)
 
 
-def unpack_replay(replay):
-    head, b64_part = replay.split(b'\n', 1)
+# Old format, but with zstd compression and no base64.
+def unpack_replay_format_2(replay):
+    head, zipped_part = replay.split(b'\n', 1)
     head = json.loads(head)
-    zipped_part = base64.b64decode(b64_part)[4:]  # First 4 bytes are data size
-    raw_replay_data = zlib.decompress(zipped_part)
+    raw_replay_data = zstd.ZstdDecompressor().decompress(zipped_part)
     return head, raw_replay_data
 
 
@@ -60,5 +61,5 @@ diverging_1 = [load_replay(f"diverging_1/{i}", 3574) for i in range(6)]
 
 if __name__ == "__main__":
     data = open(sys.argv[1], "rb").read()
-    h, r = unpack_replay(data)
+    h, r = unpack_replay_format_2(data)
     open(sys.argv[2], "wb").write(r)

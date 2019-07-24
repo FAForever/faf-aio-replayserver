@@ -4,7 +4,7 @@ import datetime
 import os
 import stat
 
-from tests.replays import example_replay, unpack_replay
+from tests.replays import example_replay, unpack_replay_format_2
 from replayserver.bookkeeping.storage import ReplayFilePaths, ReplaySaver
 from replayserver.errors import BookkeepingError
 
@@ -88,9 +88,8 @@ def_game_stats = {
     'launched_at': datetime.datetime(2001, 1, 1, 0, 0).timestamp(),
     'game_end': datetime.datetime(2001, 1, 2, 0, 0).timestamp(),
     'title': 'Name of the game',
-    'mapname': 'scmp_1',
-    'map_file_path': 'maps/scmp_1.zip',
-    'num_players': 2
+    'mapname': 'maps/scmp_1.zip',
+    'num_players': 2,
 }
 def_mod_versions = {'1': 1}
 
@@ -123,11 +122,13 @@ async def test_replay_saver_save_replay(standard_saver_args,
     await saver.save_replay(1111, outside_source_stream)
 
     rfile = str(tmpdir.join("replay"))
-    head, rep = unpack_replay(open(rfile, "rb").read())
+    head, rep = unpack_replay_format_2(open(rfile, "rb").read())
     assert type(head) is dict
     assert head['uid'] == 1111
     assert head['teams'] == {"1": ["user1"], "2": ["user2"]}
     assert head['featured_mod_versions'] == def_mod_versions
+    assert head['version'] == 2
+    assert head['compression'] == 'zstd'
     for item in def_game_stats:
         assert head[item] == def_game_stats[item]
     assert rep == example_replay.header_data + b"bar"
@@ -169,5 +170,5 @@ async def test_replay_saver_null_team(standard_saver_args,
     saver = ReplaySaver(*standard_saver_args)
     await saver.save_replay(1111, outside_source_stream)
     rfile = str(tmpdir.join("replay"))
-    head, rep = unpack_replay(open(rfile, "rb").read())
+    head, rep = unpack_replay_format_2(open(rfile, "rb").read())
     assert head["teams"]["null"] == ["SomeGuy"]

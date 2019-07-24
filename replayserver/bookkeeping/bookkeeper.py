@@ -11,7 +11,7 @@ class BookkeeperConfig(config.Config):
         "vault_path": {
             "doc": "Root directory for saved replays.",
             "parser": config.is_dir
-        }
+        },
     }
 
 

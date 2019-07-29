@@ -1,4 +1,5 @@
 aiomysql
+zstandard
 prometheus_client
 everett[yaml]
 faf-replay-parser

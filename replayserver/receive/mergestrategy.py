@@ -52,8 +52,9 @@ class QuorumRole(Enum):
 
 
 class QuorumSets:
-    def __init__(self, sink):
+    def __init__(self, sink, cmp_cutoff):
         self._sink = sink
+        self._cmp_cutoff = cmp_cutoff
         self._s2q = {}
         self.diverged = set()
         self.candidates = set()
@@ -61,7 +62,7 @@ class QuorumSets:
         self.stalemate_candidates = {}
 
     def add_stream(self, stream):
-        qs = QuorumStream(stream, self._sink)
+        qs = QuorumStream(stream, self._sink, self._cmp_cutoff)
         self._s2q[stream] = qs
         self.candidates.add(qs)
 
@@ -106,9 +107,9 @@ class QuorumSets:
 
 
 class QuorumStream:
-    def __init__(self, stream, sink):
+    def __init__(self, stream, sink, cmp_cutoff):
         self.stream = stream
-        self._div = DivergenceTracking(stream, sink)
+        self._div = DivergenceTracking(stream, sink, cmp_cutoff)
         self.role = QuorumRole.CANDIDATE
         self.stalemate_byte = None
         self.ended = False
@@ -127,19 +128,23 @@ class DivergenceTracking:
     compare the same data twice.
     """
 
-    def __init__(self, stream, sink):
+    def __init__(self, stream, sink, cmp_cutoff):
         self._stream = stream
         self._sink = sink
         self.diverges = False
         self._compared_num = 0
+        self._cmp_cutoff = cmp_cutoff
 
     def check_divergence(self):
         if self.diverges:
             return
+
         start = self._compared_num
         end = min(len(self._stream.future_data), len(self._sink.data))
         if start >= end:
             return
+        if self._cmp_cutoff is not None and end - start > self._cmp_cutoff:
+            start = end - self._cmp_cutoff
 
         view1 = self._stream.future_data.view()
         view2 = self._sink.future_data.view()
@@ -202,16 +207,18 @@ class QuorumMergeStrategy(MergeStrategy):
       comments for state changing function below.
     """
 
-    def __init__(self, sink, desired_quorum):
+    def __init__(self, sink, desired_quorum, cmp_cutoff):
         MergeStrategy.__init__(self, sink)
-        self.sets = QuorumSets(sink)
+        self.sets = QuorumSets(sink, cmp_cutoff)
         self._state = QuorumState.STALEMATE
         self._quorum_point = 0
         self._desired_quorum = desired_quorum
+        self._cmp_cutoff = cmp_cutoff
 
     @classmethod
     def build(cls, sink, config):
-        return cls(sink, config.desired_quorum)
+        return cls(sink, config.desired_quorum,
+                   config.stream_comparison_cutoff)
 
     def _should_find_new_quorum_point(self):
         return (self._state == QuorumState.QUORUM and

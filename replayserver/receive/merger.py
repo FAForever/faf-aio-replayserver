@@ -64,11 +64,28 @@ class MergerConfig(config.Config):
     _options = {
         "desired_quorum": {
             "parser": config.positive_int,
-            "doc": ("The number of writers that have to agree on a piece of"
-                    "data before it's sent to readers. HIGHLY recommended to"
-                    "set this to 2. Setting it to 3 or higher might prevent"
+            "doc": ("The number of writers that have to agree on a piece of "
+                    "data before it's sent to readers. HIGHLY recommended to "
+                    "set this to 2. Setting it to 3 or higher might prevent "
                     "cutting a replay short in a marginal number of cases"
                     ", but can cost more time comparing stream data.")
+        },
+        "stream_comparison_cutoff": {
+            "parser": lambda x: None if x == "" else config.positive_int(x),
+            "default": "",
+            "doc": ("Maximum number of bytes used for comparing streams to a "
+                    "merged stream. If set to x, then any streams will only "
+                    "be compared x bytes back.\n\n"
+                    ""
+                    "The merge strategy defers comparing streams between one "
+                    "another until a stream is needed to resolve conflicts. "
+                    "Setting a cutoff prevents the merger from comparing an "
+                    "entire stream to data merged so far. This saves CPU time "
+                    "and a LOT of memory by discarding data beyond cutoff, at "
+                    "a risk of using a diverged stream to merge data.\n\n"
+                    ""
+                    "The above doesn't happen in practice - a diverged replay "
+                    "stays diverged (and ends soon after).")
         }
     }
 

@@ -36,6 +36,7 @@ class MockStream(ConcreteDataMixin, ReplayStream):
 class MockStrategyConfig:
     def __init__(self):
         self.desired_quorum = 2
+        self.stream_comparison_cutoff = None
 
 
 general_test_strats = [QuorumMergeStrategy]
@@ -281,3 +282,43 @@ def test_quorum_strategy_immediate_stalemate_resolve(outside_source_stream):
     strat.new_data(stream2)
     # Now we should've entered a stalemate, then resolved it with stream 3.
     assert outside_source_stream.data.bytes() == b"fooaaa"
+
+
+def test_quorum_strategy_accepts_cutoff(outside_source_stream):
+    config = MockStrategyConfig()
+    config.stream_comparison_cutoff = 4
+    strat = QuorumMergeStrategy.build(outside_source_stream,
+                                      MockStrategyConfig())
+
+    stream1 = MockStream(True)
+    stream2 = MockStream(True)
+    stream3 = MockStream(True)
+    stream1._header = "Header"
+    stream2._header = "Header"
+    stream3._header = "Header"
+    strat.stream_added(stream1)
+    strat.stream_added(stream2)
+    strat.stream_added(stream3)
+
+    # No verification, just check if nothing breaks
+
+    stream1._future_data += b"abcdefg"
+    stream1._data += b"abcdefg"
+    strat.new_data(stream1)
+    stream2._future_data += b"abcdefg"
+    stream2._data += b"abcdefg"
+    strat.new_data(stream2)
+    assert outside_source_stream.data.bytes() == b"abcdefg"
+
+    stream1._future_data += b"h"
+    stream1._data += b"h"
+    stream2._future_data += b"i"
+    stream2._data += b"i"
+    strat.new_data(stream1)
+    strat.new_data(stream2)
+
+    # Check cutoff side effects, just to be sure it's enabled
+    stream3._future_data += b"aaadefgh"
+    stream3._data += b"aaadefgh"
+    strat.new_data(stream3)
+    assert outside_source_stream.data.bytes() == b"abcdefgh"

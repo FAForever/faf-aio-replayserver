@@ -29,8 +29,8 @@ class MockStream(ConcreteDataMixin, ReplayStream):
     def _future_data_bytes(self):
         return self._maybe_future_data()
 
-    def _future_data_view(self):
-        return memoryview(self._maybe_future_data())
+    def _future_data_view(self, start, end):
+        return memoryview(self._maybe_future_data())[slice(start, end, None)]
 
 
 class MockStrategyConfig:

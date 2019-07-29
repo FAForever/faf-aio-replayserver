@@ -23,20 +23,22 @@ class Replays:
         await replay.handle_connection(header, connection)
 
     def _get_matching_replay(self, header):
-        if not self._can_add_to_replay(header):
+        can_add, reason = self._can_add_to_replay(header)
+        if not can_add:
             raise CannotAcceptConnectionError(
-                "Cannot add connection to a replay")
+                "Cannot add connection to replay: {reason}")
         if header.game_id not in self._replays:
             self._create(header.game_id)
         return self._replays[header.game_id]
 
+    # 'Either Foo String' style errors, exceptions are unwieldy :)
     def _can_add_to_replay(self, header):
         if self._closing:
-            return False
+            return (False, "Replay is closing")
         if (header.type == ConnectionHeader.Type.READER
                 and header.game_id not in self._replays):
-            return False
-        return True
+            return (False, "Reader asked for game {header.game_id}, which does not exist")
+        return (True, "")
 
     def _create(self, game_id):
         replay = self._replay_builder(game_id)

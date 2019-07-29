@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from replayserver.server.connection import ConnectionHeader
 from replayserver.send.sender import Sender
 from replayserver.receive.merger import Merger, MergerConfig, DelayConfig
-from replayserver.receive.offlinemerger import OfflineReplayMerger
 from replayserver.errors import MalformedDataError
 from replayserver.logging import logger
 from replayserver import config
@@ -31,11 +30,9 @@ class ReplayConfig(config.Config):
 
 
 class Replay:
-    def __init__(self, merger, sender, offline_merger, bookkeeper, config,
-                 game_id):
+    def __init__(self, merger, sender, bookkeeper, config, game_id):
         self.merger = merger
         self.sender = sender
-        self.offline_merger = offline_merger
         self.bookkeeper = bookkeeper
         self._game_id = game_id
         self._connections = set()
@@ -50,8 +47,7 @@ class Replay:
     def build(cls, game_id, bookkeeper, config):
         merger = Merger.build(config.merge, config.delay)
         sender = Sender.build(merger.canonical_stream)
-        offline_merger = OfflineReplayMerger.build()
-        return cls(merger, sender, offline_merger, bookkeeper, config, game_id)
+        return cls(merger, sender, bookkeeper, config, game_id)
 
     @contextmanager
     def _track_connection(self, connection):
@@ -66,8 +62,7 @@ class Replay:
     async def handle_connection(self, header, connection):
         with self._track_connection(connection):
             if header.type == ConnectionHeader.Type.WRITER:
-                replay = await self.merger.handle_connection(connection)
-                self.offline_merger.add_replay(replay)
+                await self.merger.handle_connection(connection)
             elif header.type == ConnectionHeader.Type.READER:
                 await self.sender.handle_connection(connection)
             else:
@@ -89,17 +84,11 @@ class Replay:
         self.merger.stop_accepting_connections()
         self.sender.stop_accepting_connections()
 
-    async def _save_replay(self):
-        best_replay = self.offline_merger.get_best_replay()
-        if best_replay is None:
-            logger.info(f"No writers for {self} had data, not saving replay")
-        else:
-            await self.bookkeeper.save_replay(self._game_id, best_replay)
-
     async def _lifetime(self):
         await self.merger.wait_for_ended()
         logger.debug(f"{self} write phase ended")
-        await self._save_replay()
+        await self.bookkeeper.save_replay(self._game_id,
+                                          self.merger.canonical_stream)
         await self.sender.wait_for_ended()
         for coro in self._lifetime_coroutines:
             coro.cancel()

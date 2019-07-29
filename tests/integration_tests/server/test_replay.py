@@ -53,7 +53,7 @@ async def test_replay_diverging_replay(event_loop, mock_bookkeeper,
     w_work = [r.handle_connection(read_head, read_conn)]
 
     # Version 5 is the best for this replay.
-    # The offline-merged replay should be replay 5.
+    # The merged replay should be replay 5.
     def check_saved(_, s):
         assert s.header.data + s.data.bytes() == diverging_1[5].data
 

@@ -1,5 +1,5 @@
 from enum import Enum
-from replayserver.receive.offlinemerger import memprefix
+from replayserver.receive.memprefix import memprefix
 
 
 class MergeStrategy:

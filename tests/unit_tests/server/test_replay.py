@@ -55,21 +55,8 @@ def mock_sender(blockable_coroutines):
 
 
 @pytest.fixture
-def mock_offline_merger(mocker):
-    class M:
-        def add_replay():
-            pass
-
-        def get_best_replay():
-            pass
-
-    return mocker.Mock(spec=M)
-
-
-@pytest.fixture
-def replay_deps(mock_merger, mock_sender, mock_offline_merger,
-                mock_bookkeeper):
-    return (mock_merger, mock_sender, mock_offline_merger, mock_bookkeeper)
+def replay_deps(mock_merger, mock_sender, mock_bookkeeper):
+    return (mock_merger, mock_sender, mock_bookkeeper)
 
 
 class MockReplayConfig:
@@ -83,7 +70,7 @@ class MockReplayConfig:
 @timeout(30)
 async def test_replay_closes_after_timeout(
         event_loop, replay_deps, mock_conn_plus_head):
-    mock_merger, mock_sender, _, _ = replay_deps
+    mock_merger, mock_sender, _ = replay_deps
     conf = MockReplayConfig(15, 100)
     replay = Replay(*replay_deps, conf, 1)
     mock_merger.stop_accepting_connections.assert_not_called()
@@ -109,7 +96,7 @@ async def test_replay_closes_after_timeout(
 @fast_forward_time(1, 40)
 @timeout(30)
 async def test_replay_ending_cancels_timeouts(event_loop, replay_deps):
-    mock_merger, mock_sender, _, _ = replay_deps
+    mock_merger, mock_sender, _ = replay_deps
     conf = MockReplayConfig(15, 100)
     replay = Replay(*replay_deps, conf, 1)
     exhaust_callbacks(event_loop)
@@ -140,7 +127,7 @@ async def test_replay_ending_cancels_timeouts(event_loop, replay_deps):
 @timeout(30)
 async def test_replay_timeouts_while_ending_dont_explode(
         event_loop, replay_deps):
-    mock_merger, mock_sender, _, _ = replay_deps
+    mock_merger, mock_sender, _ = replay_deps
     conf = MockReplayConfig(15, 100)
     replay = Replay(*replay_deps, conf, 1)
     exhaust_callbacks(event_loop)
@@ -164,7 +151,7 @@ async def test_replay_timeouts_while_ending_dont_explode(
 @timeout(30)
 async def test_replay_forwarding_connections(event_loop, replay_deps,
                                              mock_conn_plus_head):
-    mock_merger, mock_sender, _, _ = replay_deps
+    mock_merger, mock_sender, _ = replay_deps
     reader = mock_conn_plus_head(ConnectionHeader.Type.READER, 1)
     writer = mock_conn_plus_head(ConnectionHeader.Type.WRITER, 1)
     invalid = mock_conn_plus_head(17, 1)
@@ -198,12 +185,10 @@ async def test_replay_forwarding_connections(event_loop, replay_deps,
 @timeout(1)
 async def test_replay_keeps_proper_event_order(
         event_loop, mocker, replay_deps):
-    merger, sender, offline_merger, bookkeeper = replay_deps
-    mock_best_replay = mocker.Mock()
-    offline_merger.get_best_replay.return_value = mock_best_replay
+    merger, sender, bookkeeper = replay_deps
 
     async def bookkeeper_check(game_id, stream):
-        assert stream is mock_best_replay
+        assert stream is merger.canonical_stream
         # Merging has to end before bookkeeping starts
         merger.wait_for_ended.assert_awaited()
         # We shall not wait for stream sending to end before bookkeeping

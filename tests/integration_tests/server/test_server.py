@@ -315,7 +315,7 @@ async def test_server_reader_is_delayed(mock_database, tmpdir,
 
 @skip_stress_test
 @pytest.mark.asyncio
-@timeout(10)
+@timeout(30)
 async def test_server_stress_test(mock_database, tmpdir,
                                   unused_tcp_port_factory):
     s_port, p_port = [unused_tcp_port_factory() for i in range(2)]
@@ -334,20 +334,20 @@ async def test_server_stress_test(mock_database, tmpdir,
 
     async def do_write(r, w, i):
         w.write(f"P/{i}/foo\0".encode())
-        for pos in range(0, len(example_replay.data), 4000):
-            w.write(example_replay.data[pos:pos + 4000])
+        for pos in range(0, len(example_replay.data), 40):
+            w.write(example_replay.data[pos:pos + 40])
             await w.drain()
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.01)
         w.close()
 
     async def do_read(r, w, i):
         w.write(f"G/{i}/foo\0".encode())
         while True:
-            b = await r.read(4000)
+            b = await r.read(40)
             if not b:
                 break
 
-    for i in range(1, 50):
+    for i in range(1, 5):
         for _ in range(5):
             r, w = await asyncio.open_connection('127.0.0.1', s_port)
             asyncio.ensure_future(do_write(r, w, i))

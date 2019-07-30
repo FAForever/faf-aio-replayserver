@@ -35,7 +35,8 @@ config_dict = {
             "update_interval": 0.1,
         },
         "merge": {
-            "desired_quorum": 2
+            "desired_quorum": 2,
+            "stream_comparison_cutoff": 1024,
         }
     },
 }
@@ -83,7 +84,7 @@ def remove_each_key(d):
             del d[k]
 
         def will_act(self, d, k):
-            return True
+            return k not in ["stream_comparison_cutoff"]
 
         def recurse(self, k):
             return self
@@ -145,12 +146,8 @@ def test_server_bad_config(tmpdir):
                 "update_interval": "0",
             },
             "merge": {
-                "strategy": "DEFINITELY_NONEXISTENT",
-                "strategy_config": {
-                    "follow_stream": {
-                        "stall_check_period": "0"
-                    }
-                }
+                "desired_quorum": -10,
+                "stream_comparison_cutoff": -10,
             }
         },
     }

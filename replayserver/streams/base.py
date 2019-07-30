@@ -223,10 +223,11 @@ class ConcreteDataMixin:
         self._discarded_data = until
 
     def _data_view(self, start, end):
-        if start is None and self._discarded_data > 0:
-            raise IndexError
-        else:
-            start = 0
+        if start is None:
+            if self._discarded_data > 0:
+                raise IndexError
+            else:
+                start = 0
         if end is None:
             end = self._data_length()
 

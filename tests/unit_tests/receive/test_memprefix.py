@@ -10,6 +10,8 @@ def test_memprefix_sanity_check():
     b2 = b"1" * 14
     assert memprefix(b1, b2) == 10
 
-    b1 = b"1" * 5 + b"2" * 5
-    b2 = b"0" * 7 + b"2" * 3
-    assert memprefix(b1, b2, start=7) == 10
+    b1 = b"1" * 5 + b"2" * 2
+    b2 = b"1" * 7
+    assert memprefix(b1, b2, end=4) == 4
+    assert memprefix(b1, b2, end=5) == 5
+    assert memprefix(b1, b2, end=6) == 5

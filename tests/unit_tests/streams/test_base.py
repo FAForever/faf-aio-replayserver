@@ -129,3 +129,21 @@ async def test_outside_source_stream_wait_until_position(event_loop):
     assert not f.done()
     stream.feed_data(b"ccc")
     assert await f == b"ccc"
+
+
+def test_outside_source_stream_discard():
+    stream = OutsideSourceReplayStream()
+    stream.set_header("header")
+    stream.feed_data(b"abcdefgh")
+    stream.discard(2)
+
+    with pytest.raises(ValueError):
+        stream.data.bytes()
+    assert stream.data[2:] == b"cdefgh"
+    assert stream.data[-2:-1] == b"g"
+    assert stream.data[3] == 100
+    assert len(stream.data) == 8
+
+    v = stream.data.view(2)
+    assert v == b"cdefgh"
+    v.release()

@@ -146,9 +146,9 @@ class DivergenceTracking:
         if self._cmp_cutoff is not None and end - start > self._cmp_cutoff:
             start = end - self._cmp_cutoff
 
-        view1 = self._stream.future_data.view()
-        view2 = self._sink.future_data.view()
-        self.diverges = view1[start:end] != view2[start:end]
+        view1 = self._stream.future_data.view(start, end)
+        view2 = self._sink.future_data.view(start, end)
+        self.diverges = view1 != view2
         self._compared_num = end
         view1.release()
         view2.release()
@@ -199,8 +199,8 @@ class QuorumMergeStrategy(MergeStrategy):
       - For QUORUM, quorum point being equal to sink stream length,
       - For STALEMATE, existence of eligible candidate, that is:
         - At least one stalemate candidate set exists,
-        - Either there are no candidates or at least one stalemate candidat has
-          size of a desired quorum.
+        - Either there are no candidates or at least one stalemate candidate
+          has size of a desired quorum.
       Any time we reach a state boundary, we have work to do - either calculate
       the new quorum point, or resolve the stalemate. In particular, we are
       never on a state boundary between calls. We will never loop, either, see
@@ -330,19 +330,21 @@ class QuorumMergeStrategy(MergeStrategy):
     def _get_new_quorum_point(self):
         shortest_quorum = min(self.sets.quorum,
                               key=lambda x: len(x.stream.future_data))
-        sq_view = shortest_quorum.stream.future_data.view()
         old_point = self._quorum_point
-        new_point = len(sq_view)
+        max_dist = len(shortest_quorum.stream.future_data)
+        best_common = max_dist - self._quorum_point
+
+        sq_view = shortest_quorum.stream.future_data.view(start=old_point)
         for qs in self.sets.quorum:
             if qs is shortest_quorum:
                 continue
-            if new_point == self._quorum_point:
+            if best_common == 0:
                 break
-            qs_view = qs.stream.future_data.view()
-            new_point = memprefix(sq_view, qs_view, old_point, new_point)
+            qs_view = qs.stream.future_data.view(start=old_point)
+            best_common = memprefix(sq_view, qs_view, best_common)
             qs_view.release()
         sq_view.release()
-        return new_point
+        return old_point + best_common
 
     def _fill_up_quorum(self):
         for qs in self.sets.candidates.copy():
@@ -401,6 +403,16 @@ class QuorumMergeStrategy(MergeStrategy):
     def _candidate_has_enough_data(self, qs):
         return len(qs.stream.future_data) > len(self.sink_stream.data)
 
+    def _trim_stream(self, qs):
+        if self._cmp_cutoff is None:
+            return
+        if qs.diverges:
+            discard_size = len(qs.stream.data)
+        else:
+            stream_cutoff = len(qs.stream.data) - self._cmp_cutoff
+            discard_size = min(self._quorum_point, stream_cutoff)
+        qs.stream.discard(discard_size)
+
     def stream_added(self, stream):
         self.sets.add_stream(stream)
 
@@ -419,6 +431,7 @@ class QuorumMergeStrategy(MergeStrategy):
 
     def new_data(self, stream):
         qs = self.sets.get_qs(stream)
+        self._trim_stream(qs)
         if self._state is QuorumState.QUORUM:
             if qs.role is not QuorumRole.QUORUM:
                 return

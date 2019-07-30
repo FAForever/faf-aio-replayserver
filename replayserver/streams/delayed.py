@@ -79,7 +79,8 @@ class DelayedReplayStream(ReplayStream):
             return self._stream.data[:self._current_position]
 
     def _data_view(self, start, end):
-        return self._stream.data.view(start, end)[:self._current_position]
+        cutoff = self._current_position - start
+        return self._stream.data.view(start, end)[:cutoff]
 
     def _future_data_length(self):
         return len(self._stream.future_data)

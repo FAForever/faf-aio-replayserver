@@ -16,19 +16,14 @@ before_script:
   - sudo service mysql stop     # For some reason conflicts with faf-db
   - git clone https://github.com/FAForever/faf-stack.git faf-stack
       && pushd faf-stack
+      && git checkout v19.7.13
       && cp -r config.template config
       && popd
-  - docker-compose -f faf-stack/docker-compose.yml up -d faf-db
-  - export FAF_STACK_DB_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -q -f "name=faf-db"))
-  - while ! docker exec -it faf-db sh -c "mysqladmin ping -h 127.0.0.1 -uroot -pbanana" &> /dev/null ; do
-      echo -n ".";
-      sleep 1;
-    done
-  - docker-compose -f faf-stack/docker-compose.yml run faf-db-migrations migrate
-  - python3 tests/db_setup.py
+  - pushd faf-stack && docker network create outside && ./scripts/init-db.sh && popd
+  - env FAF_STACK_DB_IP=127.0.0.1 python3 tests/db_setup.py
 
 script:
-  - python3 -m pytest -v --cov replayserver
+  - env FAF_STACK_DB_IP=127.0.0.1 python3 -m pytest -v --cov replayserver
   - sphinx-build -b text doc _docbuild
   - python3 setup.py bdist
 

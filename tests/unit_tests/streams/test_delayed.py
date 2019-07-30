@@ -152,3 +152,27 @@ async def test_delayed_stream_data_methods(outside_source_stream,
 
     mock_timestamp._end_stamps()
     await exhaust_callbacks(event_loop)
+
+
+@pytest.mark.asyncio
+@timeout(0.1)
+async def test_delayed_stream_discard(outside_source_stream,
+                                      mock_timestamp,
+                                      event_loop):
+    stream = DelayedReplayStream(outside_source_stream, mock_timestamp)
+    outside_source_stream.set_header("header")
+    outside_source_stream.feed_data(b"abcdefgh")
+    mock_timestamp._next_stamp(6)
+    stream.discard(2)
+    await exhaust_callbacks(event_loop)
+
+    with pytest.raises(IndexError):
+        stream.data.bytes()
+    assert stream.data[2:] == b"cdef"
+    assert stream.data[-2:-1] == b"e"
+    assert stream.data[3] == 100
+    assert len(stream.data) == 6
+
+    v = stream.data.view(2)
+    assert v == b"cdef"
+    v.release()

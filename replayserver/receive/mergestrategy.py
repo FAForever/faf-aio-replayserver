@@ -116,10 +116,14 @@ class QuorumStream:
 
     @property
     def diverges(self):
-        return self._div.diverges
+        # If we were explicitly set as diverged, then don't check
+        return self.role is QuorumRole.DIVERGED or self._div.diverges
 
     def check_divergence(self):
-        self._div.check_divergence()
+        self._div.check_divergence(self.ended)
+
+    def set_as_matching(self, c):
+        self._div.set_as_matching(c)
 
 
 class DivergenceTracking:
@@ -135,16 +139,24 @@ class DivergenceTracking:
         self._compared_num = 0
         self._cmp_cutoff = cmp_cutoff
 
-    def check_divergence(self):
+    def check_divergence(self, ended):
         if self.diverges:
             return
 
+        stream_len = len(self._stream.future_data)
+        sink_len = len(self._sink.data)
+
+        if ended and stream_len <= sink_len:
+            self.diverges = True
+            return
+
         start = self._compared_num
-        end = min(len(self._stream.future_data), len(self._sink.data))
+        if self._cmp_cutoff is not None:
+            max_cmp = stream_len - self._cmp_cutoff
+            start = max(start, max_cmp)
+        end = min(stream_len, sink_len)
         if start >= end:
             return
-        if self._cmp_cutoff is not None and end - start > self._cmp_cutoff:
-            start = end - self._cmp_cutoff
 
         view1 = self._stream.future_data.view(start, end)
         view2 = self._sink.future_data.view(start, end)
@@ -152,6 +164,9 @@ class DivergenceTracking:
         self._compared_num = end
         view1.release()
         view2.release()
+
+    def set_as_matching(self, c):
+        self._compared_num = max(self._compared_num, c)
 
 
 class QuorumMergeStrategy(MergeStrategy):
@@ -193,6 +208,7 @@ class QuorumMergeStrategy(MergeStrategy):
     - For both between calls, we observe:
       - Each diverged stream either has no more data than sink stream and
         ended, or does not agree with it.
+      - A stream is not checked for divergence if it has less data than sink.
 
     - The strategy can transition between states only on boundaries. These
       boundaries are, respectively:
@@ -205,6 +221,15 @@ class QuorumMergeStrategy(MergeStrategy):
       the new quorum point, or resolve the stalemate. In particular, we are
       never on a state boundary between calls. We will never loop, either, see
       comments for state changing function below.
+
+    Stream data discarding rules:
+    - The moment a stream is found to diverge, all its data is discarded and
+      must never be accessed again.
+    - We never need data that was verified to match sink.
+    - For quorum streams, we never need data past current sink length.
+    If comparison cutoff 'c' is set:
+    - For a cutoff point 'p', data from non-quorum streams is discarded until
+      p - c. We never need to access that data for future comparison.
     """
 
     def __init__(self, sink, desired_quorum, cmp_cutoff):
@@ -313,6 +338,8 @@ class QuorumMergeStrategy(MergeStrategy):
             self._begin_stalemate()
             return
         self._quorum_point = new_quorum_point
+        self._trim_streams_with_quorum()
+        self._mark_quorum_as_matching()
         self._send_new_quorum_data()
 
     def _sufficient_quorum(self):
@@ -392,26 +419,28 @@ class QuorumMergeStrategy(MergeStrategy):
         # Should only be needed at stalemate or when finding new quorum point
         assert len(self.sink_stream.data) == self._quorum_point
 
-        if not self._candidate_has_enough_data(qs):
-            if qs.ended:
-                self.sets.make_qs_diverged(qs)
+        if not self._candidate_has_enough_data(qs) and not qs.ended:
             return
         qs.check_divergence()
         if qs.diverges:
             self.sets.make_qs_diverged(qs)
+            qs.stream.discard(100 * 1000 * 1000)
+        else:
+            qs.stream.discard(len(self.sink_stream.data))
 
     def _candidate_has_enough_data(self, qs):
         return len(qs.stream.future_data) > len(self.sink_stream.data)
 
-    def _trim_stream(self, qs):
+    def _trim_streams_with_quorum(self):
         if self._cmp_cutoff is None:
             return
-        if qs.diverges:
-            discard_size = len(qs.stream.data)
-        else:
-            stream_cutoff = len(qs.stream.data) - self._cmp_cutoff
-            discard_size = min(self._quorum_point, stream_cutoff)
-        qs.stream.discard(discard_size)
+        discard_size = self._quorum_point - self._cmp_cutoff
+        for qs in self.sets.candidates:
+            qs.stream.discard(discard_size)
+
+    def _mark_quorum_as_matching(self):
+        for qs in self.sets.quorum:
+            qs.set_as_matching(self._quorum_point)
 
     def stream_added(self, stream):
         self.sets.add_stream(stream)
@@ -431,7 +460,6 @@ class QuorumMergeStrategy(MergeStrategy):
 
     def new_data(self, stream):
         qs = self.sets.get_qs(stream)
-        self._trim_stream(qs)
         if self._state is QuorumState.QUORUM:
             if qs.role is not QuorumRole.QUORUM:
                 return
@@ -446,7 +474,10 @@ class QuorumMergeStrategy(MergeStrategy):
     def _add_quorum_data(self, qs):
         send_from = len(self.sink_stream.data)
         send_to = min(len(qs.stream.data), self._quorum_point)
+        if send_to <= send_from:
+            return
         self.sink_stream.feed_data(qs.stream.data[send_from:send_to])
+        qs.stream.discard(send_to)
 
     def finalize(self):
         # All streams sent all their data, so we must have sent everything up

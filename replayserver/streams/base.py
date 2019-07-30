@@ -61,8 +61,8 @@ class ReplayStream:
       IndexError.
     * Slicing and calling memoryiew with start out of range can cut off data.
     * len() is not affected by discarding bytes.
-    * You can discard data until length of 'future_data', beyond length of
-      'data'. Discarding beyond that is an error.
+    * You can discard data of any length. If you discard more data than you
+      have, extra data won't be added until you reach that length.
     """
 
     def __init__(self):
@@ -153,7 +153,12 @@ class ReplayStream:
         while position >= len(self.data) and not self.ended():
             await self._new_data_or_ended.wait()
         if position < len(self.data):
-            return self.data[position:]
+            # FIXME - horrible hack! DON'T DO IT THIS WAY!
+            try:
+                data = self.data[position:]
+            except IndexError:
+                data = b"\0" * (len(self.data) - position)
+            return data
         else:
             return b""
 
@@ -173,13 +178,21 @@ class ConcreteDataMixin:
         self._header = None
         self._data = bytearray()
         self._discarded_data = 0
+        self._len = 0
+
+    def _add_data(self, data):
+        if self._discarded_data <= self._len:
+            self._data += data
+        else:
+            self._data += data[self._discarded_data - self._len:]
+        self._len += len(data)
 
     @property
     def header(self):
         return self._header
 
     def _data_length(self):
-        return self._discarded_data + len(self._data)
+        return self._len
 
     def _data_slice(self, s):
         if isinstance(s, slice):
@@ -208,7 +221,7 @@ class ConcreteDataMixin:
 
     def _data_bytes(self):
         if self._discarded_data > 0:
-            raise ValueError
+            raise IndexError
         return self._data
 
     def discard(self, until):
@@ -216,8 +229,6 @@ class ConcreteDataMixin:
             return
 
         diff = until - self._discarded_data
-        if diff > len(self._data):
-            raise IndexError
 
         del self._data[:diff]
         self._discarded_data = until
@@ -248,7 +259,7 @@ class OutsideSourceReplayStream(ConcreteDataMixin, ReplayStream):
         self._header_available()
 
     def feed_data(self, data):
-        self._data += data
+        self._add_data(data)
         self._data_available()
 
     def finish(self):

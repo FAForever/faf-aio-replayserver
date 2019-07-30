@@ -33,7 +33,7 @@ def test_concrete_mixin():
             ReplayStream.__init__(self)
 
     s = TestConcreteDataMixinStream()
-    s._data += b"abc"
+    s._add_data(b"abc")
     s._header = "Thing"
     assert len(s.data) == 3
     assert s.data.bytes() == b"abc"
@@ -137,12 +137,16 @@ def test_outside_source_stream_discard():
     stream.feed_data(b"abcdefgh")
     stream.discard(2)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(IndexError):
         stream.data.bytes()
     assert stream.data[2:] == b"cdefgh"
+    assert stream.future_data[2:] == b"cdefgh"
     assert stream.data[-2:-1] == b"g"
+    assert stream.future_data[-2:-1] == b"g"
     assert stream.data[3] == 100
+    assert stream.future_data[3] == 100
     assert len(stream.data) == 8
+    assert len(stream.future_data) == 8
 
     v = stream.data.view(2)
     assert v == b"cdefgh"

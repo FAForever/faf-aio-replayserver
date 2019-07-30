@@ -182,15 +182,15 @@ class QuorumMergeStrategy(MergeStrategy):
     - When in a QUORUM state, we calculate the furthest point at which all
       quorum streams agree, using their future data (e.g. 5 minutes into the
       future). We call this the quorum point. If that point lets us send more
-      data, we do that until we reach the quorum point again and have to
-      recalculate it. Otherwise we enter a STALEMATE.
+      data, we do that until we reach the quorum point again. Once we reach it,
+      we enter a STALEMATE.
     - In a STALEMATE, we divide the quorum based on their next byte, discarding
       those that don't have a next byte. Then we look for tie breakers among
-      other streams we have until some stream group has is large enough to be
-      the new quorum. If some streams didn't reach the quorum point yet, we
-      wait for them. If there are no more streams, we give up and pick
-      whichever group is best - unless there are no groups at all, in which
-      case we just wait.
+      other streams we have until some stream group is large enough to be the
+      new quorum. If some streams didn't reach the quorum point yet, we wait
+      for them. If there are no more streams, we give up and pick whichever
+      group is best - unless there are no groups at all, in which case we just
+      wait.
 
     Invariants:
     - If we are in a STALEMATE state between calls, we observe:
@@ -217,10 +217,10 @@ class QuorumMergeStrategy(MergeStrategy):
         - At least one stalemate candidate set exists,
         - Either there are no candidates or at least one stalemate candidate
           has size of a desired quorum.
-      Any time we reach a state boundary, we have work to do - either calculate
-      the new quorum point, or resolve the stalemate. In particular, we are
-      never on a state boundary between calls. We will never loop, either, see
-      comments for state changing function below.
+      Any time we reach a state boundary, we have work to do - either enter or
+      resolve the stalemate. In particular, we are never on a state boundary
+      between calls. We will never loop, either, see comments for state
+      changing function below.
 
     Stream data discarding rules:
     - The moment a stream is found to diverge, all its data is discarded and
@@ -245,7 +245,7 @@ class QuorumMergeStrategy(MergeStrategy):
         return cls(sink, config.desired_quorum,
                    config.stream_comparison_cutoff)
 
-    def _should_find_new_quorum_point(self):
+    def _quorum_point_reached(self):
         return (self._state == QuorumState.QUORUM and
                 len(self.sink_stream.data) >= self._quorum_point)
 
@@ -273,19 +273,19 @@ class QuorumMergeStrategy(MergeStrategy):
         """
         Check if we have work to do. That is:
         - In QUORUM state when we reached the quorum point and should find a
-          new one (results in keeping the quorum or starting a stalemate),
+          new one (results in starting a stalemate, picking old quorum as
+          candidates first),
         - In STALEMATE state when we can resolve the stalemate.
 
         Note that:
-        - If we should find a new quorum point, then either we get at least one
-          extra byte, or we transition into STALEMATE.
+        - If we should find a new quorum point, we transition into STALEMATE.
         - If we can resolve the stalemate, then we will get at least one extra
           byte and transition into QUORUM.
         Therefore, as long as we do work, we will always find extra data to
         send, so at some point we will stop working.
         """
-        if self._should_find_new_quorum_point():
-            self._find_new_quorum_point()
+        if self._quorum_point_reached():
+            self._begin_stalemate()
             return True
         elif self._can_resolve_stalemate():
             self._resolve_stalemate()
@@ -293,10 +293,16 @@ class QuorumMergeStrategy(MergeStrategy):
         return False
 
     def _resolve_stalemate(self):
+        self._prepare_new_quorum()
+        assert len(self.sets.quorum) <= self._desired_quorum
+        self._state = QuorumState.QUORUM
+        self._find_new_quorum_point()
+
+    def _prepare_new_quorum(self):
         quorum_byte = self._get_best_stalemate_candidates()
         cands = self.sets.stalemate_candidates
         quorum = cands[quorum_byte].copy()
-        rest = {s for alt in cands.values() for s in alt}
+        rest = {s for b, alt in cands.items() for s in alt if b != quorum_byte}
         for qs in rest:
             self.sets.make_qs_diverged(qs)
         for qs in quorum:
@@ -304,16 +310,9 @@ class QuorumMergeStrategy(MergeStrategy):
                 self.sets.make_qs_quorum(qs)
             else:
                 self.sets.make_qs_candidate(qs)
-        self._state = QuorumState.QUORUM
-        # Make sure we work on the new quorum
-        assert len(self.sink_stream.data) == self._quorum_point
-        assert len(self.sets.quorum) <= self._desired_quorum
 
     def _get_best_stalemate_candidates(self):
         cands = self.sets.stalemate_candidates
-        for byte, cand in cands.items():
-            if len(cand) >= self._desired_quorum:
-                return byte
 
         def cand_rank(byte):
             cand = cands[byte]
@@ -323,33 +322,13 @@ class QuorumMergeStrategy(MergeStrategy):
 
     def _find_new_quorum_point(self):
         assert len(self.sink_stream.data) == self._quorum_point
-
-        for qs in self.sets.quorum.copy():
-            if len(qs.stream.future_data) <= len(self.sink_stream.data):
-                self.sets.make_qs_candidate(qs)
-
-        if not self._sufficient_quorum():
-            self._begin_stalemate()
-            return
-
-        new_quorum_point = self._get_new_quorum_point()
-        if new_quorum_point <= len(self.sink_stream.data):
-            self._begin_stalemate()
-            return
-        self._quorum_point = new_quorum_point
+        # Assert that quorum is correct.
+        old_quorum = self._quorum_point
+        self._quorum_point = self._get_new_quorum_point()
+        assert self._quorum_point > old_quorum
         self._trim_streams_with_quorum()
         self._mark_quorum_as_matching()
         self._send_new_quorum_data()
-
-    def _sufficient_quorum(self):
-        # If there's no one in the quorum, we must find a new one.
-        if not self.sets.quorum:
-            return False
-        # If there are no more candidates, accept what we have.
-        if not self.sets.candidates:
-            return True
-        # Otherwise, wait if the quorum is too small.
-        return len(self.sets.quorum) >= self._desired_quorum
 
     # We might compare data multiple times here sometimes, but it'll never
     # happen if quorum size <= 2.
@@ -358,7 +337,7 @@ class QuorumMergeStrategy(MergeStrategy):
                               key=lambda x: len(x.stream.future_data))
         old_point = self._quorum_point
         max_dist = len(shortest_quorum.stream.future_data)
-        best_common = max_dist - self._quorum_point
+        best_common = max_dist - old_point
 
         sq_view = shortest_quorum.stream.future_data.view(start=old_point)
         for qs in self.sets.quorum:
@@ -373,12 +352,15 @@ class QuorumMergeStrategy(MergeStrategy):
         return old_point + best_common
 
     def _begin_stalemate(self):
-        for qs in self.sets.quorum.copy():
-            data = qs.stream.future_data
-            assert len(data) > self._quorum_point
-            self.sets.make_qs_stalemate_candidate(qs, data[self._quorum_point])
+        old_quorum = self.sets.quorum.copy()
+        for qs in old_quorum:
+            self.sets.make_qs_candidate(qs)
+
         self._state = QuorumState.STALEMATE
 
+        # Check old quorum first.
+        for qs in old_quorum:
+            self._vet_for_stalemate(qs)
         for qs in self.sets.candidates.copy():
             if self._can_resolve_stalemate():
                 break

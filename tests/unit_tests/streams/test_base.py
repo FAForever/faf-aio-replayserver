@@ -53,7 +53,7 @@ async def test_outside_source_stream_immediate_end(event_loop):
     stream.finish()
 
     assert await f1 is None
-    assert await f2 == b""
+    assert await f2 == 0
     assert stream.header is None
     assert stream.data.bytes() == b""
     await f3
@@ -84,7 +84,7 @@ async def test_outside_source_stream_read(event_loop):
     await exhaust_callbacks(event_loop)
     assert not f.done()
     stream.feed_data(b"Lorem")
-    assert await f == b"Lorem"
+    assert await f == 5
     assert stream.data.bytes() == b"Lorem"
 
     stream.finish()
@@ -100,7 +100,7 @@ async def test_outside_source_stream_immediate_data():
     stream.set_header("header")
     stream.feed_data(b"Lorem")
     assert await f1 == "header"
-    assert await f2 == b"Lorem"
+    assert await f2 == 5
     assert stream.header == "header"
     assert stream.data.bytes() == b"Lorem"
 
@@ -128,7 +128,8 @@ async def test_outside_source_stream_wait_until_position(event_loop):
     exhaust_callbacks(event_loop)
     assert not f.done()
     stream.feed_data(b"ccc")
-    assert await f == b"ccc"
+    assert await f == 3
+    assert stream.data[3:6] == b"ccc"
 
 
 def test_outside_source_stream_discard():

@@ -126,7 +126,7 @@ async def test_stamps_ending_end_stream(outside_source_stream, mock_timestamp,
     await exhaust_callbacks(event_loop)
     assert stream.ended()
     d = await stream.wait_for_data(5)
-    assert d == b""
+    assert d == 0
 
     mock_timestamp._end_stamps()
     await exhaust_callbacks(event_loop)

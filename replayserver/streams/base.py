@@ -147,20 +147,16 @@ class ReplayStream:
 
     async def wait_for_data(self, position):
         """
-        Wait until there is data after specified position. Return the new data,
-        or bytes() if the stream ended and there is no data past position.
+        Wait until there is data after specified position. Return the number of
+        bytes available, or 0 if the stream ended and there is no data past
+        position.
         """
         while position >= len(self.data) and not self.ended():
             await self._new_data_or_ended.wait()
         if position < len(self.data):
-            # FIXME - horrible hack! DON'T DO IT THIS WAY!
-            try:
-                data = self.data[position:]
-            except IndexError:
-                data = b"\0" * (len(self.data) - position)
-            return data
+            return len(self.data) - position
         else:
-            return b""
+            return 0
 
     def ended(self):
         """

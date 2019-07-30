@@ -30,9 +30,9 @@ class MergeStrategy:
             self.new_header(stream)
         position = 0
         while True:
-            data = await stream.wait_for_data(position)
-            position += len(data)
-            if data != b"":
+            dlen = await stream.wait_for_data(position)
+            position += dlen
+            if dlen != 0:
                 self.new_data(stream)
             else:
                 break

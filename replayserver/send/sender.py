@@ -23,10 +23,11 @@ class ReplayStreamWriter:
     async def _write_replay(self, connection):
         position = 0
         while True:
-            data = await self._stream.wait_for_data(position)
-            if not data:
+            dlen = await self._stream.wait_for_data(position)
+            if dlen == 0:
                 break
-            position += len(data)
+            data = self._stream.data[position:position+dlen]
+            position += dlen
             conn_open = await connection.write(data)
             if not conn_open:
                 break

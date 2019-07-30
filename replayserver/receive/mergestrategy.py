@@ -328,7 +328,6 @@ class QuorumMergeStrategy(MergeStrategy):
             if len(qs.stream.future_data) <= len(self.sink_stream.data):
                 self.sets.make_qs_candidate(qs)
 
-        self._fill_up_quorum()
         if not self._sufficient_quorum():
             self._begin_stalemate()
             return
@@ -373,12 +372,6 @@ class QuorumMergeStrategy(MergeStrategy):
         sq_view.release()
         return old_point + best_common
 
-    def _fill_up_quorum(self):
-        for qs in self.sets.candidates.copy():
-            self._vet_for_quorum(qs)
-            if len(self.sets.quorum) >= self._desired_quorum:
-                break
-
     def _begin_stalemate(self):
         for qs in self.sets.quorum.copy():
             data = qs.stream.future_data
@@ -396,14 +389,6 @@ class QuorumMergeStrategy(MergeStrategy):
         quorum = self.sets.quorum
         best_qs = max(quorum, key=lambda x: len(x.stream.data))
         self._add_quorum_data(best_qs)
-
-    def _vet_for_quorum(self, qs):
-        assert self._state is QuorumState.QUORUM
-        assert qs.role is QuorumRole.CANDIDATE
-        self._check_if_diverged(qs)
-        if qs.diverges or not self._candidate_has_enough_data(qs):
-            return
-        self.sets.make_qs_quorum(qs)
 
     def _vet_for_stalemate(self, qs):
         assert self._state is QuorumState.STALEMATE

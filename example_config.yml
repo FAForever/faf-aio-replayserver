@@ -20,3 +20,4 @@ rs:
             replay_delay: "5"
         merge:
             desired_quorum: "2"
+            stream_comparison_cutoff: "1024"

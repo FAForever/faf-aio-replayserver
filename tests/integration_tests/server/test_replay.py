@@ -53,9 +53,11 @@ async def test_replay_diverging_replay(event_loop, mock_bookkeeper,
     w_work = [r.handle_connection(read_head, read_conn)]
 
     # Version 5 is the best for this replay.
-    # The merged replay should be replay 5.
+    # We don't require picking a specific header, its dicts have unspecified
+    # order :/
     def check_saved(_, s):
-        assert s.header.data + s.data.bytes() == diverging_1[5].data
+        body_offset = diverging_1[5].header_size
+        assert s.data.bytes() == diverging_1[5].data[body_offset:]
 
     mock_bookkeeper.save_replay.side_effect = check_saved
 

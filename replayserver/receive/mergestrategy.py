@@ -323,15 +323,13 @@ class QuorumMergeStrategy(MergeStrategy):
     def _find_new_quorum_point(self):
         assert len(self.sink_stream.data) == self._quorum_point
         # Assert that quorum is correct.
-        old_quorum = self._quorum_point
         self._quorum_point = self._get_new_quorum_point()
-        assert self._quorum_point > old_quorum
         self._trim_streams_with_quorum()
         self._mark_quorum_as_matching()
         self._send_new_quorum_data()
 
-    # We might compare data multiple times here sometimes, but it'll never
-    # happen if quorum size <= 2.
+    # Should only be called if we're guaranteed to get a better quorum point,
+    # i.e. right after resolving a stalemate.
     def _get_new_quorum_point(self):
         shortest_quorum = min(self.sets.quorum,
                               key=lambda x: len(x.stream.future_data))
@@ -343,12 +341,12 @@ class QuorumMergeStrategy(MergeStrategy):
         for qs in self.sets.quorum:
             if qs is shortest_quorum:
                 continue
-            if best_common == 0:
-                break
             qs_view = qs.stream.future_data.view(start=old_point)
             best_common = memprefix(sq_view, qs_view, best_common)
             qs_view.release()
         sq_view.release()
+
+        assert best_common > 0
         return old_point + best_common
 
     def _begin_stalemate(self):

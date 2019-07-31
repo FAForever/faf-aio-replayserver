@@ -83,7 +83,7 @@ class DelayedReplayStream(ReplayStream):
 
     def _data_bytes(self):
         if self.ended():
-            return self._stream.data
+            return self._stream.data.bytes()
         else:
             return self._stream.data[:self._current_position]
 

@@ -140,15 +140,28 @@ def test_outside_source_stream_discard():
 
     with pytest.raises(IndexError):
         stream.data.bytes()
+
     assert stream.data[2:] == b"cdefgh"
     assert stream.future_data[2:] == b"cdefgh"
     assert stream.data[-2:-1] == b"g"
     assert stream.future_data[-2:-1] == b"g"
     assert stream.data[3] == 100
     assert stream.future_data[3] == 100
+
+    for bad_range in [1, slice(1, 5, 1), slice(-7, 5, 1), slice(5, 1, 1)]:
+        with pytest.raises(IndexError):
+            stream.data[bad_range]
+        with pytest.raises(IndexError):
+            stream.future_data[bad_range]
+
     assert len(stream.data) == 8
     assert len(stream.future_data) == 8
 
     v = stream.data.view(2)
     assert v == b"cdefgh"
     v.release()
+
+    with pytest.raises(IndexError):
+        stream.data.view()
+    with pytest.raises(IndexError):
+        stream.data.view(1, 3)

@@ -127,6 +127,7 @@ async def test_stamps_ending_end_stream(outside_source_stream, mock_timestamp,
     assert stream.ended()
     d = await stream.wait_for_data(5)
     assert d == 0
+    assert stream.data.bytes() == b"abcde"
 
     mock_timestamp._end_stamps()
     await exhaust_callbacks(event_loop)
@@ -149,6 +150,9 @@ async def test_delayed_stream_data_methods(outside_source_stream,
     assert stream.data[1:4] == b"bc"
     assert stream.data[1:2] == b"b"
     assert stream.data.bytes() == b"abc"
+    with pytest.raises(IndexError):
+        stream.data[3]
+    assert stream.future_data.bytes() == b"abcde"
 
     mock_timestamp._end_stamps()
     await exhaust_callbacks(event_loop)
@@ -171,7 +175,12 @@ async def test_delayed_stream_discard(outside_source_stream,
     assert stream.data[2:] == b"cdef"
     assert stream.data[-2:-1] == b"e"
     assert stream.data[3] == 100
+    assert stream.data[-3] == 100
     assert len(stream.data) == 6
+
+    for bad_range in [1, slice(1, 5, 1), slice(-5, 3, 1), slice(5, 1, 1)]:
+        with pytest.raises(IndexError):
+            stream.data[bad_range]
 
     v = stream.data.view(2)
     assert v == b"cdef"

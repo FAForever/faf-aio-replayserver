@@ -113,7 +113,7 @@ async def test_merger_ends_when_refusing_conns_and_no_connections(
     merger.stop_accepting_connections()
     await merger.wait_for_ended()
     mock_merge_strategy.finalize.assert_called()
-    canonical_stream.finish.assert_called()
+    assert canonical_stream.ended()
 
 
 @pytest.mark.asyncio

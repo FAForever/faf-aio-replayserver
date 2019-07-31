@@ -19,12 +19,4 @@ def mock_replay_streams():
 @pytest.fixture
 def outside_source_stream(event_loop):
     # We use event_loop fixture so that stream uses the same loop as all tests
-    s = OutsideSourceReplayStream()
-    m = asynctest.MagicMock(wraps=s)
-    # Wrapping does not include magic methods
-    m.data.__getitem__.side_effect = lambda v: m._data_slice(v)
-    m.data.__len__.side_effect = lambda: m._data_length()
-    # Or properties
-    type(m).header = asynctest.PropertyMock(
-        side_effect=lambda: OutsideSourceReplayStream.header.__get__(s))
-    return m
+    return OutsideSourceReplayStream()

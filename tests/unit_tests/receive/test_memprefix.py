@@ -15,3 +15,6 @@ def test_memprefix_sanity_check():
     assert memprefix(b1, b2, end=4) == 4
     assert memprefix(b1, b2, end=5) == 5
     assert memprefix(b1, b2, end=6) == 5
+
+    assert memprefix(b"1", b"1", end=0) == 0
+    assert memprefix(b"a", b"b") == 0

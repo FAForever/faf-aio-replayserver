@@ -200,19 +200,11 @@ class ConcreteDataMixin:
         return self._data[s]
 
     def _get_slice(self, s):
-        s, e, st = s.start, s.stop, s.step
-        if s is None and self._discarded_data > 0:
+        s, e, st = s.indices(self._len)
+        s -= self._discarded_data
+        e -= self._discarded_data
+        if s < 0 or e < 0:
             raise IndexError
-
-        if s is not None and s >= 0:
-            if s < self._discarded_data:
-                raise IndexError
-            s -= self._discarded_data
-        if e is not None and e >= 0:
-            if e < self._discarded_data:
-                raise IndexError
-            e -= self._discarded_data
-
         return self._data[slice(s, e, st)]
 
     def _data_bytes(self):

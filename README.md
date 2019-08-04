@@ -14,7 +14,7 @@ You can find documentation in the doc directory. It's built with sphinx using
 autodoc, so you'll need to install server dependencies to generate it properly -
 see the 'dev environment' section. Docs can be built with:
 
-`sphinx-build -b html ./doc ./build`
+`sphinx-build -b html ./doc ./doc_html`
 
 Documentation covers both server requirements and architecture.
 
@@ -26,16 +26,24 @@ instructions at https://github.com/FAForever/db and .travis.yml for details on
 how to start the container and populate it with test data. Once you setup
 faf-db, run the setup\_db.py script to populate it with test data:
 
-`python3 setup/db_setup.py`
+`env FAF_STACK_DB_IP=127.0.0.1 python3 tests/db_setup.py`
 
 For python packages, just install dependencies in requirements/main.txt and
 requirements/test.txt in a virtualenv. Once everything is setup, you can run
 tests with:
 
-`python3 -m pytest`
+`env FAF_STACK_DB_IP=127.0.0.1 python3 python3 -m pytest`
 
 Server launching and configuration
 ----------------------------------
 
-After installation, you should have `faf_replay_server` in your PATH. Running
-it will launch the server. For configuration, see doc/configuration.rst.
+You can install the replay server to your virtual environment with:
+
+`pip3 install .`
+
+Before you can run it, you will need to set up some configuration (see
+doc/configuration.rst for details). To configure using a YAML file, copy the
+`example_config.yml` and edit the database and vault path options. You should
+now be able to start the server with:
+
+`env RS_CONFIG_FILE=config.yml faf_replay_server`

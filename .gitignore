@@ -3,3 +3,7 @@ __pycache__/
 *.py[cod]
 *.swp
 .coverage
+.venv/
+doc_html/
+config.yml
+vault/

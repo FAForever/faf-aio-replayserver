@@ -16,7 +16,7 @@ before_script:
   - sudo service mysql stop     # For some reason conflicts with faf-db
   - git clone https://github.com/FAForever/faf-stack.git faf-stack
       && pushd faf-stack
-      && git checkout v19.7.13
+      && git checkout v19.8.12
       && cp -r config.template config
       && popd
   - pushd faf-stack && docker network create outside && ./scripts/init-db.sh && popd

@@ -1,6 +1,8 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
-install_reqs = open('requirements/main.txt').read().splitlines()
+with open('requirements/main.txt') as f:
+    install_reqs = f.read().splitlines()
+
 long_desc = """
 This is a prototype for the new FAF replay server. It uses asyncio a lot and
 hopefully is better designed than the old replay server.
@@ -27,5 +29,5 @@ setup(
             "faf_replay_server = replayserver.main:main",
         ],
     },
-    install_requires=install_reqs,
+    install_requires=install_reqs
 )

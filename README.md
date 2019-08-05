@@ -32,7 +32,7 @@ For python packages, just install dependencies in requirements/main.txt and
 requirements/test.txt in a virtualenv. Once everything is setup, you can run
 tests with:
 
-`env FAF_STACK_DB_IP=127.0.0.1 python3 python3 -m pytest`
+`env FAF_STACK_DB_IP=127.0.0.1 python3 -m pytest`
 
 Server launching and configuration
 ----------------------------------

@@ -2,12 +2,12 @@ import asyncio
 from asyncio.locks import Event
 from contextlib import contextmanager
 
-from replayserver.server.connection import ConnectionHeader
-from replayserver.send.sender import Sender
-from replayserver.receive.merger import Merger, MergerConfig, DelayConfig
+from replayserver import config
 from replayserver.errors import MalformedDataError
 from replayserver.logging import logger
-from replayserver import config
+from replayserver.receive.merger import DelayConfig, Merger, MergerConfig
+from replayserver.send.sender import Sender
+from replayserver.server.connection import ConnectionHeader
 
 
 class ReplayConfig(config.Config):

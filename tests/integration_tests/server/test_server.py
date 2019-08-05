@@ -1,14 +1,13 @@
-import pytest
 import asyncio
 import copy
 
+import pytest
 from everett import ConfigurationError
-from tests import timeout, slow_test, docker_faf_db_config, skip_stress_test, \
-    config_from_dict
-from tests.replays import example_replay
 from replayserver import Server
 from replayserver.server.server import MainConfig
-
+from tests import (config_from_dict, docker_faf_db_config, skip_stress_test,
+                   slow_test, timeout)
+from tests.replays import example_replay
 
 config_dict = {
     "log_level": "INFO",
@@ -183,7 +182,9 @@ async def test_server_single_connection(mock_database, tmpdir,
 
     await assert_connection_closed(r, w)
     rfile = list(tmpdir.visit('1.fafreplay'))
+    replay_ticks = await mock_database.get_game_ticks(1)
     assert len(rfile) == 1
+    assert replay_ticks == 1928
 
 
 @slow_test
@@ -217,7 +218,9 @@ async def test_server_replay_force_end(mock_database, tmpdir, unused_tcp_port):
 
     await assert_connection_closed(r, w)
     rfile = list(tmpdir.visit('1.fafreplay'))
+    replay_ticks = await mock_database.get_game_ticks(1)
     assert len(rfile) == 1
+    assert replay_ticks is None
 
 
 @slow_test
@@ -252,7 +255,9 @@ async def test_server_force_close_server(mock_database, tmpdir,
 
     await assert_connection_closed(r, w)
     rfile = list(tmpdir.visit('1.fafreplay'))
+    replay_ticks = await mock_database.get_game_ticks(1)
     assert len(rfile) == 1
+    assert replay_ticks is None
 
 
 @slow_test
@@ -315,6 +320,19 @@ async def test_server_reader_is_delayed(mock_database, tmpdir,
 @timeout(30)
 async def test_server_stress_test(mock_database, tmpdir,
                                   unused_tcp_port_factory):
+    await server_stress_test(mock_database, tmpdir, unused_tcp_port_factory, 40)
+
+
+@skip_stress_test
+@pytest.mark.asyncio
+@timeout(30)
+async def test_server_stress_test_400(mock_database, tmpdir,
+                                      unused_tcp_port_factory):
+    await server_stress_test(mock_database, tmpdir, unused_tcp_port_factory, 400)
+
+
+async def server_stress_test(mock_database, tmpdir, unused_tcp_port_factory,
+                             chunk_size):
     s_port, p_port = [unused_tcp_port_factory() for i in range(2)]
     conf = copy.deepcopy(config_dict)
     conf["server"]["port"] = s_port
@@ -331,8 +349,8 @@ async def test_server_stress_test(mock_database, tmpdir,
 
     async def do_write(r, w, i):
         w.write(f"P/{i}/foo\0".encode())
-        for pos in range(0, len(example_replay.data), 40):
-            w.write(example_replay.data[pos:pos + 40])
+        for pos in range(0, len(example_replay.data), chunk_size):
+            w.write(example_replay.data[pos:pos + chunk_size])
             await w.drain()
             await asyncio.sleep(0.01)
         w.close()
@@ -340,7 +358,7 @@ async def test_server_stress_test(mock_database, tmpdir,
     async def do_read(r, w, i):
         w.write(f"G/{i}/foo\0".encode())
         while True:
-            b = await r.read(40)
+            b = await r.read(chunk_size)
             if not b:
                 break
 

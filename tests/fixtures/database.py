@@ -1,12 +1,11 @@
-import pytest
-import asynctest
-import aiomysql
-from aiomysql import DatabaseError
 from asyncio.locks import Lock
 
+import aiomysql
+import asynctest
+import pytest
+from aiomysql import DatabaseError
 from replayserver.errors import BookkeepingError
-from tests import docker_faf_db_config
-from tests import test_db
+from tests import docker_faf_db_config, test_db
 
 
 class MockDatabase:
@@ -65,12 +64,24 @@ class MockDatabase:
                  1, {team}, 1, 0, 0)
         """)
 
+    async def _db_get_game_ticks(self, cursor, replay_id):
+        await cursor.execute(f"""
+            SELECT `replay_ticks` FROM `game_stats`
+                WHERE `game_stats`.`id` = {replay_id}
+        """)
+        return await cursor.fetchone()
+
     async def add_mock_game(self, game, players):
         cur = await self._conn.cursor()
         replay_id = game[0]
         await self._db_mock_game_stats(cur, *game)
         for player in players:
             await self._db_mock_game_player_stats(cur, replay_id, *player)
+
+    async def get_game_ticks(self, game_id):
+        async with self._conn.cursor() as cur:
+            result = await self._db_get_game_ticks(cur, game_id)
+            return result[0]
 
 
 @pytest.fixture

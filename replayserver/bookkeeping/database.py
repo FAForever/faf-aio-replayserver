@@ -1,10 +1,11 @@
 import os
 import time
+
 import aiomysql
-from aiomysql import create_pool, DatabaseError
+from aiomysql import DatabaseError, create_pool
+from replayserver import config
 from replayserver.errors import BookkeepingError
 from replayserver.logging import logger
-from replayserver import config
 
 
 class DatabaseConfig(config.Config):
@@ -156,6 +157,15 @@ class ReplayDatabaseQueries:
             'mapname': mapname,
             'num_players': player_count
         }
+
+    async def update_game_stats(self, game_id, replay_ticks):
+        query = """
+            UPDATE `game_stats` SET
+                `game_stats`.`replay_ticks` = %s
+            WHERE `game_stats`.`id` = %s
+        """
+        logger.debug(f"Performing query: {query}")
+        await self._db.execute(query, ((replay_ticks, game_id),))
 
     async def get_mod_versions(self, mod):
         query = """

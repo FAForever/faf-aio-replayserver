@@ -389,7 +389,7 @@ class QuorumMergeStrategy(MergeStrategy):
         qs.check_divergence()
         if qs.diverges:
             self.sets.make_qs_diverged(qs)
-            qs.stream.discard(100 * 1000 * 1000)
+            qs.stream.discard_all()
         else:
             qs.stream.discard(len(self.sink_stream.data))
 

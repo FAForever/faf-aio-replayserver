@@ -125,6 +125,9 @@ class ReplayStream:
         """
         raise ValueError
 
+    def discard_all(self):
+        self.discard(100 * 1024 * 1024)
+
     def _header_available(self):
         "Called by implementation once header is available."
         self._header_read_or_ended.set()

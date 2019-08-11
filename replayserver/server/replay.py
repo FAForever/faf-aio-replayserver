@@ -90,6 +90,7 @@ class Replay:
         await self.bookkeeper.save_replay(self._game_id,
                                           self.merger.canonical_stream)
         await self.sender.wait_for_ended()
+        self.merger.canonical_stream.discard_all()
         for coro in self._lifetime_coroutines:
             coro.cancel()
         self._ended.set()

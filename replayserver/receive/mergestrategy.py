@@ -439,9 +439,8 @@ class QuorumMergeStrategy(MergeStrategy):
     def _add_quorum_data(self, qs):
         send_from = len(self.sink_stream.data)
         send_to = min(len(qs.stream.data), self._quorum_point)
-        if send_to <= send_from:
-            return
-        self.sink_stream.feed_data(qs.stream.data[send_from:send_to])
+        if send_from < send_to:
+            self.sink_stream.feed_data(qs.stream.data[send_from:send_to])
         qs.stream.discard(send_to)
 
     def finalize(self):

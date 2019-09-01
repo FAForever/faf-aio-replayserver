@@ -78,7 +78,7 @@ class DelayedReplayStream(ReplayStream):
 
     def _get_slice(self, s):
         s, e, st = s.indices(self._current_position)
-        st = min(st, self._current_position)
+        e = min(e, self._current_position)
         return self._stream.data[slice(s, e, st)]
 
     def _data_bytes(self):

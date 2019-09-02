@@ -441,7 +441,7 @@ class QuorumMergeStrategy(MergeStrategy):
         send_to = min(len(qs.stream.data), self._quorum_point)
         if send_from < send_to:
             self.sink_stream.feed_data(qs.stream.data[send_from:send_to])
-        qs.stream.discard(send_to)
+        qs.stream.discard(len(self.sink_stream.data))
 
     def finalize(self):
         # All streams sent all their data, so we must have sent everything up

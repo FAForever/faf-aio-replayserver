@@ -185,3 +185,6 @@ async def test_delayed_stream_discard(outside_source_stream,
     v = stream.data.view(2)
     assert v == b"cdef"
     v.release()
+
+    mock_timestamp._end_stamps()
+    await exhaust_callbacks(event_loop)

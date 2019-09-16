@@ -1,3 +1,11 @@
+1.0.3 (16.09.2019)
+------------------
+
+Fixes:
+
+* Fix connection metrics not covering connection closing. Now we don't
+  decrement the metric until the connection is done for good.
+
 1.0.2 (03.09.2019)
 ------------------
 

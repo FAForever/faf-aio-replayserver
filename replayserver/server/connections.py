@@ -19,10 +19,13 @@ class Connections:
                    replays)
 
     async def handle_connection(self, connection):
+        conn_gauge = metrics.ConnectionGauge()
+        conn_gauge.set_initial()
         self._connections.add(connection)
         try:
             header = await self._handle_initial_data(connection)
-            await self._pass_control_to_replays(connection, header)
+            conn_gauge.set_active(header.type)
+            await self._replays.handle_connection(header, connection)
             metrics.successful_conns.inc()
         # Ignore empty connections, these happen often and are not errors
         except EmptyConnectionError as e:
@@ -33,27 +36,23 @@ class Connections:
                              f"Reason: {e.__class__.__name__}, {str(e)}"))
                 metrics.failed_conns(e).inc()
             else:
-                # If we chose to close a connections, errors don't matter.
-                # FIXME: unless we closed a connection, then processed buffered
-                # data that was malformed, but it doesn't happen 99.9% of the
-                # time?
+                # Error from connections we force-closed don't matter
                 metrics.successful_conns.inc()
         finally:
-            connection.close()
-            await connection.wait_closed()
-            logger.debug(f"Finished serving connection: {connection}")
-            self._connections.remove(connection)
+            await self._cleanup_connection(connection)
+            conn_gauge.clear()
 
     async def _handle_initial_data(self, connection):
-        with metrics.track(metrics.active_conns_by_header(None)):
-            header = await self._header_read(connection)
-            connection.add_header(header)
-            logger.debug(f"Accepted new connection: {connection}")
-            return header
+        header = await self._header_read(connection)
+        connection.add_header(header)
+        logger.debug(f"Accepted new connection: {connection}")
+        return header
 
-    async def _pass_control_to_replays(self, connection, header):
-        with metrics.track(metrics.active_conns_by_header(header)):
-            await self._replays.handle_connection(header, connection)
+    async def _cleanup_connection(self, connection):
+        connection.close()
+        await connection.wait_closed()
+        logger.debug(f"Finished serving connection: {connection}")
+        self._connections.remove(connection)
 
     async def close_all(self):
         logger.info("Closing all connections")

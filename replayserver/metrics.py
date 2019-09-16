@@ -47,3 +47,24 @@ def track(metric):
         yield
     finally:
         metric.dec()
+
+
+class ConnectionGauge:
+    def __init__(self):
+        self._active = None
+
+    def clear(self):
+        if self._active is not None:
+            self._active.dec()
+            self._active = None
+
+    def _set_label(self, label):
+        self.clear()
+        self._active = active_conns.labels(category=label)
+        self._active.inc()
+
+    def set_initial(self):
+        self._set_label("initial")
+
+    def set_active(self, conn_type):
+        self._set_label(conn_type.value)

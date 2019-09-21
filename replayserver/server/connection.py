@@ -51,18 +51,11 @@ class Connection:
     def close(self):
         self._closed = True
         self._closed_by_us = True
-        self.writer.write_eof()
         self.writer.close()
         # Reader and writer share a transport, so no need to close reader.
 
     async def wait_closed(self):
-        # FIXME: waiting for py 3.7 wait_closed()
-        try:
-            await self.writer.drain()
-            await self.writer._protocol._closed
-        except ConnectionError:
-            pass
-        await asyncio.sleep(0)  # IIRC socket gets closed at NEXT loop run
+        await self.writer.wait_closed()
 
     def closed_by_us(self):
         return self._closed_by_us

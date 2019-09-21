@@ -1,3 +1,9 @@
+1.0.4 (22.09.2019)
+------------------
+
+* Move to python3.7 to take advantage of `wait_closed` for streams.
+* Use `wait_closed` to (hopefully) fix the issue with short live replays.
+
 1.0.3 (16.09.2019)
 ------------------
 

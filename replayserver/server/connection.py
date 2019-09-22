@@ -55,7 +55,10 @@ class Connection:
         # Reader and writer share a transport, so no need to close reader.
 
     async def wait_closed(self):
-        await self.writer.wait_closed()
+        try:
+            await self.writer.wait_closed()
+        except ConnectionError:
+            pass
 
     def closed_by_us(self):
         return self._closed_by_us

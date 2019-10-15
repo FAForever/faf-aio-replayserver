@@ -26,7 +26,7 @@ class Replays:
         can_add, reason = self._can_add_to_replay(header)
         if not can_add:
             raise CannotAcceptConnectionError(
-                "Cannot add connection to replay: {reason}")
+                f"Cannot add connection to replay: {reason}")
         if header.game_id not in self._replays:
             self._create(header.game_id)
         return self._replays[header.game_id]
@@ -37,7 +37,7 @@ class Replays:
             return (False, "Replay is closing")
         if (header.type == ConnectionHeader.Type.READER
                 and header.game_id not in self._replays):
-            return (False, "Reader asked for game {header.game_id}, which does not exist")
+            return (False, f"Reader asked for game {header.game_id}, which does not exist")
         return (True, "")
 
     def _create(self, game_id):

@@ -26,11 +26,11 @@ class EmptyWaitMixin:
                 return
 
     async def _empty_for(self, period):
-        _, pending = await asyncio.wait([self.wait_until_not_empty()],
-                                        timeout=period)
-        for coro in pending:
-            coro.cancel()
-        return len(pending) != 0
+        try:
+            await asyncio.wait_for(self.wait_until_not_empty(), period)
+            return False
+        except asyncio.TimeoutError:
+            return True
 
     def _is_empty(self):
         self._empty.set()

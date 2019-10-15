@@ -166,6 +166,21 @@ async def test_connection_write_exception(rw_pairs_with_data):
 
 
 @pytest.mark.asyncio
+async def test_connection_wait_closed_exceptions(rw_pairs_with_data):
+    r, w = rw_pairs_with_data(b"some_data")
+    w.wait_closed.side_effect = ConnectionError
+    connection = Connection(r, w)
+    connection.close()
+    await connection.wait_closed()
+
+    r, w = rw_pairs_with_data(b"some_data")
+    w.wait_closed.side_effect = TimeoutError
+    connection = Connection(r, w)
+    connection.close()
+    await connection.wait_closed()
+
+
+@pytest.mark.asyncio
 @timeout(1)
 async def test_connection_header_type(conn_with_data):
     mock_conn = conn_with_data(b"P/1/foo\0")

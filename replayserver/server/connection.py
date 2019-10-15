@@ -57,7 +57,7 @@ class Connection:
     async def wait_closed(self):
         try:
             await self.writer.wait_closed()
-        except ConnectionError:
+        except (ConnectionError, TimeoutError):
             pass
 
     def closed_by_us(self):

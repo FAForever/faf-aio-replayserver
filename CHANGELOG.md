@@ -1,3 +1,10 @@
+1.0.6 (16.10.2019)
+------------------
+
+* Fix uncaught TimeoutError when awaiting connection end.
+* Add some missing f-string modifiers.
+* Fix an unawaited coroutine.
+
 1.0.5 (22.09.2019)
 ------------------
 

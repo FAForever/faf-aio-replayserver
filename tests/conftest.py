@@ -34,7 +34,7 @@ def mock_bookkeeper():
 @pytest.fixture
 def mock_replay_headers(mocker):
     def build(raw_replay=None):
-        m = mocker.Mock(spec=["data", "struct"])
+        m = mocker.MagicMock(spec=["data", "struct"])
         if raw_replay is not None:
             m.configure_mock(
                 struct=raw_replay.header,

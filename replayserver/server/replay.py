@@ -46,7 +46,7 @@ class Replay:
     @classmethod
     def build(cls, game_id, bookkeeper, config):
         merger = Merger.build(config.merge, config.delay)
-        sender = Sender.build(merger.canonical_stream)
+        sender = Sender.build(merger.canonical_stream, game_id)
         return cls(merger, sender, bookkeeper, config, game_id)
 
     @contextmanager

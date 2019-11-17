@@ -2,6 +2,7 @@ from enum import Enum
 import asyncio
 from asyncio.streams import IncompleteReadError, LimitOverrunError
 from replayserver.errors import MalformedDataError, EmptyConnectionError
+from replayserver.logging import logger
 
 
 class Connection:
@@ -11,6 +12,9 @@ class Connection:
         self._closed = False
         self._header = None
         self._closed_by_us = False
+
+        self._sent = 0
+        self._written = 0
 
     async def read(self, size):
         try:
@@ -40,8 +44,10 @@ class Connection:
         if self._closed:
             return False
         try:
+            self._sent += len(data)
             self.writer.write(data)
             await self.writer.drain()
+            self._written += len(data)
         except ConnectionResetError:
             return False
         except ConnectionError as e:
@@ -57,8 +63,10 @@ class Connection:
     async def wait_closed(self):
         try:
             await self.writer.wait_closed()
-        except (ConnectionError, TimeoutError):
-            pass
+        except (ConnectionError, TimeoutError) as e:
+            logger.info(f"Connection {id(self)} received {repr(e)} at wait_closed")
+        finally:
+            logger.info(f"Connection {id(self)} sent {self._sent} bytes, successfully wrote {self._written} bytes")
 
     def closed_by_us(self):
         return self._closed_by_us

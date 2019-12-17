@@ -4,7 +4,7 @@ from replayserver import metrics
 from replayserver.collections import AsyncSet
 from replayserver.errors import BadConnectionError, EmptyConnectionError
 from replayserver.server.connection import ConnectionHeader
-from replayserver.logging import logger
+from replayserver.logging import logger, short_exc
 
 
 class Connections:
@@ -33,7 +33,7 @@ class Connections:
         except BadConnectionError as e:
             if not connection.closed_by_us():
                 logger.info((f"Connection was dropped: {connection}\n"
-                             f"Reason: {e.__class__.__name__}, {str(e)}"))
+                             f"Reason: {short_exc(e)}"))
                 metrics.failed_conns(e).inc()
             else:
                 # Error from connections we force-closed don't matter

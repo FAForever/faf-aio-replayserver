@@ -2,6 +2,7 @@ from enum import Enum
 import asyncio
 from asyncio.streams import IncompleteReadError, LimitOverrunError
 from replayserver.errors import MalformedDataError, EmptyConnectionError
+from replayserver.logging import short_exc
 
 
 class Connection:
@@ -17,7 +18,7 @@ class Connection:
             data = await self.reader.read(size)
             return data
         except ConnectionError as e:
-            raise MalformedDataError("Connection error") from e
+            raise MalformedDataError(f"Connection error: {short_exc(e)}")
 
     async def readuntil(self, delim):
         try:
@@ -25,7 +26,7 @@ class Connection:
         except (IncompleteReadError, LimitOverrunError):
             raise MalformedDataError(f"Failed to find {delim} in read data")
         except ConnectionError as e:
-            raise MalformedDataError("Connection error") from e
+            raise MalformedDataError(f"Connection error: {short_exc(e)}")
 
     async def readexactly(self, amount):
         try:
@@ -34,7 +35,7 @@ class Connection:
             raise MalformedDataError(
                 f"Stream ended while reading exactly {amount}")
         except ConnectionError as e:
-            raise MalformedDataError("Connection error") from e
+            raise MalformedDataError(f"Connection error: {short_exc(e)}")
 
     async def write(self, data):
         if self._closed:
@@ -45,7 +46,7 @@ class Connection:
         except ConnectionResetError:
             return False
         except ConnectionError as e:
-            raise MalformedDataError("Connection error") from e
+            raise MalformedDataError(f"Connection error: {short_exc(e)}")
         return True
 
     def close(self):

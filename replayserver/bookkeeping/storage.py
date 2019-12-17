@@ -6,6 +6,7 @@ import zlib
 import asyncio
 
 from replayserver.errors import BookkeepingError
+from replayserver.logging import short_exc
 
 
 class ReplayFilePaths:
@@ -57,7 +58,7 @@ class ReplaySaver:
                 await self._write_replay_in_thread(
                     f, info, stream.header.data + stream.data.bytes())
         except IOError as e:
-            raise BookkeepingError("Could not write to replay file") from e
+            raise BookkeepingError(f"Failed to write replay: {short_exc(e)}")
 
     async def _get_replay_info(self, game_id, header):
         result = {}

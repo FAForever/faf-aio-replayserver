@@ -73,10 +73,12 @@ def read_lua_value(gen, lua_dict_depth=0, can_be_lua_end=False):
 
 
 def read_header(gen):
+    gen.state = "reading version"
     result = {}
     result["version"] = yield from read_string(gen)
     yield from read_exactly(gen, 3)     # skip
 
+    gen.state = "reading replay version"
     replay_version_and_map = yield from read_string(gen)
     # can raise ValueError
     replay_version, map_name = replay_version_and_map.split("\r\n", 2)
@@ -86,14 +88,17 @@ def read_header(gen):
 
     # We don't need to parse mods
     ssize = yield from read_value(gen, "I", 4)  # Mod (data?) size
+    gen.state = f"skipping mod data ({ssize} bytes)"
     yield from read_exactly(gen, ssize)
     # result["mods"] = yield from read_lua_value(gen)
 
     # We don't need to parse scenario info
     ssize = yield from read_value(gen, "I", 4)  # Scenario (data?) size
+    gen.state = f"skipping scenario info ({ssize} bytes)"
     yield from read_exactly(gen, ssize)
     # result["scenario"] = yield from read_lua_value(gen)
 
+    gen.state = "reading player list"
     player_count = yield from read_value(gen, "b", 1)
     timeouts = {}
     for i in range(player_count):
@@ -109,6 +114,7 @@ def read_header(gen):
     for i in range(army_count):
         # We don't need to parse armies
         ssize = yield from read_value(gen, "I", 4)  # Army (data?) size
+        gen.state = f"skipping army info ({ssize} bytes)"
         yield from read_exactly(gen, ssize)
         # army = yield from read_lua_value(gen)
         player_id = yield from read_value(gen, "B", 1)
@@ -131,22 +137,24 @@ class ReplayHeader:
 
     @classmethod
     async def from_connection(cls, connection):
-        generator = cls._generate(cls.MAXLEN)
+        gen = GeneratorData(cls.MAXLEN)
+        generator = cls._generate(gen)
         generator.send(None)
         while True:
-            data = await connection.read(4096)  # TODO - configure?
-            if not data:
-                raise MalformedDataError("Replay header ended prematurely")
             try:
+                data = await connection.read(4096)  # TODO - configure?
+                if not data:
+                    raise ValueError("Replay header ended prematurely")
                 generator.send(data)
             except ValueError as e:
-                raise MalformedDataError("Invalid replay header") from e
+                raise MalformedDataError(
+                    f"Invalid replay header while {gen.state}"
+                    f" at {gen.position} bytes: {e}")
             except StopIteration as v:
                 return v.value
 
     @classmethod
-    def _generate(cls, maxlen):
-        gen = GeneratorData(maxlen)
+    def _generate(cls, gen):
         header = yield from read_header(gen)
         data = gen.data[:gen.position]
         leftovers = gen.data[gen.position:]

@@ -9,6 +9,8 @@ class GeneratorData:
         self.position = 0
         self._maxlen = maxlen
 
+        self.state = "idle"
+
     def more(self):
         if self._maxlen is not None and self._maxlen <= len(self.data):
             raise ValueError(f"Exceeded maximum read length {self._maxlen}")

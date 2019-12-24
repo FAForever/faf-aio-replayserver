@@ -2,6 +2,7 @@ import os
 import json
 import zstandard as zstd
 import asyncio
+import threading
 
 from replayserver.errors import BookkeepingError
 from replayserver.logging import short_exc
@@ -40,7 +41,11 @@ class ReplaySaver:
     def __init__(self, paths, database):
         self._paths = paths
         self._database = database
-        self._compressor = zstd.ZstdCompressor(level=10)
+        # TODO - consider multi-threaded compression if we end up needing more
+        # performance.
+        self._compressor = zstd.ZstdCompressor(level=10,
+                                               write_checksum=True)
+        self._compressor_lock = threading.Lock()
 
     @classmethod
     def build(cls, database, config):
@@ -94,7 +99,9 @@ class ReplaySaver:
         try:
             rfile.write(json.dumps(info).encode('UTF-8'))
             rfile.write(b"\n")
-            data = self._compressor.compress(data)
+            # zstandard is explicitly NOT thread-safe
+            with self._compressor_lock:
+                data = self._compressor.compress(data)
             rfile.write(data)
         # json should always produce ascii, but just in case...
         except UnicodeEncodeError:

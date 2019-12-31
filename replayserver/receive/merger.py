@@ -52,6 +52,8 @@ class ReplayStreamReader:
             self.stream.finish()
         else:
             self.stream.feed_data(data)
+            if len(data) < 4096:
+                await asyncio.sleep(1)
 
     async def read(self):
         "Guarantees to finish the stream, no matter if it throws."

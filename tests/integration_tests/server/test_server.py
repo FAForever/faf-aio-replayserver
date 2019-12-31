@@ -259,12 +259,12 @@ async def test_server_force_close_server(mock_database, tmpdir,
 
 @slow_test
 @pytest.mark.asyncio
-@timeout(5)
+@timeout(10)
 async def test_server_reader_is_delayed(mock_database, tmpdir,
                                         unused_tcp_port):
     s_port = unused_tcp_port
     conf = copy.deepcopy(config_dict)
-    conf["replay"]["delay"]["replay_delay"] = 0.5
+    conf["replay"]["delay"]["replay_delay"] = 1
     conf["server"]["port"] = s_port
     conf["storage"]["vault_path"] = str(tmpdir)
 
@@ -287,7 +287,7 @@ async def test_server_reader_is_delayed(mock_database, tmpdir,
         while True:
             w.write(b"f" * CHUNK)
             written_data += b"f" * CHUNK
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.10)
 
     async def read_forever():
         nonlocal read_data
@@ -301,11 +301,12 @@ async def test_server_reader_is_delayed(mock_database, tmpdir,
     reading = asyncio.ensure_future(write_forever())
     writing = asyncio.ensure_future(read_forever())
 
+    # We sleep() for a second during reads, which adds a bit of extra jitter.
     for i in range(20):
-        await asyncio.sleep(0.05)
-        assert len(read_data) <= max(len(written_data) - 5 * CHUNK,
+        await asyncio.sleep(0.10)
+        assert len(read_data) <= max(len(written_data) - 10 * CHUNK,
                                      len(example_replay.header_data))
-        assert len(read_data) >= len(written_data) - 15 * CHUNK
+        assert len(read_data) >= len(written_data) - 25 * CHUNK
 
     reading.cancel()
     writing.cancel()

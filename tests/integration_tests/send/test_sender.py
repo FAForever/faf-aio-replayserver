@@ -12,9 +12,9 @@ def test_sender_init(outside_source_stream):
 
 
 @pytest.mark.asyncio
-@fast_forward_time(0.1, 2000)
+@fast_forward_time(2000)
 @timeout(1000)
-async def test_sender_one_connection(event_loop, outside_source_stream,
+async def test_sender_one_connection(outside_source_stream,
                                      controlled_connections):
     sender = Sender.build(outside_source_stream)
     conn = controlled_connections()

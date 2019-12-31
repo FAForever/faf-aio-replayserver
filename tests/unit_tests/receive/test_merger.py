@@ -2,7 +2,7 @@ import pytest
 import asyncio
 import asynctest
 from asynctest.helpers import exhaust_callbacks
-from tests import timeout
+from tests import timeout, fast_forward_time
 
 from replayserver.receive.merger import Merger, ReplayStreamReader
 from replayserver.errors import CannotAcceptConnectionError, \
@@ -56,7 +56,8 @@ def mock_delayed_stream_builder(mocker):
 # We're using OutsideSourceStream here, but who cares, its mock would look
 # exactly the same
 @pytest.mark.asyncio
-@timeout(1)
+@fast_forward_time(10)
+@timeout(5)
 async def test_reader_normal_read(mock_header_read,
                                   mock_connections,
                                   outside_source_stream):
@@ -75,7 +76,8 @@ async def test_reader_normal_read(mock_header_read,
 
 
 @pytest.mark.asyncio
-@timeout(1)
+@fast_forward_time(10)
+@timeout(5)
 async def test_reader_invalid_header(mock_header_read, outside_source_stream,
                                      mock_connections):
     mock_conn = mock_connections()
@@ -89,7 +91,8 @@ async def test_reader_invalid_header(mock_header_read, outside_source_stream,
 
 
 @pytest.mark.asyncio
-@timeout(1)
+@fast_forward_time(10)
+@timeout(5)
 async def test_reader_recovers_from_connection_error(
         mock_header_read, outside_source_stream, mock_connections):
     mock_conn = mock_connections()

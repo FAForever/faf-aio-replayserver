@@ -6,7 +6,7 @@ from replayserver.streams.delayed import Timestamp
 
 
 @pytest.mark.asyncio
-@fast_forward_time(0.25, 25)
+@fast_forward_time(25)
 @timeout(20)
 async def test_timestamp(event_loop, outside_source_stream):
     stamp = Timestamp(outside_source_stream, 1, 5)
@@ -26,9 +26,10 @@ async def test_timestamp(event_loop, outside_source_stream):
         stream_end_time = event_loop.time()
 
     async def check_timestamps():
+        start = event_loop.time()
         async for pos in stamp.timestamps():
             if not outside_source_stream.ended():
-                second = int(event_loop.time() + 0.5)
+                second = int(event_loop.time() + 0.5 - start)
                 past_pos = data_at_second[max(0, second - 5)]
                 assert pos <= past_pos
             else:
@@ -42,9 +43,9 @@ async def test_timestamp(event_loop, outside_source_stream):
 
 
 @pytest.mark.asyncio
-@fast_forward_time(0.25, 2)
+@fast_forward_time(2)
 @timeout(1)
-async def test_timestamp_ends_immediately(event_loop, outside_source_stream):
+async def test_timestamp_ends_immediately(outside_source_stream):
     stamp = Timestamp(outside_source_stream, 10, 20)
 
     async def sw():

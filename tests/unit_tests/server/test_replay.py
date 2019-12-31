@@ -66,7 +66,7 @@ class MockReplayConfig:
 
 
 @pytest.mark.asyncio
-@fast_forward_time(1, 40)
+@fast_forward_time(40)
 @timeout(30)
 async def test_replay_closes_after_timeout(
         event_loop, replay_deps, mock_conn_plus_head):
@@ -93,7 +93,7 @@ async def test_replay_closes_after_timeout(
 
 
 @pytest.mark.asyncio
-@fast_forward_time(1, 40)
+@fast_forward_time(40)
 @timeout(30)
 async def test_replay_ending_cancels_timeouts(event_loop, replay_deps):
     mock_merger, mock_sender, _ = replay_deps
@@ -123,7 +123,7 @@ async def test_replay_ending_cancels_timeouts(event_loop, replay_deps):
 
 
 @pytest.mark.asyncio
-@fast_forward_time(1, 40)
+@fast_forward_time(40)
 @timeout(30)
 async def test_replay_timeouts_while_ending_dont_explode(
         event_loop, replay_deps):
@@ -147,10 +147,9 @@ async def test_replay_timeouts_while_ending_dont_explode(
 
 
 @pytest.mark.asyncio
-@fast_forward_time(1, 40)
+@fast_forward_time(40)
 @timeout(30)
-async def test_replay_forwarding_connections(event_loop, replay_deps,
-                                             mock_conn_plus_head):
+async def test_replay_forwarding_connections(replay_deps, mock_conn_plus_head):
     mock_merger, mock_sender, _ = replay_deps
     reader = mock_conn_plus_head(ConnectionHeader.Type.READER, 1)
     writer = mock_conn_plus_head(ConnectionHeader.Type.WRITER, 1)

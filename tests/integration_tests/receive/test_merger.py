@@ -60,9 +60,9 @@ def test_merger_init():
 
 
 @pytest.mark.asyncio
-@fast_forward_time(0.1, 500)
+@fast_forward_time(500)
 @timeout(250)
-async def test_merger_successful_connection(event_loop, mock_connections,
+async def test_merger_successful_connection(mock_connections,
                                             mock_conn_read_data_mixin):
     conn = mock_connections()
     mock_conn_read_data_mixin(conn, example_replay.data, 0.25, 200)
@@ -74,9 +74,9 @@ async def test_merger_successful_connection(event_loop, mock_connections,
 
 
 @pytest.mark.asyncio
-@fast_forward_time(0.1, 500)
+@fast_forward_time(500)
 @timeout(250)
-async def test_merger_incomplete_header(event_loop, mock_connections,
+async def test_merger_incomplete_header(mock_connections,
                                         mock_conn_read_data_mixin):
     conn = mock_connections()
     replay_data = example_replay.header_data[:-100]
@@ -90,10 +90,9 @@ async def test_merger_incomplete_header(event_loop, mock_connections,
 
 
 @pytest.mark.asyncio
-@fast_forward_time(0.1, 500)
+@fast_forward_time(500)
 @timeout(250)
-async def test_merger_incomplete_header_then_data(event_loop,
-                                                  mock_connections,
+async def test_merger_incomplete_header_then_data(mock_connections,
                                                   mock_conn_read_data_mixin):
     conn_1 = mock_connections()
     conn_2 = mock_connections()
@@ -111,9 +110,9 @@ async def test_merger_incomplete_header_then_data(event_loop,
 
 
 @pytest.mark.asyncio
-@fast_forward_time(0.1, 500)
+@fast_forward_time(500)
 @timeout(250)
-async def test_merger_two_connections(event_loop, mock_connections,
+async def test_merger_two_connections(mock_connections,
                                       mock_conn_read_data_mixin):
     conn_1 = mock_connections()
     conn_2 = mock_connections()
@@ -133,9 +132,9 @@ async def test_merger_two_connections(event_loop, mock_connections,
 
 
 @pytest.mark.asyncio
-@fast_forward_time(0.1, 1000)
+@fast_forward_time(1000)
 @timeout(500)
-async def test_merger_sequential_connections(event_loop, mock_connections,
+async def test_merger_sequential_connections(mock_connections,
                                              mock_conn_read_data_mixin):
     conn_1 = mock_connections()
     conn_2 = mock_connections()
@@ -154,9 +153,9 @@ async def test_merger_sequential_connections(event_loop, mock_connections,
 
 
 @pytest.mark.asyncio
-@fast_forward_time(0.1, 1000)
+@fast_forward_time(1000)
 @timeout(500)
-async def test_merger_refuses_conns(event_loop, mock_connections,
+async def test_merger_refuses_conns(mock_connections,
                                     mock_conn_read_data_mixin):
     conn_1 = mock_connections()
     conn_2 = mock_connections()
@@ -175,9 +174,9 @@ async def test_merger_refuses_conns(event_loop, mock_connections,
 
 
 @pytest.mark.asyncio
-@fast_forward_time(0.1, 1000)
+@fast_forward_time(1000)
 @timeout(500)
-async def test_merger_closes_fast(event_loop, mock_connections,
+async def test_merger_closes_fast(mock_connections,
                                   mock_conn_read_data_mixin):
     conn = mock_connections()
     replay_data = example_replay.data

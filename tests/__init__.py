@@ -2,14 +2,15 @@ import os
 import asyncio
 import decorator
 import unittest
-from tests.timeskipper import TimeSkipper
+import asynctest
+import functools
+from tests.timeskipper import EventLoopClockAdvancer
 from tests.docker_db_config import docker_faf_db_config
 from everett.manager import ConfigManager, ConfigDictEnv
 
 # FIXME - there's all kinds of utility stuff here, we should tidy it up
 
-__all__ = ["timeout", "fast_forward_time", "TimeSkipper",
-           "slow_test", "docker_faf_db_config"]
+__all__ = ["timeout", "fast_forward_time", "slow_test", "docker_faf_db_config"]
 
 
 def timeout(time):
@@ -21,18 +22,23 @@ def timeout(time):
     return deco
 
 
-def fast_forward_time(step, amount):
-    def deco(coro):
-        async def wrapper_function(fn, *args, **kwargs):
-            # HACK - passing in fixtures to wrappers is hard, so we require
-            # wrapped functions to have event_loop as first argument
-            event_loop = args[0]
-            f = asyncio.ensure_future(fn(*args, **kwargs))
-            skipper = TimeSkipper(event_loop)
-            while event_loop.time() < (step * 10 + amount) and not f.done():
-                await skipper.advance(step)
-            await f
-        return decorator.decorator(wrapper_function, coro)
+def fast_forward_time(timeout):
+    def deco(f):
+        @functools.wraps(f)
+        async def awaiter(*args, **kwargs):
+            loop = asyncio.get_event_loop()
+            advance_time = EventLoopClockAdvancer(loop)
+            time = 0
+            fut = asyncio.ensure_future(f(*args, **kwargs))
+
+            while not fut.done() and time < timeout:
+                await asynctest.exhaust_callbacks(loop)
+                await advance_time(0.1)
+                time += 0.1
+
+            return await fut
+
+        return awaiter
     return deco
 
 

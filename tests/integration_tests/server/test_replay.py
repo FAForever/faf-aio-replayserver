@@ -37,9 +37,9 @@ async def do_write(conn, r, chunk):
 
 
 @pytest.mark.asyncio
-@fast_forward_time(1, 120)
+@fast_forward_time(120)
 @timeout(100)
-async def test_replay_diverging_replay(event_loop, mock_bookkeeper,
+async def test_replay_diverging_replay(mock_bookkeeper,
                                        controlled_connections):
 
     r = Replay.build(1, mock_bookkeeper, replay_config(config_dict))

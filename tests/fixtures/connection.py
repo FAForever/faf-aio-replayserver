@@ -31,7 +31,7 @@ class ControlledConnection:
     async def read(self, size):
         self._check_eof()
         try:
-            return await self._reader.read(min(size, 100))
+            return await self._reader.read(size)
         except Exception:
             self._closed = True
             raise MalformedDataError

@@ -52,10 +52,7 @@ def test_server_init(tmpdir):
 
 
 async def assert_connection_closed(r, w):
-    while True:
-        d = await r.read(4096)
-        if not d:
-            break
+    assert w.is_closing()
 
 
 # Some recursive function magic below so we can test the config dict with every

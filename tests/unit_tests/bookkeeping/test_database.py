@@ -86,8 +86,8 @@ async def test_queries_get_teams(mock_database):
 @pytest.mark.asyncio
 async def test_queries_missing_teams(mock_database):
     queries = ReplayDatabaseQueries(mock_database)
-    with pytest.raises(BookkeepingError):
-        await queries.get_teams_in_game(1)
+    teams = await queries.get_teams_in_game(1)
+    assert not teams
 
 
 @pytest.mark.asyncio

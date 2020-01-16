@@ -87,7 +87,8 @@ class ReplayDatabaseQueries:
         logger.debug(f"Performing query: {query}")
         players = await self._db.execute(query, (game_id,))
         if not players:
-            raise BookkeepingError("No game players found")
+            logger.warning(
+                f"No players found for game {game_id}, will try to save anyway.")
         teams = {}
         for player in players:
             teams.setdefault(player['team'], []).append(player['login'])

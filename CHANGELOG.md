@@ -1,3 +1,9 @@
+1.0.7 (17.01.2020)
+------------------
+
+* Small logging fixes.
+* We now save replays even if there are no players for it in the db.
+
 1.0.6 (16.10.2019)
 ------------------
 

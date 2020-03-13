@@ -86,7 +86,8 @@ class Replay:
 
     async def _lifetime(self):
         await self.merger.wait_for_ended()
-        logger.debug(f"{self} write phase ended")
+        logger.info((f"All {self} writers are done, handling "
+                     f"{len(self._connections)} remaining readers"))
         await self.bookkeeper.save_replay(self._game_id,
                                           self.merger.canonical_stream)
         await self.sender.wait_for_ended()

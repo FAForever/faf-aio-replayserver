@@ -45,7 +45,7 @@ class Connection:
             await self.writer.drain()
         except ConnectionResetError:
             return False
-        except ConnectionError as e:
+        except (TimeoutError, ConnectionError, OSError) as e:
             raise MalformedDataError(f"Connection error: {short_exc(e)}")
         return True
 

@@ -127,8 +127,6 @@ class ReplayDatabaseQueries:
         player_count = player_count[0]['COUNT(*)']
         if not game_stats:
             raise BookkeepingError(f"No stats found for game {game_id}")
-        if player_count == 0:
-            raise BookkeepingError(f"No players found for game {game_id}")
         start_time = game_stats[0]['start_time'].timestamp()
 
         # 'mapname' is a filename on the content server containing the map

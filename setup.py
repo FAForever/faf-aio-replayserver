@@ -16,7 +16,7 @@ setup(
     long_description=long_desc,
     classifiers=[
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
     ],
     author="Igor Kotrasiński, Konstantin Kalinovsky",
     author_email="i.kotrasinsk@gmail.com",

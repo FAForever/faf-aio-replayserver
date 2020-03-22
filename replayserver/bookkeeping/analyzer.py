@@ -1,14 +1,8 @@
-from fafreplay import Parser, ReplayReadError, commands
+from fafreplay import ReplayReadError, body_ticks
 from replayserver.errors import BookkeepingError
 
 
 class ReplayAnalyzer:
-    def __init__(self):
-        self._parser = Parser(
-            commands=[commands.Advance],
-            save_commands=False
-        )
-
     def get_replay_ticks(self, data):
         """Parse the replay data and extract the total number of ticks
 
@@ -21,8 +15,6 @@ class ReplayAnalyzer:
             raise BookkeepingError("No replay data")
 
         try:
-            replay_body = self._parser.parse_body(bytes(data))
-
-            return replay_body["sim"]["tick"]
+            return body_ticks(data)
         except ReplayReadError as e:
             raise BookkeepingError(f"Failed to parse replay: {e}")

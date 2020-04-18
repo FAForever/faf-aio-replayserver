@@ -1,3 +1,10 @@
+1.0.8 (18.04.2020)
+------------------
+* Fix games with no players in the db *still* not being saved.
+* Catch some more stray connection exceptions.
+* Rust replay parser update.
+* Log the moment all replay writers finish.
+
 1.0.7 (17.01.2020)
 ------------------
 

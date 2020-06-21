@@ -1,3 +1,8 @@
+1.0.9 (21.06.2020)
+------------------
+* Fix uncaught exception when calling wait\_closed.
+* Add some extra logging of replay and sent data length.
+
 1.0.8 (18.04.2020)
 ------------------
 * Fix games with no players in the db *still* not being saved.

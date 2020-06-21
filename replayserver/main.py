@@ -17,6 +17,9 @@ from replayserver.logging import logger
 __all__ = ["main"]
 
 
+VERSION = "1.0.8"
+
+
 def get_program_config():
     sources = [ConfigOSEnv()]
     if "RS_CONFIG_FILE" in os.environ:
@@ -39,6 +42,7 @@ def setup_signal_handler(server, loop):
 
 
 def main():
+    logger.info(f"FAF replay server version {VERSION} starting")
     try:
         config = get_program_config()
     except ConfigurationError:

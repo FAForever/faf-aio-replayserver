@@ -1,4 +1,5 @@
 from replayserver.common import ServesConnections
+from replayserver.logging import logger
 
 
 class ReplayStreamWriter:
@@ -31,6 +32,9 @@ class ReplayStreamWriter:
             conn_open = await connection.write(data)
             if not conn_open:
                 break
+
+        logger.info((f"Finished writing to {connection}, "
+                     f"sent {position} data bytes total"))
 
 
 class Sender(ServesConnections):

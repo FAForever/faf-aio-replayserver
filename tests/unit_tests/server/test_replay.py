@@ -32,7 +32,8 @@ def mock_merger(blockable_coroutines):
     return asynctest.Mock(spec=M,
                           wait_for_ended=ended_wait,
                           no_connections_for=conns_wait,
-                          handle_connection=handled_wait)
+                          handle_connection=handled_wait,
+                          canonical_stream=asynctest.MagicMock())
 
 
 @pytest.fixture

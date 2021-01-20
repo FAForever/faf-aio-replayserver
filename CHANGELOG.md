@@ -1,3 +1,7 @@
+1.1.0 (21.01.2021)
+------------------
+* Switch to zstd compression.
+
 1.0.9 (21.06.2020)
 ------------------
 * Fix uncaught exception when calling wait\_closed.

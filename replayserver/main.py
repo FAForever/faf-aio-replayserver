@@ -17,7 +17,7 @@ from replayserver.logging import logger
 __all__ = ["main"]
 
 
-VERSION = "1.0.9"
+VERSION = "1.1.0"
 
 
 def get_program_config():

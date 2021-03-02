@@ -43,7 +43,7 @@ class ReplaySaver:
         self._database = database
         # TODO - consider multi-threaded compression if we end up needing more
         # performance.
-        self._compressor = zstd.ZstdCompressor(level=10,
+        self._compressor = zstd.ZstdCompressor(level=19,
                                                write_checksum=True)
         self._compressor_lock = threading.Lock()
 

@@ -26,7 +26,7 @@ jobs:
               uses: actions/checkout@v2
               with:
                   repository: FAForever/faf-stack
-                  ref: v21.2.27
+                  ref: v21.3.16
                   path: faf-stack
             - name: "Initialize faf-stack db"
               run: |

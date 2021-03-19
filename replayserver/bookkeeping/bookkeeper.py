@@ -34,13 +34,17 @@ class Bookkeeper:
             await self._saver.save_replay(game_id, stream)
             logger.debug(f"Saved replay {game_id}")
             metrics.saved_replays.inc()
+            replay_available = True
         except BookkeepingError as e:
             logger.warning(f"Failed to save replay for game {game_id}: {e}")
+            replay_available = False
 
         try:
             logger.debug(f"Analyzing replay {game_id}")
             ticks = self._analyzer.get_replay_ticks(stream.data.bytes())
             logger.debug(f"Updating tick count for game {game_id}")
-            await self._queries.update_game_stats(game_id, ticks)
         except BookkeepingError as e:
             logger.warning(f"Failed to analyze replay for game {game_id}: {e}")
+            ticks = None
+
+        await self._queries.update_game_stats(game_id, ticks, replay_available)

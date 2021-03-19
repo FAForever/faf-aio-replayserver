@@ -157,14 +157,15 @@ class ReplayDatabaseQueries:
             'num_players': player_count
         }
 
-    async def update_game_stats(self, game_id, replay_ticks):
+    async def update_game_stats(self, game_id, replay_ticks, replay_available):
         query = """
             UPDATE `game_stats` SET
-                `game_stats`.`replay_ticks` = %s
+                `game_stats`.`replay_ticks` = %s,
+                `game_stats`.`replay_available` = %s
             WHERE `game_stats`.`id` = %s
         """
         logger.debug(f"Performing query: {query}")
-        await self._db.execute(query, ((replay_ticks, game_id),))
+        await self._db.execute(query, ((replay_ticks, game_id, replay_available),))
 
     async def get_mod_versions(self, mod):
         query = """

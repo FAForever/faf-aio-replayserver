@@ -36,7 +36,7 @@ class MockDatabase:
                     await cur.execute(query, *params)
                     return await cur.fetchall()
         except (DatabaseError, RuntimeError) as e:
-            raise BookkeepingError from e
+            raise BookkeepingError(f"Failed to execute query: {e}")
 
     async def stop(self):
         pass

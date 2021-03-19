@@ -121,9 +121,8 @@ async def db_mock_special_games(cursor):
              `gamemod`, `host`, `mapid`, `gamename`, `validity`)
         VALUES
             ({SPECIAL_GAME_NO_END_TIME_ID}, '2001-01-01 00:00:00', NULL,
-             '0', 1, 1, 1, "Name of the game", 1)
+             '0', 1, 1, {MAP_VERSION_ID_OFFSET + 1}, "Name of the game", 1)
     """)
-    # An otherwise valid game must have players
     await cursor.execute(f"""
         INSERT INTO `game_player_stats`
             (`id`, `gameid`, `playerid`, `ai`, `faction`,
@@ -140,16 +139,7 @@ async def db_mock_special_games(cursor):
              `gamemod`, `host`, `mapid`, `gamename`, `validity`)
         VALUES
             ({SPECIAL_GAME_MISSING_MAP_ID}, '2001-01-01 00:00:00',
-             '2001-01-01 01:00:00', '0', 1, 1, 11000, "Name of the game", 1)
-    """)
-    # An otherwise valid game must have players
-    await cursor.execute(f"""
-        INSERT INTO `game_player_stats`
-            (`id`, `gameid`, `playerid`, `ai`, `faction`,
-             `color`, `team`, `place`, `mean`, `deviation`)
-        VALUES
-            (NULL, {SPECIAL_GAME_MISSING_MAP_ID}, 1, False, 1,
-             1, 1, 1, 0, 0)
+             '2001-01-01 01:00:00', '0', 1, 1, NULL, "Name of the game", 1)
     """)
 
 

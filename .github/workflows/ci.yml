@@ -1,0 +1,42 @@
+name: CI
+on:
+    push:
+        branches: [master]
+    pull_request:
+        branches: [master]
+
+jobs:
+    build_and_test:
+        runs-on: ubuntu-latest
+        env:
+            FAF_STACK_DB_IP: 127.0.0.1
+        steps:
+            - uses: actions/checkout@v2
+            - uses: actions/setup-python@v2
+              with:
+                  python-version: 3.7
+            - name: "Install python dependencies"
+              run: |
+                python -m pip install --upgrade pip
+                pip3 install -r requirements/main-pinned.txt
+                pip3 install -r requirements/test-pinned.txt
+
+            # Setup faf-stack
+            - name: "Checkout faf-stack"
+              uses: actions/checkout@v2
+              with:
+                  repository: FAForever/faf-stack
+                  ref: v21.2.27
+                  path: faf-stack
+            - name: "Initialize faf-stack db"
+              run: |
+                cd faf-stack
+                cp -r config.template config
+                cp -r .env.template .env
+                ./scripts/init-db.sh
+            - run: python ./tests/db_setup.py
+
+            - name: "Build and run tests"
+              run: |
+                python -m pytest -v --cov=replayserver tests
+                sphinx-build -b text doc _docbuild

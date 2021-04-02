@@ -165,7 +165,7 @@ class ReplayDatabaseQueries:
             WHERE `game_stats`.`id` = %s
         """
         logger.debug(f"Performing query: {query}")
-        await self._db.execute(query, ((replay_ticks, game_id, replay_available),))
+        await self._db.execute(query, ((replay_ticks, replay_available, game_id),))
 
     async def get_mod_versions(self, mod):
         query = """

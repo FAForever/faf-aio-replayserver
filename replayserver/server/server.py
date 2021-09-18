@@ -38,6 +38,11 @@ class ServerConfig(config.Config):
                     "by lifetime of its replay, so no further configuration "
                     "is needed.")
         },
+        "connection_linger_time": {
+            "parser": config.positive_int,
+            "doc": ("Time in seconds to keep connection open after sending all "
+                    "the data. Needed for FA to properly receive all data.")
+        }
     }
 
 
@@ -101,7 +106,8 @@ class Server:
         conns = Connections.build(replays,
                                   config.server.connection_header_read_timeout)
         producer = dep_connection_producer(conns.handle_connection,
-                                           config.server.port)
+                                           config.server.port,
+                                           config.server.connection_linger_time)
         return cls(producer, database, conns, replays, bookkeeper,
                    config.server.prometheus_port)
 

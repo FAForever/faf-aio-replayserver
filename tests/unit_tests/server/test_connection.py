@@ -45,7 +45,7 @@ def rw_pairs_with_data(event_loop, mock_stream_writers):
 async def test_connection_init(event_loop, mock_stream_writers):
     r = StreamReader(loop=event_loop)
     w = mock_stream_writers()
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     assert connection.reader is r
     assert connection.writer is w
     # Did we screw up __str__?
@@ -58,7 +58,7 @@ async def test_connection_init(event_loop, mock_stream_writers):
 @timeout(1)
 async def test_connection_read(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"foo")
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     data = await connection.read(10)
     assert data == b"foo"
     data = await connection.read(10)
@@ -69,7 +69,7 @@ async def test_connection_read(rw_pairs_with_data):
 @timeout(1)
 async def test_connection_read_exception(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"", exc=ConnectionError)
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     with pytest.raises(MalformedDataError):
         await connection.read(10)
 
@@ -78,7 +78,7 @@ async def test_connection_read_exception(rw_pairs_with_data):
 @timeout(1)
 async def test_connection_readuntil(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"some string\0and some other string")
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     data = await connection.readuntil(b"\0")
     assert data == b"some string\0"
 
@@ -87,7 +87,7 @@ async def test_connection_readuntil(rw_pairs_with_data):
 @timeout(1)
 async def test_connection_readuntil_exception(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"bcd", exc=ConnectionError)
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     with pytest.raises(MalformedDataError):
         await connection.readuntil(b"a")
 
@@ -96,7 +96,7 @@ async def test_connection_readuntil_exception(rw_pairs_with_data):
 @timeout(1)
 async def test_connection_readuntil_no_delim(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"some unterminated string")
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     with pytest.raises(MalformedDataError):
         await connection.readuntil(b"\0")
 
@@ -105,7 +105,7 @@ async def test_connection_readuntil_no_delim(rw_pairs_with_data):
 @timeout(1)
 async def test_connection_readuntil_over_limit(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"some terminated string\0", limit=10)
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     with pytest.raises(MalformedDataError):
         await connection.readuntil(b"\0")
 
@@ -114,7 +114,7 @@ async def test_connection_readuntil_over_limit(rw_pairs_with_data):
 @timeout(1)
 async def test_connection_readexactly(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"something long")
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     data = await connection.readexactly(9)
     assert data == b"something"
     data = await connection.readexactly(3)
@@ -125,7 +125,7 @@ async def test_connection_readexactly(rw_pairs_with_data):
 @timeout(1)
 async def test_connection_readexactly_exception(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"bcd", exc=ConnectionError)
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     with pytest.raises(MalformedDataError):
         await connection.readexactly(10)
 
@@ -134,7 +134,7 @@ async def test_connection_readexactly_exception(rw_pairs_with_data):
 @timeout(1)
 async def test_connection_readexactly_too_big(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"something")
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     with pytest.raises(MalformedDataError):
         await connection.readexactly(32)
 
@@ -146,7 +146,7 @@ async def test_connection_readexactly_too_big(rw_pairs_with_data):
 @timeout(1)
 async def test_connection_rw(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"some_data")
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
 
     data = await connection.read(4096)
     assert data == b"some_data"
@@ -160,7 +160,7 @@ async def test_connection_rw(rw_pairs_with_data):
 async def test_connection_write_exception(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"some_data")
     w.write.side_effect = ConnectionError
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     with pytest.raises(MalformedDataError):
         await connection.write(b"other_data")
 
@@ -169,13 +169,13 @@ async def test_connection_write_exception(rw_pairs_with_data):
 async def test_connection_wait_closed_exceptions(rw_pairs_with_data):
     r, w = rw_pairs_with_data(b"some_data")
     w.wait_closed.side_effect = ConnectionError
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     connection.close()
     await connection.wait_closed()
 
     r, w = rw_pairs_with_data(b"some_data")
     w.wait_closed.side_effect = TimeoutError
-    connection = Connection(r, w)
+    connection = Connection(r, w, 0.1)
     connection.close()
     await connection.wait_closed()
 

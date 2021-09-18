@@ -7,7 +7,7 @@ from replayserver.server.connectionproducer import ConnectionProducer
 
 
 @pytest.mark.asyncio
-@timeout(0.1)
+@timeout(0.2)
 async def test_producer_sanity_check(unused_tcp_port):
     check_ran = Event()
 
@@ -20,7 +20,7 @@ async def test_producer_sanity_check(unused_tcp_port):
         await connection.wait_closed()
         check_ran.set()
 
-    prod = ConnectionProducer(check, unused_tcp_port)
+    prod = ConnectionProducer(check, unused_tcp_port, 0.1)
     await prod.start()
 
     r, w = await asyncio.open_connection('127.0.0.1', unused_tcp_port)

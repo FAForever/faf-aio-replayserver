@@ -11,14 +11,15 @@ class ConnectionProducer:
     Hence, no DI.
     """
 
-    def __init__(self, callback, server_port):
+    def __init__(self, callback, server_port, connection_linger_time):
         self._server = None
         self._server_port = server_port
         self._callback = callback
+        self._conn_linger_time = connection_linger_time
 
     @classmethod
-    def build(cls, callback, server_port):
-        return cls(callback, server_port)
+    def build(cls, callback, server_port, connection_linger_time):
+        return cls(callback, server_port, connection_linger_time)
 
     async def start(self):
         self._server = await asyncio.streams.start_server(
@@ -35,7 +36,7 @@ class ConnectionProducer:
         # data accumulates and everything is sent, and until then the game
         # won't load the map and appear frozen.
         writer.transport.set_write_buffer_limits(0)
-        connection = Connection(reader, writer)
+        connection = Connection(reader, writer, self._conn_linger_time)
         await self._callback(connection)
 
     async def stop(self):

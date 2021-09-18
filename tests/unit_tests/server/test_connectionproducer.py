@@ -16,7 +16,7 @@ async def test_connectionproducer_connections_work():
         await conn.write(b"foo")
         handle_done.set()
 
-    c = ConnectionProducer(handle_conn, 6660)
+    c = ConnectionProducer(handle_conn, 6660, 0.1)
     await c.start()
 
     r, w = await asyncio.open_connection('127.0.0.1', 6660)
@@ -35,7 +35,7 @@ async def test_connectionproducer_connections_wont_accept_after_closing():
     async def handle_conn(conn):
         handle_done.set()
 
-    c = ConnectionProducer(handle_conn, 6663)
+    c = ConnectionProducer(handle_conn, 6663, 0.1)
     await c.start()
 
     r, w = await asyncio.open_connection('127.0.0.1', 6663)
@@ -57,14 +57,14 @@ async def test_connection_closes_immediately_no_data():
         await conn.read(10)
         handle_done.set()
 
-    c = ConnectionProducer(handle_conn, 6661)
+    c = ConnectionProducer(handle_conn, 6661, 0.1)
     await c.start()
 
     r, w = await asyncio.open_connection('127.0.0.1', 6661)
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.2)
     handled_conn.close()
     await handled_conn.wait_closed()
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.2)
     assert handle_done.is_set()
 
 
@@ -90,7 +90,7 @@ async def test_connection_closes_does_not_allow_more_data():
         assert data == b"foo" * 5
         handle_done.set()
 
-    c = ConnectionProducer(handle_conn, 6662)
+    c = ConnectionProducer(handle_conn, 6662, 0.1)
     await c.start()
     r, w = await asyncio.open_connection('127.0.0.1', 6662)
 

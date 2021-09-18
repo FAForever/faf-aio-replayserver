@@ -6,12 +6,14 @@ from replayserver.logging import short_exc
 
 
 class Connection:
-    def __init__(self, reader, writer):
+    def __init__(self, reader, writer, linger_time):
         self.reader = reader
         self.writer = writer
         self._closed = False
         self._header = None
         self._closed_by_us = False
+        self._closing_coro = None
+        self._linger_time = linger_time
 
     async def read(self, size):
         try:
@@ -49,11 +51,27 @@ class Connection:
             raise MalformedDataError(f"Connection error: {short_exc(e)}")
         return True
 
-    def close(self):
+    def close(self, immediate=False):
+        if immediate:
+            self._do_close()
+        elif self._closing_coro is None:
+            self._closing_coro = asyncio.ensure_future(self._delayed_close())
+
+    async def _delayed_close(self):
+        # HACK - I suspect FA has a bug where it fails to process all the data
+        # before the connection to the server ends. I don't know how since it's
+        # TCP, but let's try and verify this.
+        await asyncio.sleep(self._linger_time)
+        self._do_close()
+
+    def _do_close(self):
+        if self._closed:
+            return
         self._closed = True
         self._closed_by_us = True
         self.writer.close()
         # Reader and writer share a transport, so no need to close reader.
+
 
     async def wait_closed(self):
         try:

@@ -14,7 +14,8 @@ config_dict = {
     "server": {
         "port": 15000,
         "prometheus_port": "None",
-        "connection_header_read_timeout": 6 * 60 * 60
+        "connection_header_read_timeout": 6 * 60 * 60,
+        "connection_linger_time": 1,
     },
     "db": {
         "host": docker_faf_db_config["host"],

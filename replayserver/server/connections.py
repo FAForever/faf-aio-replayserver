@@ -57,7 +57,7 @@ class Connections:
     async def close_all(self):
         logger.info("Closing all connections")
         for c in self._connections:
-            c.close()
+            c.close(immediate=True)
         if self._connections:
             await asyncio.wait(
                 [connection.wait_closed() for connection in self._connections])

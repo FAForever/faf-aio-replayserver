@@ -1,3 +1,8 @@
+1.1.4 (18.09.2021)
+------------------
+* Keep connections open for some time after sending all data in hopes of
+  squashing the short replay bug.
+
 1.1.0 (21.01.2021)
 ------------------
 * Switch to zstd compression.

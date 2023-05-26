@@ -1,6 +1,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/FAForever/faf-aio-replayserver/badge.svg?branch=master)](https://coveralls.io/github/FAForever/faf-aio-replayserver?branch=master)
 
-**Deprecation Notice:** Due to the limits of Python only using one core and general low Python performance on non-C modules, the aio-replayserver has been superseded by its [Rust variant](https://github.com/FAForever/faf-rust-replayserver). This server still works as is without major flaws as has served us for multiple years.
+**Deprecation Notice:** Due to the limits of Python only using one core and general low Python performance on non-C modules, the aio-replayserver has been superseded by its [Rust variant](https://github.com/FAForever/faf-rust-replayserver). This server still works as is without major flaws and has served us for multiple years.
 
 
 FAF replay server
